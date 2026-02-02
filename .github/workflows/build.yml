@@ -186,6 +186,26 @@ jobs:
           kubectl get pods -A
           kubectl logs -n zigflow deploy/zigflow --all-containers=true || true
 
+  test-ui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Tests
+        run: |
+          npm run lint
+          npm run check
+
   # Generate metadata shared across all build jobs
   metadata:
     runs-on: ubuntu-latest
@@ -195,6 +215,7 @@ jobs:
       - helm
       - pre-commit
       - test
+      - test-ui
     outputs:
       is_tag: ${{ steps.branch-name.outputs.is_tag }}
       tag: ${{ steps.branch-name.outputs.tag }}
@@ -314,6 +335,119 @@ jobs:
         if: needs.metadata.outputs.push == 'true'
         run: |
           REPO_LOWER="ghcr.io/${GITHUB_REPOSITORY,,}"
+
+          # Build list of source images based on platforms
+          SOURCE_IMAGES="${REPO_LOWER}:${GITHUB_SHA}-linux-amd64"
+
+          # Add arm64 only if it was built (tags only)
+          if [ "${{ needs.metadata.outputs.is_tag }}" = "true"  ];
+          then
+            SOURCE_IMAGES="${SOURCE_IMAGES} ${REPO_LOWER}:${GITHUB_SHA}-linux-arm64"
+          fi
+
+          # Determine target tags based on ref type
+          if [ "${{ needs.metadata.outputs.is_tag }}" = "true"  ];
+          then
+            # For tags: choose latest/prerelease + version tag + SHA based on pre-release status
+            if [ "${{ needs.metadata.outputs.is_prerelease }}" = "true" ]; then
+              TARGET_TAGS="${REPO_LOWER}:prerelease ${REPO_LOWER}:${{ needs.metadata.outputs.tag }} ${REPO_LOWER}:${GITHUB_SHA}"
+            else
+              TARGET_TAGS="${REPO_LOWER}:latest ${REPO_LOWER}:${{ needs.metadata.outputs.tag }} ${REPO_LOWER}:${GITHUB_SHA}"
+            fi
+          elif [ "${{ github.ref }}" = "refs/heads/main"  ];
+          then
+            # For main branch: branch-main + SHA
+            TARGET_TAGS="${REPO_LOWER}:branch-main ${REPO_LOWER}:${GITHUB_SHA}"
+          else
+            # For other branches: branch-<name> + SHA
+            BRANCH="${{ needs.metadata.outputs.current_branch }}"
+            BRANCH_TAG="branch-${BRANCH//\//-}"
+            BRANCH_TAG="${BRANCH_TAG,,}"
+            TARGET_TAGS="${REPO_LOWER}:${BRANCH_TAG} ${REPO_LOWER}:${GITHUB_SHA}"
+          fi
+
+          # Create manifest for each target tag
+          for TAG in ${TARGET_TAGS}; do
+            echo "Creating manifest for ${TAG} from: ${SOURCE_IMAGES}"
+            docker buildx imagetools create -t "${TAG}" ${SOURCE_IMAGES}
+          done
+
+  # Build UI Docker images in parallel by architecture
+  docker_ui:
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    needs: metadata
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        if: needs.metadata.outputs.push == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate platform-specific tag
+        id: tag
+        run: |
+          PLATFORM_TAG=$(echo "${{ matrix.platform }}" | sed 's/\//-/g')
+          echo "platform_tag=${PLATFORM_TAG}" >> "$GITHUB_OUTPUT"
+
+          # Image name with SHA-based tag for this platform
+          echo "image_ref=ghcr.io/${GITHUB_REPOSITORY,,}/ui:${GITHUB_SHA}-${PLATFORM_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ui
+          build-args: |
+            GIT_COMMIT=${{ needs.metadata.outputs.commit_id }}
+            GIT_REPO=${{ needs.metadata.outputs.git_repo }}
+            VERSION=${{ needs.metadata.outputs.version }}
+          platforms: ${{ matrix.platform }}
+          push: ${{ needs.metadata.outputs.push }}
+          tags: ${{ steps.tag.outputs.image_ref }}
+          # Save as artifact for non-main branches
+          outputs: ${{ needs.metadata.outputs.push == 'false' && 'type=docker,dest=/tmp/zigflow-ui-image.tar' || '' }}
+
+      - name: Upload image artifact
+        if: needs.metadata.outputs.push == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: zigflow-ui-image-${{ steps.tag.outputs.platform_tag }}
+          path: /tmp/zigflow-ui-image.tar
+          retention-days: 1
+
+  # Combine UI architecture-specific images into a multi-arch manifest
+  docker_ui_manifest:
+    runs-on: ubuntu-latest
+    needs:
+      - metadata
+      - docker_ui
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        if: needs.metadata.outputs.push == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate manifest tags and create manifest
+        if: needs.metadata.outputs.push == 'true'
+        run: |
+          REPO_LOWER="ghcr.io/${GITHUB_REPOSITORY,,}/ui"
 
           # Build list of source images based on platforms
           SOURCE_IMAGES="${REPO_LOWER}:${GITHUB_SHA}-linux-amd64"
