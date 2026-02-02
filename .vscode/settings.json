@@ -17,10 +17,17 @@
   "go.lintFlags": [
     "--fast"
   ],
+  "prettier.prettierPath": "ui/node_modules/prettier/index.cjs",
   "[javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[svelte]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   }
 }
