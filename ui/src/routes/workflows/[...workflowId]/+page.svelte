@@ -20,6 +20,8 @@
   import type { PageData } from './$types';
   import Sidebar from '$lib/ui/Sidebar.svelte';
   import FlowCanvas from '$lib/ui/FlowCanvas.svelte';
+  import NodeSettings from '$lib/ui/NodeSettings.svelte';
+  import type { Node, Edge } from '$lib/types/flow';
 
   let { data }: { data: PageData } = $props();
 
@@ -28,7 +30,7 @@
   let nodeId = $state(5); // Counter for generating unique node IDs
 
   // Initial nodes
-  let nodes = $state([
+  let nodes = $state<Node[]>([
     {
       id: '1',
       type: 'input',
@@ -54,12 +56,20 @@
   ]);
 
   // Initial edges
-  let edges = $state([
+  let edges = $state<Edge[]>([
     { id: 'e1-2', source: '1', target: '2' },
     { id: 'e1-3', source: '1', target: '3' },
     { id: 'e2-4', source: '2', target: '4' },
     { id: 'e3-4', source: '3', target: '4' },
   ]);
+
+  // Track selected node
+  const selectedNode = $derived(nodes.find((node) => node.selected));
+
+  // Handle closing the settings panel by deselecting all nodes
+  function handleCloseSettings() {
+    nodes = nodes.map((node) => ({ ...node, selected: false }));
+  }
 </script>
 
 <div class="workflow-editor">
@@ -72,6 +82,9 @@
     <div class="editor-layout">
       <Sidebar />
       <FlowCanvas bind:nodes bind:edges bind:nodeId />
+      {#if selectedNode}
+        <NodeSettings node={selectedNode} onClose={handleCloseSettings} />
+      {/if}
     </div>
   </SvelteFlowProvider>
 </div>

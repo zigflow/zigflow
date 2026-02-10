@@ -23,20 +23,7 @@
     useSvelteFlow,
   } from '@xyflow/svelte';
   import { onMount } from 'svelte';
-
-  type Node = {
-    id: string;
-    type?: string;
-    data: { label: string };
-    position: { x: number; y: number };
-    selected?: boolean;
-  };
-
-  type Edge = {
-    id: string;
-    source: string;
-    target: string;
-  };
+  import type { Node, Edge } from '$lib/types/flow';
 
   let {
     nodes = $bindable(),
@@ -49,6 +36,24 @@
   } = $props();
 
   const { screenToFlowPosition, getNodes } = useSvelteFlow();
+
+  // Watch for node selection changes and sync to parent state
+  let lastSelectedIds = '';
+
+  $effect(() => {
+    const currentNodes = getNodes();
+    const selectedIds = currentNodes
+      .filter((n) => n.selected)
+      .map((n) => n.id)
+      .sort()
+      .join(',');
+
+    // Only update if selection actually changed
+    if (selectedIds !== lastSelectedIds) {
+      lastSelectedIds = selectedIds;
+      nodes = currentNodes as Node[];
+    }
+  });
 
   function onDragOver(event: DragEvent) {
     event.preventDefault();
