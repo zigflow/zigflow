@@ -15,13 +15,17 @@
   -->
 
 <script lang="ts">
-  import { SvelteFlow, Controls, Background, MiniMap } from '@xyflow/svelte';
+  import { SvelteFlowProvider } from '@xyflow/svelte';
   import '@xyflow/svelte/dist/style.css';
   import type { PageData } from './$types';
+  import Sidebar from '$lib/ui/Sidebar.svelte';
+  import FlowCanvas from '$lib/ui/FlowCanvas.svelte';
 
   let { data }: { data: PageData } = $props();
 
   const workflowId = $derived(data.workflowId);
+
+  let nodeId = $state(5); // Counter for generating unique node IDs
 
   // Initial nodes
   let nodes = $state([
@@ -58,32 +62,46 @@
   ]);
 </script>
 
-<div class="flex-col h-screen container">
+<div class="workflow-editor">
   <header>
     <h1>Workflow Editor</h1>
     <p>Workflow ID: <code>{workflowId}</code></p>
   </header>
 
-  <div class="flow-wrapper">
-    <SvelteFlow {nodes} {edges} fitView>
-      <Controls />
-      <Background />
-      <MiniMap />
-    </SvelteFlow>
-  </div>
+  <SvelteFlowProvider>
+    <div class="editor-layout">
+      <Sidebar />
+      <FlowCanvas bind:nodes bind:edges bind:nodeId />
+    </div>
+  </SvelteFlowProvider>
 </div>
 
 <style lang="scss">
   @use '../../../styles/tokens' as *;
 
-  header {
-    padding: $spacing-md 0;
+  .workflow-editor {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
 
-  .flow-wrapper {
+  header {
+    padding: $spacing-lg;
+    border-bottom: 1px solid $color-border;
+    background-color: $color-bg;
+
+    h1 {
+      margin: 0 0 $spacing-xs 0;
+    }
+
+    p {
+      margin: 0;
+    }
+  }
+
+  .editor-layout {
     flex: 1;
-    border: 1px solid $color-border;
-    border-radius: $radius-md;
+    display: flex;
     overflow: hidden;
   }
 </style>
