@@ -1,0 +1,90 @@
+/*
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/mrsimonemms/zigflow/graphs/contributors>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// Svelte Flow theme overrides
+
+@use './tokens' as *;
+
+.svelte-flow {
+  background-color: $color-bg-alt;
+
+  // Nodes
+  .svelte-flow__node {
+    border-radius: $radius-md;
+    border: 2px solid $color-border;
+    background-color: $color-bg;
+    font-family: $font-family;
+    font-size: $font-size-sm;
+    box-shadow: $shadow-sm;
+    transition:
+      box-shadow $transition-fast,
+      border-color $transition-fast;
+
+    &:hover {
+      box-shadow: $shadow-md;
+    }
+
+    &.selected {
+      border-color: $color-primary;
+      box-shadow: $shadow-md;
+    }
+  }
+
+  // Input nodes
+  .svelte-flow__node-input {
+    border-color: $color-success;
+    font-weight: $font-weight-medium;
+  }
+
+  // Output nodes
+  .svelte-flow__node-output {
+    border-color: $color-danger;
+    font-weight: $font-weight-medium;
+  }
+
+  // Edges
+  .svelte-flow__edge {
+    &.selected {
+      .svelte-flow__edge-path {
+        stroke: $color-primary;
+      }
+    }
+  }
+
+  // Controls
+  .svelte-flow__controls {
+    button {
+      background-color: $color-bg;
+      border: 1px solid $color-border;
+      border-radius: $radius-sm;
+      transition:
+        background-color $transition-fast,
+        border-color $transition-fast;
+
+      &:hover {
+        background-color: $color-bg-alt;
+        border-color: $color-primary;
+      }
+    }
+  }
+
+  // MiniMap
+  .svelte-flow__minimap {
+    background-color: $color-bg;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+  }
+}

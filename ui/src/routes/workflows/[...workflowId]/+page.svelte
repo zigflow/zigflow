@@ -58,9 +58,11 @@
   ]);
 </script>
 
-<div class="workflow-container">
-  <h1>Workflow Editor</h1>
-  <p>Workflow ID: <code>{workflowId}</code></p>
+<div class="flex-col h-screen container">
+  <header>
+    <h1>Workflow Editor</h1>
+    <p>Workflow ID: <code>{workflowId}</code></p>
+  </header>
 
   <div class="flow-wrapper">
     <SvelteFlow {nodes} {edges} fitView>
@@ -71,26 +73,17 @@
   </div>
 </div>
 
-<style>
-  .workflow-container {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    padding: 1rem;
+<style lang="scss">
+  @use '../../../styles/tokens' as *;
+
+  header {
+    padding: $spacing-md 0;
   }
 
   .flow-wrapper {
     flex: 1;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
     overflow: hidden;
-  }
-
-  h1 {
-    margin: 0 0 0.5rem 0;
-  }
-
-  p {
-    margin: 0 0 1rem 0;
   }
 </style>
