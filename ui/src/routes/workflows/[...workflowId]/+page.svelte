@@ -15,13 +15,14 @@
   -->
 
 <script lang="ts">
-  import { SvelteFlowProvider } from '@xyflow/svelte';
-  import '@xyflow/svelte/dist/style.css';
-  import type { PageData } from './$types';
-  import Sidebar from '$lib/ui/Sidebar.svelte';
+  import type { Edge, Node } from '$lib/types/flow';
   import FlowCanvas from '$lib/ui/FlowCanvas.svelte';
   import NodeSettings from '$lib/ui/NodeSettings.svelte';
-  import type { Node, Edge } from '$lib/types/flow';
+  import Sidebar from '$lib/ui/Sidebar.svelte';
+  import { SvelteFlowProvider } from '@xyflow/svelte';
+  import '@xyflow/svelte/dist/style.css';
+
+  import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
 
@@ -29,29 +30,31 @@
 
   let nodeId = $state(5); // Counter for generating unique node IDs
 
-  // Initial nodes
+  // Initial nodes - example workflow using Zigflow tasks
   let nodes = $state<Node[]>([
     {
       id: '1',
-      type: 'input',
-      data: { label: 'Start' },
+      type: 'call-http',
+      data: { label: 'Fetch Data' },
       position: { x: 250, y: 0 },
     },
     {
       id: '2',
-      data: { label: 'Task 1' },
-      position: { x: 100, y: 100 },
+      type: 'set',
+      data: { label: 'Transform Data' },
+      position: { x: 100, y: 120 },
     },
     {
       id: '3',
-      data: { label: 'Task 2' },
-      position: { x: 400, y: 100 },
+      type: 'fork',
+      data: { label: 'Process in Parallel' },
+      position: { x: 400, y: 120 },
     },
     {
       id: '4',
-      type: 'output',
-      data: { label: 'End' },
-      position: { x: 250, y: 200 },
+      type: 'wait',
+      data: { label: 'Wait 5s' },
+      position: { x: 250, y: 240 },
     },
   ]);
 

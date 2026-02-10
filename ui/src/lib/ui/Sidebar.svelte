@@ -15,11 +15,10 @@
   -->
 
 <script lang="ts">
-  const nodeTypes = [
-    { type: 'input', label: 'Start', description: 'Workflow entry point' },
-    { type: 'default', label: 'Task', description: 'Generic task node' },
-    { type: 'output', label: 'End', description: 'Workflow exit point' },
-  ];
+  import { getTasks } from '$lib/tasks';
+
+  // Get all available Zigflow tasks
+  const tasks = getTasks();
 
   function onDragStart(event: DragEvent, nodeType: string) {
     if (!event.dataTransfer) return;
@@ -31,35 +30,25 @@
 
 <aside class="sidebar">
   <div class="sidebar-header">
-    <h2>Nodes</h2>
+    <h2>Tasks</h2>
     <p class="subtitle">Drag and drop to add</p>
   </div>
 
   <div class="node-list">
-    {#each nodeTypes as node (node.type)}
+    {#each tasks as task (task.type)}
       <div
         class="node-item"
         role="button"
         tabindex="0"
         draggable="true"
-        ondragstart={(e) => onDragStart(e, node.type)}
+        ondragstart={(e) => onDragStart(e, task.type)}
       >
-        <div
-          class="node-icon"
-          class:input={node.type === 'input'}
-          class:output={node.type === 'output'}
-        >
-          <span class="node-type"
-            >{node.type === 'input'
-              ? '▶'
-              : node.type === 'output'
-                ? '⏹'
-                : '●'}</span
-          >
+        <div class="node-icon">
+          <span class="node-type">●</span>
         </div>
         <div class="node-info">
-          <strong>{node.label}</strong>
-          <span class="description">{node.description}</span>
+          <strong>{task.label}</strong>
+          <span class="description">{task.description}</span>
         </div>
       </div>
     {/each}
@@ -141,16 +130,6 @@
     font-size: $font-size-lg;
     flex-shrink: 0;
     transition: border-color $transition-fast;
-
-    &.input {
-      border-color: $color-success;
-      color: $color-success;
-    }
-
-    &.output {
-      border-color: $color-danger;
-      color: $color-danger;
-    }
   }
 
   .node-info {

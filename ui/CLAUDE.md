@@ -69,7 +69,7 @@ Do not:
 This project uses a small number of **conceptual root directories**.
 Their purpose matters more than their exact contents.
 
-### `src/lib/graph/`
+### `src/lib/tasks/`
 
 Authoritative flow graph model and schema.
 

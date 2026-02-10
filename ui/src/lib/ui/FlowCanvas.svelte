@@ -15,15 +15,15 @@
   -->
 
 <script lang="ts">
+  import type { Edge, Node } from '$lib/types/flow';
   import {
-    SvelteFlow,
-    Controls,
     Background,
+    Controls,
     MiniMap,
+    SvelteFlow,
     useSvelteFlow,
   } from '@xyflow/svelte';
   import { onMount } from 'svelte';
-  import type { Node, Edge } from '$lib/types/flow';
 
   let {
     nodes = $bindable(),
@@ -75,16 +75,29 @@
       y: event.clientY,
     });
 
+    // Generate label based on task type
+    const taskLabels: Record<string, string> = {
+      'call-http': 'HTTP Request',
+      'call-grpc': 'gRPC Call',
+      'call-activity': 'Activity',
+      set: 'Set Variable',
+      emit: 'Emit Event',
+      do: 'Do Tasks',
+      fork: 'Fork',
+      for: 'For Loop',
+      switch: 'Switch',
+      try: 'Try/Catch',
+      raise: 'Raise Error',
+      listen: 'Listen',
+      wait: 'Wait',
+      run: 'Run Process',
+    };
+
     const newNode = {
       id: String(nodeId),
-      type: type === 'default' ? undefined : type,
+      type,
       data: {
-        label:
-          type === 'input'
-            ? 'Start'
-            : type === 'output'
-              ? 'End'
-              : `Task ${nodeId}`,
+        label: taskLabels[type] || `Task ${nodeId}`,
       },
       position,
     };

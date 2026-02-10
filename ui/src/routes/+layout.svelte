@@ -16,6 +16,7 @@
 
 <script lang="ts">
   import favicon from '$lib/assets/favicon.ico';
+
   import '../styles/app.scss';
 
   let { children } = $props();
