@@ -15,6 +15,8 @@
   -->
 
 <script lang="ts">
+  import { resolve } from '$app/paths';
+
   const props = $props();
   const { entries } = props.data;
 </script>
@@ -26,9 +28,9 @@
     <p>Directory empty</p>
   {:else}
     <ul>
-      {#each entries as entry}
+      {#each entries as entry (entry.path)}
         <li>
-          <a href="/workflows/{entry.path}">
+          <a href={resolve(`/workflows/${entry.path}`)}>
             {entry.name}{entry.isDirectory ? '/' : ''}
           </a>
         </li>

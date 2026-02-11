@@ -39,7 +39,7 @@
     "LOG_LEVEL": "trace",
     "ZIGGY_EXAMPLE_ENVVAR": "some-example-envvar",
     "WORKFLOW_FILE": "./workflow.example.yaml",
-    "WORKFLOWS_DATA_DIR": "/workspaces/zigflow/ui/data"
+    "PUBLIC_WORKFLOWS_DATA_DIR": "/workspaces/zigflow/ui/data"
   },
   "forwardPorts": [
     3000,

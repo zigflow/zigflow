@@ -23,13 +23,17 @@ ENV VERSION="${VERSION}"
 COPY --chown=node:node . .
 ENV HOST=0.0.0.0
 ENV PORT=5173
+ENV PUBLIC_WORKFLOWS_DATA_DIR=/home/node/data
 EXPOSE 5173
+VOLUME [ "/home/node/data" ]
 CMD [ "npm", "run", "dev" ]
 
 FROM node:lts-alpine AS builder
 USER node
 WORKDIR /home/node/app
 COPY --from=dev /home/node/app .
+ENV PUBLIC_WORKFLOWS_DATA_DIR=/home/node/data
+VOLUME [ "/home/node/data" ]
 RUN npm ci \
   && npm run build
 
@@ -43,6 +47,7 @@ ENV GIT_COMMIT="${GIT_COMMIT}"
 ENV VERSION="${VERSION}"
 ENV HOST=0.0.0.0
 ENV PORT=3000
+ENV PUBLIC_WORKFLOWS_DATA_DIR=/home/node/data
 COPY --from=builder /home/node/app/build build
 COPY --from=builder /home/node/app/node_modules node_modules
 COPY --from=builder /home/node/app/package.json package.json
@@ -53,4 +58,5 @@ RUN npm prune --production \
   && npm version ${VERSION} --no-git-tag-version --allow-same-version || true
 USER node
 EXPOSE 3000
+VOLUME [ "/home/node/data" ]
 CMD [ "npm", "start" ]

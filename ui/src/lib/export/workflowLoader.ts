@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { WORKFLOWS_DATA_DIR } from '$env/static/private';
-import { readdir, readFile, stat } from 'fs/promises';
+import { env } from '$env/dynamic/public';
+import { readFile, readdir, stat } from 'fs/promises';
 import { join, normalize } from 'path';
 
 export interface DirectoryEntry {
@@ -38,10 +38,10 @@ export async function loadWorkflowFile(workflowPath: string): Promise<string> {
   );
 
   // Construct the full path
-  const fullPath = join(WORKFLOWS_DATA_DIR, normalizedPath);
+  const fullPath = join(env.PUBLIC_WORKFLOWS_DATA_DIR, normalizedPath);
 
   // Verify the resolved path is still within the data directory
-  if (!fullPath.startsWith(WORKFLOWS_DATA_DIR)) {
+  if (!fullPath.startsWith(env.PUBLIC_WORKFLOWS_DATA_DIR)) {
     throw new Error('Invalid workflow path: attempted directory traversal');
   }
 
@@ -67,9 +67,9 @@ export async function isDirectory(workflowPath: string): Promise<boolean> {
     /^(\.\.(\/|\\|$))+/,
     '',
   );
-  const fullPath = join(WORKFLOWS_DATA_DIR, normalizedPath);
+  const fullPath = join(env.PUBLIC_WORKFLOWS_DATA_DIR, normalizedPath);
 
-  if (!fullPath.startsWith(WORKFLOWS_DATA_DIR)) {
+  if (!fullPath.startsWith(env.PUBLIC_WORKFLOWS_DATA_DIR)) {
     throw new Error('Invalid path: attempted directory traversal');
   }
 
@@ -95,9 +95,9 @@ export async function listDirectory(
     /^(\.\.(\/|\\|$))+/,
     '',
   );
-  const fullPath = join(WORKFLOWS_DATA_DIR, normalizedPath);
+  const fullPath = join(env.PUBLIC_WORKFLOWS_DATA_DIR, normalizedPath);
 
-  if (!fullPath.startsWith(WORKFLOWS_DATA_DIR)) {
+  if (!fullPath.startsWith(env.PUBLIC_WORKFLOWS_DATA_DIR)) {
     throw new Error('Invalid path: attempted directory traversal');
   }
 
@@ -108,9 +108,7 @@ export async function listDirectory(
     for (const entry of entries) {
       const entryPath = join(fullPath, entry);
       const stats = await stat(entryPath);
-      const relativePath = workflowPath
-        ? `${workflowPath}/${entry}`
-        : entry;
+      const relativePath = workflowPath ? `${workflowPath}/${entry}` : entry;
 
       directoryEntries.push({
         name: entry,

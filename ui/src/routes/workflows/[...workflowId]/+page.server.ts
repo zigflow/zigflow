@@ -102,5 +102,6 @@ export const load: PageServerLoad = async ({ params }) => {
       ...filteredGraph,
       nodes: enhancedNodes,
     },
+    workflowYaml: workflowContent,
   };
 };
