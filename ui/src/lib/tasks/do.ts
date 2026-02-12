@@ -13,12 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Task } from './task';
+import * as sdk from '@serverlessworkflow/sdk';
 
-export default class DoTask extends Task {
+import { Task, type TaskState } from './task';
+
+export default class DoTask extends Task<
+  InstanceType<typeof sdk.Classes.DoTask>
+> {
   public readonly type = 'do';
   public readonly label = 'Do';
-  public readonly description = 'Sequential tasks';
+  public readonly description = 'Execute a sequence of tasks';
+
+  public getSDKClass(): new (
+    data?: TaskState,
+  ) => InstanceType<typeof sdk.Classes.DoTask> {
+    return sdk.Classes.DoTask;
+  }
 
   public getDefaultSpecificData(): Record<string, unknown> {
     return {

@@ -13,19 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Task } from './task';
+import * as sdk from '@serverlessworkflow/sdk';
 
-export default class RaiseTask extends Task {
+import { Task, type TaskState } from './task';
+
+export default class RaiseTask extends Task<
+  InstanceType<typeof sdk.Classes.RaiseTask>
+> {
   public readonly type = 'raise';
   public readonly label = 'Raise';
-  public readonly description = 'Raise error';
+  public readonly description = 'Raise an error';
+
+  public getSDKClass(): new (
+    data?: TaskState,
+  ) => InstanceType<typeof sdk.Classes.RaiseTask> {
+    return sdk.Classes.RaiseTask;
+  }
 
   public getDefaultSpecificData(): Record<string, unknown> {
     return {
       raise: {
         error: {
-          type: 'example-error',
-          title: 'An error occurred',
+          type: 'https://example.com/errors/my-error',
+          title: 'My Error',
+          status: 500,
         },
       },
     };

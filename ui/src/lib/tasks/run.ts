@@ -13,18 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Task } from './task';
+import * as sdk from '@serverlessworkflow/sdk';
 
-export default class RunTask extends Task {
+import { Task, type TaskState } from './task';
+
+export default class RunTask extends Task<
+  InstanceType<typeof sdk.Classes.RunTask>
+> {
   public readonly type = 'run';
   public readonly label = 'Run';
-  public readonly description = 'Run container/script/workflow';
+  public readonly description = 'Run a container or script';
+
+  public getSDKClass(): new (
+    data?: TaskState,
+  ) => InstanceType<typeof sdk.Classes.RunTask> {
+    return sdk.Classes.RunTask;
+  }
 
   public getDefaultSpecificData(): Record<string, unknown> {
     return {
       run: {
         container: {
-          image: 'example:latest',
+          image: 'alpine:latest',
         },
       },
     };

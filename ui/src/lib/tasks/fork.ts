@@ -13,12 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Task } from './task';
+import * as sdk from '@serverlessworkflow/sdk';
 
-export default class ForkTask extends Task {
+import { Task, type TaskState } from './task';
+
+export default class ForkTask extends Task<
+  InstanceType<typeof sdk.Classes.ForkTask>
+> {
   public readonly type = 'fork';
   public readonly label = 'Fork';
-  public readonly description = 'Parallel execution';
+  public readonly description = 'Execute tasks in parallel';
+
+  public getSDKClass(): new (
+    data?: TaskState,
+  ) => InstanceType<typeof sdk.Classes.ForkTask> {
+    return sdk.Classes.ForkTask;
+  }
 
   public getDefaultSpecificData(): Record<string, unknown> {
     return {

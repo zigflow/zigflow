@@ -13,18 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Task } from './task';
+import * as sdk from '@serverlessworkflow/sdk';
 
-export default class WaitTask extends Task {
+import { Task, type TaskState } from './task';
+
+export default class WaitTask extends Task<
+  InstanceType<typeof sdk.Classes.WaitTask>
+> {
   public readonly type = 'wait';
   public readonly label = 'Wait';
-  public readonly description = 'Delay execution';
+  public readonly description = 'Wait for a duration';
+
+  public getSDKClass(): new (
+    data?: TaskState,
+  ) => InstanceType<typeof sdk.Classes.WaitTask> {
+    return sdk.Classes.WaitTask;
+  }
 
   public getDefaultSpecificData(): Record<string, unknown> {
     return {
-      wait: {
-        seconds: 5,
-      },
+      wait: 'PT1S',
     };
   }
 }

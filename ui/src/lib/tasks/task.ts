@@ -15,68 +15,152 @@
  */
 
 /**
- * Common properties that can appear on any task in the workflow
+ * Task represents a node in the workflow graph.
+ *
+ * Each task type extends this base class and provides:
+ * - Type identification (type, label, description)
+ * - Default configuration (getDefaultData, getDefaultSpecificData)
+ * - Schema validation through SDK classes (getSDKClass, validate)
+ *
+ * The generic parameter T represents the SDK class instance type
+ * (e.g., InstanceType<typeof sdk.Classes.SetTask>).
  */
-export interface CommonTaskData {
-  /** Task name/identifier (the step name in the workflow) */
-  name?: string;
 
-  /** Arbitrary metadata for the task */
-  metadata?: Record<string, unknown>;
-
-  /** Export data from the task */
-  export?: {
-    as: Record<string, unknown>;
-  };
-
-  /** Output transformation for the task result */
-  output?: {
-    as: string;
-  };
-}
+export type TaskState = Record<string, unknown>;
 
 /**
- * Complete task data structure combining common and task-specific properties
+ * Base class for all workflow tasks.
+ *
+ * Responsibilities:
+ * - Define task metadata (type, label, description)
+ * - Provide default task configuration
+ * - Create SDK instances for validation
+ * - Define validation behavior
+ *
+ * Implementation notes:
+ * - Tasks are immutable value objects
+ * - Task state is serializable JSON
+ * - Validation is performed by SDK classes
+ * - Each task type maps to an SDK class
  */
-export interface TaskData {
-  /** Common properties shared by all tasks */
-  common: CommonTaskData;
-  /** Task-specific properties (e.g., for 'set' task: { set: { hello: "world" } }) */
-  specific: Record<string, unknown>;
-}
-
-/**
- * Abstract base class for Zigflow task types based on the Serverless Workflow specification
- */
-export abstract class Task {
+export abstract class Task<T = unknown> {
+  /**
+   * Unique task type identifier (e.g., 'set', 'call-http').
+   */
   public abstract readonly type: string;
+
+  /**
+   * Human-readable task label (e.g., 'Set', 'Call HTTP').
+   */
   public abstract readonly label: string;
+
+  /**
+   * Brief task description for UI display.
+   */
   public abstract readonly description: string;
 
   /**
-   * Get default task-specific data for this task type.
-   * This will be used when creating new nodes in the workflow editor.
-   * @returns Default task-specific data structure
+   * Returns the SDK class constructor for this task type.
+   *
+   * This method is used to:
+   * 1. Create SDK instances for validation
+   * 2. Determine the correct TypeScript type for task data
+   * 3. Enable type-safe task creation and manipulation
+   *
+   * Example:
+   * ```typescript
+   * public getSDKClass() {
+   *   return sdk.Classes.SetTask;
+   * }
+   * ```
+   *
+   * @returns Constructor function for the SDK class
+   */
+  public abstract getSDKClass(): new (data?: TaskState) => T;
+
+  /**
+   * Returns task-specific default configuration.
+   *
+   * This should return only the fields specific to this task type,
+   * not common fields like 'name' or 'if'.
+   *
+   * Example for SetTask:
+   * ```typescript
+   * {
+   *   set: {
+   *     hello: 'world'
+   *   }
+   * }
+   * ```
+   *
+   * @returns Task-specific configuration object
    */
   public abstract getDefaultSpecificData(): Record<string, unknown>;
 
   /**
-   * Get default common data for all tasks.
-   * Can be overridden by subclasses if needed.
-   * @returns Default common data structure
+   * Returns complete default task data including optional common fields.
+   *
+   * This combines optional common fields (metadata, export, output) with
+   * task-specific configuration from getDefaultSpecificData().
+   *
+   * Note: The task name is NOT part of the task state - it's the key in
+   * the workflow's 'do' array (e.g., "step1", "wait", "getUser").
+   *
+   * @returns Complete task configuration object
    */
-  public getDefaultCommonData(): CommonTaskData {
-    return {};
+  public getDefaultData(): TaskState {
+    return {
+      ...this.getDefaultSpecificData(),
+    };
   }
 
   /**
-   * Get complete default task data combining common and specific properties.
-   * @returns Complete default task data
+   * Creates an SDK instance for this task.
+   *
+   * This is the primary method for instantiating SDK classes.
+   * It's used by validate() and can be used by external code
+   * that needs access to SDK instances.
+   *
+   * @param state - Task state to initialize the SDK instance
+   * @returns SDK class instance
    */
-  public getDefaultTaskData(): TaskData {
-    return {
-      common: this.getDefaultCommonData(),
-      specific: this.getDefaultSpecificData(),
-    };
+  public createSDKInstance(state: TaskState): T {
+    const SDKClass = this.getSDKClass();
+    return new SDKClass(state);
+  }
+
+  /**
+   * Validates task state using the SDK class.
+   *
+   * Creates an SDK instance and invokes its validate() method
+   * if available. Throws an error if validation fails.
+   *
+   * Note: This uses a type guard to check for the validate method
+   * rather than using 'any' type assertions.
+   *
+   * @param state - Task state to validate
+   * @throws Error if validation fails
+   */
+  public validate(state: TaskState): void {
+    const instance = this.createSDKInstance(state);
+    // Type guard to check if instance has a validate method
+    if (this.hasValidateMethod(instance)) {
+      instance.validate();
+    }
+  }
+
+  /**
+   * Type guard to check if an object has a validate method.
+   *
+   * @param obj - Object to check
+   * @returns True if object has a validate method
+   */
+  private hasValidateMethod(obj: unknown): obj is { validate: () => void } {
+    return (
+      typeof obj === 'object' &&
+      obj !== null &&
+      'validate' in obj &&
+      typeof (obj as { validate?: unknown }).validate === 'function'
+    );
   }
 }

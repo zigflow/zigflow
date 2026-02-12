@@ -13,19 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Task } from './task';
+import * as sdk from '@serverlessworkflow/sdk';
 
-export default class CallHttpTask extends Task {
+import { Task, type TaskState } from './task';
+
+export default class CallHttpTask extends Task<
+  InstanceType<typeof sdk.Classes.CallHTTP>
+> {
   public readonly type = 'call-http';
   public readonly label = 'Call HTTP';
-  public readonly description = 'HTTP request';
+  public readonly description = 'Make an HTTP request';
+
+  public getSDKClass(): new (
+    data?: TaskState,
+  ) => InstanceType<typeof sdk.Classes.CallHTTP> {
+    return sdk.Classes.CallHTTP;
+  }
 
   public getDefaultSpecificData(): Record<string, unknown> {
     return {
       call: 'http',
       with: {
         method: 'get',
-        endpoint: 'https://example.com',
+        endpoint: {
+          uri: 'https://example.com',
+        },
       },
     };
   }

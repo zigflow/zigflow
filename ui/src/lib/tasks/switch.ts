@@ -13,12 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Task } from './task';
+import * as sdk from '@serverlessworkflow/sdk';
 
-export default class SwitchTask extends Task {
+import { Task, type TaskState } from './task';
+
+export default class SwitchTask extends Task<
+  InstanceType<typeof sdk.Classes.SwitchTask>
+> {
   public readonly type = 'switch';
   public readonly label = 'Switch';
-  public readonly description = 'Conditional branch';
+  public readonly description = 'Conditional branching';
+
+  public getSDKClass(): new (
+    data?: TaskState,
+  ) => InstanceType<typeof sdk.Classes.SwitchTask> {
+    return sdk.Classes.SwitchTask;
+  }
 
   public getDefaultSpecificData(): Record<string, unknown> {
     return {

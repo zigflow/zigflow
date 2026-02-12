@@ -13,19 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Task } from './task';
+import * as sdk from '@serverlessworkflow/sdk';
 
-export default class ListenTask extends Task {
+import { Task, type TaskState } from './task';
+
+export default class ListenTask extends Task<
+  InstanceType<typeof sdk.Classes.ListenTask>
+> {
   public readonly type = 'listen';
   public readonly label = 'Listen';
-  public readonly description = 'Consume events';
+  public readonly description = 'Listen for events';
+
+  public getSDKClass(): new (
+    data?: TaskState,
+  ) => InstanceType<typeof sdk.Classes.ListenTask> {
+    return sdk.Classes.ListenTask;
+  }
 
   public getDefaultSpecificData(): Record<string, unknown> {
     return {
       listen: {
         to: {
           one: {
-            type: 'example.event',
+            with: {},
           },
         },
       },

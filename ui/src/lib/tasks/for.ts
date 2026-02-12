@@ -13,18 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Task } from './task';
+import * as sdk from '@serverlessworkflow/sdk';
 
-export default class ForTask extends Task {
+import { Task, type TaskState } from './task';
+
+export default class ForTask extends Task<
+  InstanceType<typeof sdk.Classes.ForTask>
+> {
   public readonly type = 'for';
   public readonly label = 'For';
-  public readonly description = 'Iterate collection';
+  public readonly description = 'Iterate over a collection';
+
+  public getSDKClass(): new (
+    data?: TaskState,
+  ) => InstanceType<typeof sdk.Classes.ForTask> {
+    return sdk.Classes.ForTask;
+  }
 
   public getDefaultSpecificData(): Record<string, unknown> {
     return {
       for: {
         each: 'item',
-        in: [],
+        in: '${ .items }',
         do: [],
       },
     };

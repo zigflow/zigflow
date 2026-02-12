@@ -13,25 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Task } from './task';
+import * as sdk from '@serverlessworkflow/sdk';
 
-export default class CallGrpcTask extends Task {
+import { Task, type TaskState } from './task';
+
+export default class CallGrpcTask extends Task<
+  InstanceType<typeof sdk.Classes.CallGRPC>
+> {
   public readonly type = 'call-grpc';
   public readonly label = 'Call gRPC';
-  public readonly description = 'gRPC call';
+  public readonly description = 'Call a gRPC service';
+
+  public getSDKClass(): new (
+    data?: TaskState,
+  ) => InstanceType<typeof sdk.Classes.CallGRPC> {
+    return sdk.Classes.CallGRPC;
+  }
 
   public getDefaultSpecificData(): Record<string, unknown> {
     return {
       call: 'grpc',
       with: {
         proto: {
-          source: 'example.proto',
+          uri: 'https://example.com/my-service.proto',
         },
-        service: {
-          name: 'ExampleService',
-          host: 'localhost:50051',
+        host: {
+          uri: 'grpc://localhost:50051',
         },
-        method: 'exampleMethod',
+        method: 'my.package.MyService/MyMethod',
+        arguments: {},
       },
     };
   }
