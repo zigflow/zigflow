@@ -19,4 +19,12 @@ export default class SetTask extends Task {
   public readonly type = 'set';
   public readonly label = 'Set';
   public readonly description = 'Set variables';
+
+  public getDefaultSpecificData(): Record<string, unknown> {
+    return {
+      set: {
+        hello: 'world',
+      },
+    };
+  }
 }

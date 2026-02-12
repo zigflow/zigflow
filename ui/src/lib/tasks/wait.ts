@@ -19,4 +19,12 @@ export default class WaitTask extends Task {
   public readonly type = 'wait';
   public readonly label = 'Wait';
   public readonly description = 'Delay execution';
+
+  public getDefaultSpecificData(): Record<string, unknown> {
+    return {
+      wait: {
+        seconds: 5,
+      },
+    };
+  }
 }

@@ -19,4 +19,13 @@ export default class TryTask extends Task {
   public readonly type = 'try';
   public readonly label = 'Try';
   public readonly description = 'Error handling';
+
+  public getDefaultSpecificData(): Record<string, unknown> {
+    return {
+      try: [],
+      catch: {
+        errors: {},
+      },
+    };
+  }
 }

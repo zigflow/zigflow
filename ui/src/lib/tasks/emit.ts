@@ -19,4 +19,17 @@ export default class EmitTask extends Task {
   public readonly type = 'emit';
   public readonly label = 'Emit';
   public readonly description = 'Publish events';
+
+  public getDefaultSpecificData(): Record<string, unknown> {
+    return {
+      emit: {
+        event: {
+          with: {
+            type: 'example.event',
+            data: {},
+          },
+        },
+      },
+    };
+  }
 }

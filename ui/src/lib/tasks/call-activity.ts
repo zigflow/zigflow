@@ -19,4 +19,13 @@ export default class CallActivityTask extends Task {
   public readonly type = 'call-activity';
   public readonly label = 'Call Activity';
   public readonly description = 'Custom activity';
+
+  public getDefaultSpecificData(): Record<string, unknown> {
+    return {
+      call: 'activity',
+      with: {
+        name: 'myActivity',
+      },
+    };
+  }
 }

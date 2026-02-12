@@ -19,4 +19,14 @@ export default class RunTask extends Task {
   public readonly type = 'run';
   public readonly label = 'Run';
   public readonly description = 'Run container/script/workflow';
+
+  public getDefaultSpecificData(): Record<string, unknown> {
+    return {
+      run: {
+        container: {
+          image: 'example:latest',
+        },
+      },
+    };
+  }
 }

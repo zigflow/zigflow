@@ -19,4 +19,14 @@ export default class ForTask extends Task {
   public readonly type = 'for';
   public readonly label = 'For';
   public readonly description = 'Iterate collection';
+
+  public getDefaultSpecificData(): Record<string, unknown> {
+    return {
+      for: {
+        each: 'item',
+        in: [],
+        do: [],
+      },
+    };
+  }
 }

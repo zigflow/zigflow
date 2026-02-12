@@ -19,4 +19,15 @@ export default class RaiseTask extends Task {
   public readonly type = 'raise';
   public readonly label = 'Raise';
   public readonly description = 'Raise error';
+
+  public getDefaultSpecificData(): Record<string, unknown> {
+    return {
+      raise: {
+        error: {
+          type: 'example-error',
+          title: 'An error occurred',
+        },
+      },
+    };
+  }
 }

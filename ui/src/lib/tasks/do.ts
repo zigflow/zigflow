@@ -19,4 +19,10 @@ export default class DoTask extends Task {
   public readonly type = 'do';
   public readonly label = 'Do';
   public readonly description = 'Sequential tasks';
+
+  public getDefaultSpecificData(): Record<string, unknown> {
+    return {
+      do: [],
+    };
+  }
 }

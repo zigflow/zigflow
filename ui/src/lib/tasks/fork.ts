@@ -19,4 +19,12 @@ export default class ForkTask extends Task {
   public readonly type = 'fork';
   public readonly label = 'Fork';
   public readonly description = 'Parallel execution';
+
+  public getDefaultSpecificData(): Record<string, unknown> {
+    return {
+      fork: {
+        branches: [],
+      },
+    };
+  }
 }

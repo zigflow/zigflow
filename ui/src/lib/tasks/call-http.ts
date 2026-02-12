@@ -19,4 +19,14 @@ export default class CallHttpTask extends Task {
   public readonly type = 'call-http';
   public readonly label = 'Call HTTP';
   public readonly description = 'HTTP request';
+
+  public getDefaultSpecificData(): Record<string, unknown> {
+    return {
+      call: 'http',
+      with: {
+        method: 'get',
+        endpoint: 'https://example.com',
+      },
+    };
+  }
 }

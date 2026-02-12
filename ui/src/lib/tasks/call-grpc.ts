@@ -19,4 +19,20 @@ export default class CallGrpcTask extends Task {
   public readonly type = 'call-grpc';
   public readonly label = 'Call gRPC';
   public readonly description = 'gRPC call';
+
+  public getDefaultSpecificData(): Record<string, unknown> {
+    return {
+      call: 'grpc',
+      with: {
+        proto: {
+          source: 'example.proto',
+        },
+        service: {
+          name: 'ExampleService',
+          host: 'localhost:50051',
+        },
+        method: 'exampleMethod',
+      },
+    };
+  }
 }

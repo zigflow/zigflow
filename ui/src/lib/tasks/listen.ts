@@ -19,4 +19,16 @@ export default class ListenTask extends Task {
   public readonly type = 'listen';
   public readonly label = 'Listen';
   public readonly description = 'Consume events';
+
+  public getDefaultSpecificData(): Record<string, unknown> {
+    return {
+      listen: {
+        to: {
+          one: {
+            type: 'example.event',
+          },
+        },
+      },
+    };
+  }
 }

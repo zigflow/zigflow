@@ -19,4 +19,10 @@ export default class SwitchTask extends Task {
   public readonly type = 'switch';
   public readonly label = 'Switch';
   public readonly description = 'Conditional branch';
+
+  public getDefaultSpecificData(): Record<string, unknown> {
+    return {
+      switch: [],
+    };
+  }
 }
