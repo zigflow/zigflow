@@ -15,25 +15,25 @@
   -->
 
 <script lang="ts">
-  import type { Node } from '@xyflow/svelte';
   import {
-    SetTask,
-    WaitTask,
-    CallHttpTask,
-    CallGrpcTask,
     CallActivityTask,
+    CallGrpcTask,
+    CallHttpTask,
     DoTask,
+    EmitTask,
     ForTask,
     ForkTask,
-    SwitchTask,
-    TryTask,
     ListenTask,
-    EmitTask,
     RaiseTask,
     RunTask,
+    SetTask,
+    SwitchTask,
     type Task,
+    TryTask,
+    WaitTask,
   } from '$lib/tasks';
-  import type { TaskState } from '$lib/tasks/task';
+  import type { FormField, TaskState } from '$lib/tasks/task';
+  import type { Node } from '@xyflow/svelte';
 
   let { node, onClose }: { node: Node; onClose: () => void } = $props();
 
@@ -61,7 +61,8 @@
       node.data = {};
     }
     if (!node.data.taskType) {
-      node.data.taskType = 'set';
+      // Use the node's type (from SvelteFlow) as the task type
+      node.data.taskType = node.type || 'set';
     }
     if (!node.data.name) {
       const type = (node.data.taskType as string) || 'set';
@@ -84,8 +85,12 @@
     (node.data?.state as TaskState) || task?.getDefaultData() || {},
   );
 
+  // Get form fields from the task
+  const formFields = $derived(task?.getFormFields() || []);
+
   // Extract specific and common data for display
   const specificData = $derived.by(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { metadata, export: exp, output, ...specific } = taskState;
     return specific;
   });
@@ -118,6 +123,43 @@
     exportText = toJSON(commonData.export);
     outputText = toJSON(commonData.output);
   });
+
+  // Get field value from task state
+  function getFieldValue(fieldId: string): unknown {
+    return specificData[fieldId];
+  }
+
+  // Update field value in task state
+  function updateFieldValue(fieldId: string, value: unknown) {
+    if (node.data && node.data.state) {
+      const common = commonData;
+      node.data.state = { ...common, [fieldId]: value };
+    }
+  }
+
+  // Helper to parse field value based on type
+  function parseFieldValue(field: FormField, text: string): unknown {
+    if (field.type === 'json') {
+      try {
+        return JSON.parse(text);
+      } catch {
+        return null;
+      }
+    } else if (field.type === 'number') {
+      const num = parseFloat(text);
+      return isNaN(num) ? null : num;
+    }
+    return text;
+  }
+
+  // Helper to format field value for display
+  function formatFieldValue(field: FormField, value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (field.type === 'json') {
+      return toJSON(value);
+    }
+    return String(value);
+  }
 
   // Update handlers - directly update node.data
   function updateTaskName(value: string) {
@@ -213,20 +255,103 @@
       <div class="setting-section">
         <h3 class="section-title">{task.label} Configuration</h3>
 
-        <div class="setting-group">
-          <label class="setting-label" for="task-specific"
-            >Task Data (JSON)</label
-          >
-          <textarea
-            id="task-specific"
-            class="setting-textarea"
-            value={specificDataText}
-            oninput={(e) => updateSpecificData(e.currentTarget.value)}
-            placeholder={toJSON(task.getDefaultSpecificData())}
-            rows="8"
-          ></textarea>
-          <span class="help-text">Task-specific configuration</span>
-        </div>
+        {#if formFields.length > 0}
+          {#each formFields as field (field.id)}
+            <div class="setting-group">
+              <label class="setting-label" for={field.id}>{field.label}</label>
+
+              {#if field.type === 'text' || field.type === 'duration'}
+                <input
+                  id={field.id}
+                  class="setting-input"
+                  type="text"
+                  value={formatFieldValue(field, getFieldValue(field.id))}
+                  oninput={(e) => {
+                    const value = parseFieldValue(field, e.currentTarget.value);
+                    if (value !== null) updateFieldValue(field.id, value);
+                  }}
+                  placeholder={field.placeholder || ''}
+                  required={field.required || false}
+                />
+              {:else if field.type === 'number'}
+                <input
+                  id={field.id}
+                  class="setting-input"
+                  type="number"
+                  value={formatFieldValue(field, getFieldValue(field.id))}
+                  oninput={(e) => {
+                    const value = parseFieldValue(field, e.currentTarget.value);
+                    if (value !== null) updateFieldValue(field.id, value);
+                  }}
+                  placeholder={field.placeholder || ''}
+                  min={field.min}
+                  max={field.max}
+                  required={field.required || false}
+                />
+              {:else if field.type === 'textarea'}
+                <textarea
+                  id={field.id}
+                  class="setting-textarea"
+                  value={formatFieldValue(field, getFieldValue(field.id))}
+                  oninput={(e) => {
+                    const value = parseFieldValue(field, e.currentTarget.value);
+                    if (value !== null) updateFieldValue(field.id, value);
+                  }}
+                  placeholder={field.placeholder || ''}
+                  rows="4"
+                  required={field.required || false}
+                ></textarea>
+              {:else if field.type === 'json'}
+                <textarea
+                  id={field.id}
+                  class="setting-textarea"
+                  value={formatFieldValue(field, getFieldValue(field.id))}
+                  oninput={(e) => {
+                    const value = parseFieldValue(field, e.currentTarget.value);
+                    if (value !== null) updateFieldValue(field.id, value);
+                  }}
+                  placeholder={field.placeholder || '{}'}
+                  rows="8"
+                  required={field.required || false}
+                ></textarea>
+              {:else if field.type === 'select'}
+                <select
+                  id={field.id}
+                  class="setting-input"
+                  value={formatFieldValue(field, getFieldValue(field.id))}
+                  onchange={(e) => {
+                    updateFieldValue(field.id, e.currentTarget.value);
+                  }}
+                  required={field.required || false}
+                >
+                  {#each field.options || [] as option (option.value)}
+                    <option value={option.value}>{option.label}</option>
+                  {/each}
+                </select>
+              {/if}
+
+              {#if field.helpText}
+                <span class="help-text">{field.helpText}</span>
+              {/if}
+            </div>
+          {/each}
+        {:else}
+          <!-- Fallback to JSON textarea if no form fields defined -->
+          <div class="setting-group">
+            <label class="setting-label" for="task-specific"
+              >Task Data (JSON)</label
+            >
+            <textarea
+              id="task-specific"
+              class="setting-textarea"
+              value={specificDataText}
+              oninput={(e) => updateSpecificData(e.currentTarget.value)}
+              placeholder={toJSON(task.getDefaultSpecificData())}
+              rows="8"
+            ></textarea>
+            <span class="help-text">Task-specific configuration</span>
+          </div>
+        {/if}
       </div>
     {/if}
 
@@ -241,7 +366,7 @@
           class="setting-textarea"
           value={metadataText}
           oninput={(e) => updateMetadata(e.currentTarget.value)}
-          placeholder="{JSON.stringify({ description: '...' })}"
+          placeholder={JSON.stringify({ description: '...' })}
           rows="4"
         ></textarea>
         <span class="help-text">Arbitrary metadata for the task</span>
@@ -254,7 +379,7 @@
           class="setting-textarea"
           value={exportText}
           oninput={(e) => updateExport(e.currentTarget.value)}
-          placeholder="{JSON.stringify({ as: { result: '.' } })}"
+          placeholder={JSON.stringify({ as: { result: '.' } })}
           rows="4"
         ></textarea>
         <span class="help-text"
@@ -269,7 +394,7 @@
           class="setting-textarea"
           value={outputText}
           oninput={(e) => updateOutput(e.currentTarget.value)}
-          placeholder="{JSON.stringify({ as: '${ . }' })}"
+          placeholder={JSON.stringify({ as: '${ . }' })}
           rows="4"
         ></textarea>
         <span class="help-text">Output transformation expression</span>

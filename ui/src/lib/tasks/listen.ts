@@ -15,7 +15,7 @@
  */
 import * as sdk from '@serverlessworkflow/sdk';
 
-import { Task, type TaskState } from './task';
+import { type FormField, Task, type TaskState } from './task';
 
 export default class ListenTask extends Task<
   InstanceType<typeof sdk.Classes.ListenTask>
@@ -40,5 +40,9 @@ export default class ListenTask extends Task<
         },
       },
     };
+  }
+
+  public getFormFields(): FormField[] {
+    return [];
   }
 }

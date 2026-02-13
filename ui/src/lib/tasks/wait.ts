@@ -15,7 +15,7 @@
  */
 import * as sdk from '@serverlessworkflow/sdk';
 
-import { Task, type TaskState } from './task';
+import { type FormField, Task, type TaskState } from './task';
 
 export default class WaitTask extends Task<
   InstanceType<typeof sdk.Classes.WaitTask>
@@ -34,5 +34,18 @@ export default class WaitTask extends Task<
     return {
       wait: 'PT1S',
     };
+  }
+
+  public getFormFields(): FormField[] {
+    return [
+      {
+        id: 'wait',
+        label: 'Duration',
+        type: 'duration',
+        helpText: 'How long to wait (ISO 8601 duration or duration components)',
+        placeholder: 'PT30S',
+        required: true,
+      },
+    ];
   }
 }

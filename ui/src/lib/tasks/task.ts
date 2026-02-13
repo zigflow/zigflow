@@ -29,6 +29,41 @@
 export type TaskState = Record<string, unknown>;
 
 /**
+ * Form field types for task configuration UI.
+ */
+export type FormFieldType =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'json'
+  | 'duration'
+  | 'select';
+
+/**
+ * Form field definition for rendering task-specific UI.
+ */
+export interface FormField {
+  /** Unique field identifier */
+  id: string;
+  /** Field label for display */
+  label: string;
+  /** Field type */
+  type: FormFieldType;
+  /** Help text or description */
+  helpText?: string;
+  /** Placeholder text */
+  placeholder?: string;
+  /** For select fields: available options */
+  options?: Array<{ value: string; label: string }>;
+  /** Minimum value for number fields */
+  min?: number;
+  /** Maximum value for number fields */
+  max?: number;
+  /** Whether the field is required */
+  required?: boolean;
+}
+
+/**
  * Base class for all workflow tasks.
  *
  * Responsibilities:
@@ -96,6 +131,17 @@ export abstract class Task<T = unknown> {
    * @returns Task-specific configuration object
    */
   public abstract getDefaultSpecificData(): Record<string, unknown>;
+
+  /**
+   * Returns form field definitions for this task type.
+   *
+   * This method defines the UI form structure for configuring
+   * task-specific properties. Each task type can provide its own
+   * custom form fields based on its schema requirements.
+   *
+   * @returns Array of form field definitions
+   */
+  public abstract getFormFields(): FormField[];
 
   /**
    * Returns complete default task data including optional common fields.

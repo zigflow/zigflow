@@ -15,7 +15,7 @@
  */
 import * as sdk from '@serverlessworkflow/sdk';
 
-import { Task, type TaskState } from './task';
+import { type FormField, Task, type TaskState } from './task';
 
 export default class SetTask extends Task<
   InstanceType<typeof sdk.Classes.SetTask>
@@ -36,5 +36,18 @@ export default class SetTask extends Task<
         hello: 'world',
       },
     };
+  }
+
+  public getFormFields(): FormField[] {
+    return [
+      {
+        id: 'set',
+        label: 'Variables',
+        type: 'json',
+        helpText: 'Key-value pairs to set as variables (JSON object)',
+        placeholder: '{ "key": "value" }',
+        required: true,
+      },
+    ];
   }
 }

@@ -15,7 +15,7 @@
  */
 import * as sdk from '@serverlessworkflow/sdk';
 
-import { Task, type TaskState } from './task';
+import { type FormField, Task, type TaskState } from './task';
 
 export default class CallGrpcTask extends Task<
   InstanceType<typeof sdk.Classes.CallGRPC>
@@ -44,5 +44,9 @@ export default class CallGrpcTask extends Task<
         arguments: {},
       },
     };
+  }
+
+  public getFormFields(): FormField[] {
+    return [];
   }
 }
