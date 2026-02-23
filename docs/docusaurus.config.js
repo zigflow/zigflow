@@ -50,6 +50,7 @@ const config = {
   favicon: 'img/favicon.ico',
 
   customFields: {
+    githubDomain,
     githubURL,
   },
 
@@ -160,19 +161,18 @@ const config = {
             label: 'Deploying',
           },
           {
+            type: 'custom-githubStars',
+            position: 'right',
+          },
+          {
             label: '❤️ Sponsor',
             position: 'right',
             href: 'https://buymeacoffee.com/mrsimonemms',
           },
           {
-            label: 'Temporal',
+            label: 'Built on Temporal',
             position: 'right',
             href: 'https://temporal.io',
-          },
-          {
-            href: githubURL,
-            label: 'GitHub',
-            position: 'right',
           },
         ],
       },
