@@ -14,7 +14,7 @@ You need two workers:
 ### 1. Start the DSL worker
 
 ```sh
-make worker NAME=activity-call
+task worker NAME=activity-call
 ```
 
 ### 2. Start the activity worker

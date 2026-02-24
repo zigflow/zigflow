@@ -147,8 +147,8 @@ Linting & Testing:
 - Always run pre-commit tests after making changes: `pre-commit run`
 - Always run unit tests after making changes: `go test ./...`
 - Always run end-to-end tests after making changes:
-  1. Start the mock HTTP server in the background: `make http_mock`
-  2. Run the e2e tests: `make e2e`
+  1. Start the mock HTTP server in the background: `task http_mock`
+  2. Run the e2e tests: `task e2e`
   3. Stop the mock HTTP server process
 - All unit tests must pass before considering a task complete
 - All end-to-end tests must pass before considering a task complete

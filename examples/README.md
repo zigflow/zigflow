@@ -57,11 +57,11 @@ The `NAME` variable should be set to the example you wish to run (eg, `basic`)
 ### Running the worker
 
 ```sh
-make worker NAME=<example>
+task worker NAME=<example>
 ```
 
 ### Starting the workflow
 
 ```sh
-make start NAME=<example>
+task start NAME=<example>
 ```

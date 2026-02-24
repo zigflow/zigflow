@@ -1,0 +1,90 @@
+version: '3'
+
+vars:
+  EXAMPLES: ./examples
+  E2E_COMPOSE: ./tests/e2e/compose.yaml
+  TMP_IMG: ttl.sh/zigflow
+  TMP_IMG_TAG: 24h
+
+tasks:
+  commitlint:
+    desc: Run commitlint
+    cmds:
+      - npx commitlint --version
+      - npx commitlint --to HEAD
+
+  cruft-update:
+    desc: Check/update cruft template
+    cmds:
+      - |
+        if [ ! -f .cruft.json ]; then
+          echo "Cruft not configured"
+        else
+          cruft check || cruft update --skip-apply-ask --refresh-private-variables
+        fi
+
+  generate-grpc:
+    desc: Regenerate gRPC examples
+    cmds:
+      - |
+        for dir in ./examples/external-calls/grpc/*; do
+          rm -rf "${dir}/v1"
+          buf generate --template "${dir}/proto/buf.gen.yaml" "${dir}/proto" --output "${dir}/.."
+        done
+
+  helm-img:
+    desc: Build and push temporary Helm image
+    cmds:
+      - docker build -t {{.TMP_IMG}}:{{.TMP_IMG_TAG}} .
+      - docker push {{.TMP_IMG}}:{{.TMP_IMG_TAG}}
+
+  helm:
+    desc: Deploy Helm chart locally
+    cmds:
+      - touch values.example.yaml
+      - |
+        helm upgrade \
+          --cleanup-on-fail \
+          --create-namespace \
+          --install \
+          --namespace zigflow \
+          --reset-values \
+          --rollback-on-failure \
+          --set image.pullPolicy=Always \
+          --set image.repository={{.TMP_IMG}} \
+          --set image.tag={{.TMP_IMG_TAG}} \
+          --values ./values.example.yaml \
+          --wait \
+          zigflow ./charts/zigflow
+
+  install-deps:
+    desc: Install npm deps for all frontend packages
+    cmds:
+      - |
+        for dir in ./*/package.json; do
+          cd "$(dirname "$dir")"
+          echo "Installing $PWD"
+          npm ci
+          cd - > /dev/null
+        done
+
+  minikube:
+    desc: Start minikube and apply dev manifests
+    cmds:
+      - |
+        minikube profile list | grep minikube | grep OK || minikube start
+      - kubectl apply -f ./dev/k8s/
+
+  start:
+    desc: Run example by name (NAME required)
+    requires:
+      vars: [NAME]
+    cmds:
+      - go run {{.EXAMPLES}}/{{.NAME}}
+
+  worker:
+    desc: Run worker for example (NAME required)
+    requires:
+      vars: [NAME]
+    cmds:
+      - go run . run -f {{.EXAMPLES}}/{{.NAME}}/workflow.yaml

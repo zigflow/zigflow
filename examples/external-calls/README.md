@@ -15,7 +15,7 @@ An example of how to make external calls with Zigflow
 Generate the protobuf definition
 
 ```sh
-make -C ../../ generate-grpc
+task -d ../../ generate-grpc
 ```
 
 Now run the application

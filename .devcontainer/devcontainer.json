@@ -14,7 +14,8 @@
     "ghcr.io/devcontainers-extra/features/protoc:1": {},
     "ghcr.io/mrsimonemms/devcontainers/buf:1": {},
     "ghcr.io/devcontainers-extra/features/grpcurl-asdf:2": {},
-    "ghcr.io/rio/features/skaffold:2": {}
+    "ghcr.io/rio/features/skaffold:2": {},
+    "ghcr.io/devcontainers-extra/features/go-task:1": {}
   },
   "customizations": {
     "vscode": {
