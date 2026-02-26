@@ -7,8 +7,8 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/preview/sje-docs/assets/css/styles.98e6f30d.css">
-<script src="/preview/sje-docs/assets/js/runtime~main.e3ba6d47.js" defer="defer"></script>
-<script src="/preview/sje-docs/assets/js/main.aac13a8b.js" defer="defer"></script>
+<script src="/preview/sje-docs/assets/js/runtime~main.898bd9db.js" defer="defer"></script>
+<script src="/preview/sje-docs/assets/js/main.786d60bb.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -32,7 +32,7 @@ All workflow state is held by Temporal.</p>
 </ol>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="deployment-options">Deployment options<a href="#deployment-options" class="hash-link" aria-label="Direct link to Deployment options" title="Direct link to Deployment options" translate="no">​</a></h2>
-<table><thead><tr><th>Method</th><th>When to use</th></tr></thead><tbody><tr><td><a class="" href="/preview/sje-docs/docs/deployment/docker">Bare metal / binary</a></td><td>Simple scripts, VMs, direct process management</td></tr><tr><td><a class="" href="/preview/sje-docs/docs/deployment/docker">Docker</a></td><td>Containerised environments, Docker Compose</td></tr><tr><td><a class="" href="/preview/sje-docs/docs/deployment/kubernetes">Kubernetes / Helm</a></td><td>Production Kubernetes clusters</td></tr></tbody></table>
+<table><thead><tr><th>Method</th><th>When to use</th></tr></thead><tbody><tr><td><a class="" href="/preview/sje-docs/docs/deployment/docker#running-the-binary">Binary</a></td><td>Direct binary, VMs, simple scripts</td></tr><tr><td><a class="" href="/preview/sje-docs/docs/deployment/docker">Docker</a></td><td>Containerised environments, Docker Compose</td></tr><tr><td><a class="" href="/preview/sje-docs/docs/deployment/kubernetes">Kubernetes / Helm</a></td><td>Production Kubernetes clusters</td></tr></tbody></table>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="runtime-ports">Runtime ports<a href="#runtime-ports" class="hash-link" aria-label="Direct link to Runtime ports" title="Direct link to Runtime ports" translate="no">​</a></h2>
 <p>A running Zigflow worker exposes two ports:</p>
@@ -41,14 +41,15 @@ All workflow state is held by Temporal.</p>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="connecting-to-temporal">Connecting to Temporal<a href="#connecting-to-temporal" class="hash-link" aria-label="Direct link to Connecting to Temporal" title="Direct link to Connecting to Temporal" translate="no">​</a></h2>
 <p>All deployment methods share the same connection flags:</p>
-<table><thead><tr><th>Flag</th><th>Environment variable</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>--temporal-address</code></td><td><code>TEMPORAL_ADDRESS</code></td><td><code>localhost:7233</code></td><td>Temporal server address</td></tr><tr><td><code>--temporal-namespace</code></td><td><code>TEMPORAL_NAMESPACE</code></td><td><code>default</code></td><td>Temporal namespace</td></tr><tr><td><code>--temporal-tls</code></td><td><code>TEMPORAL_TLS</code></td><td><code>false</code></td><td>Enable TLS</td></tr><tr><td><code>--temporal-api-key</code></td><td><code>TEMPORAL_API_KEY</code></td><td>(none)</td><td>API key for Temporal Cloud</td></tr><tr><td><code>--tls-client-cert-path</code></td><td></td><td>(none)</td><td>Path to mTLS client certificate</td></tr><tr><td><code>--tls-client-key-path</code></td><td></td><td>(none)</td><td>Path to mTLS client key</td></tr></tbody></table>
+<table><thead><tr><th>Flag</th><th>Environment variable</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>--temporal-address</code></td><td><code>TEMPORAL_ADDRESS</code></td><td><code>localhost:7233</code></td><td>Temporal server address</td></tr><tr><td><code>--temporal-namespace</code></td><td><code>TEMPORAL_NAMESPACE</code></td><td><code>default</code></td><td>Temporal namespace</td></tr><tr><td><code>--temporal-tls</code></td><td><code>TEMPORAL_TLS</code></td><td><code>false</code></td><td>Enable TLS</td></tr><tr><td><code>--temporal-api-key</code></td><td><code>TEMPORAL_API_KEY</code></td><td>(none)</td><td>API key for Temporal Cloud</td></tr><tr><td><code>--tls-client-cert-path</code></td><td><code>TEMPORAL_TLS_CLIENT_CERT_PATH</code></td><td>(none)</td><td>Path to mTLS client certificate</td></tr><tr><td><code>--tls-client-key-path</code></td><td><code>TEMPORAL_TLS_CLIENT_KEY_PATH</code></td><td>(none)</td><td>Path to mTLS client key</td></tr></tbody></table>
 <p>For <a href="https://temporal.io/cloud" target="_blank" rel="noopener noreferrer" class="">Temporal Cloud</a>, enable TLS and provide an
 API key:</p>
 <div class="language-sh codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-sh codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">zigflow run \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  -f workflow.yaml \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  --temporal-address your-namespace.tmprl.cloud:7233 \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  --temporal-namespace your-namespace \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  --temporal-tls \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  --temporal-api-key your-api-key</span><br></span></code></pre></div></div>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="environment-variables">Environment variables<a href="#environment-variables" class="hash-link" aria-label="Direct link to Environment variables" title="Direct link to Environment variables" translate="no">​</a></h2>
 <p>Zigflow reads its own configuration from environment variables that mirror
-the CLI flag names.</p>
+the CLI flag names. The naming convention is: flag <code>--flag-name</code> becomes
+env var <code>FLAG_NAME</code> (uppercase, hyphens replaced by underscores).</p>
 <p>Workflow definitions can also read environment variables via <code>$env</code>. By
 default, environment variables prefixed with <code>ZIGGY_</code> are passed to the
 workflow. Change the prefix with <code>--env-prefix</code>.</p>
