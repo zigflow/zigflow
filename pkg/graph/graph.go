@@ -14,32 +14,33 @@
  * limitations under the License.
  */
 
-package cmd
+package graph
 
 import (
-	"testing"
+	"fmt"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/serverlessworkflow/sdk-go/v3/model"
 )
 
-func TestNewRootCmd_Subcommands(t *testing.T) {
-	cmd := newRootCmd()
+// Format represents a supported graph output format.
+type Format string
 
-	names := map[string]bool{}
-	for _, sub := range cmd.Commands() {
-		names[sub.Name()] = true
-	}
+const (
+	// FormatMermaid renders the workflow as a Mermaid flowchart.
+	FormatMermaid Format = "mermaid"
+)
 
-	assert.True(t, names["graph"])
-	assert.True(t, names["run"])
-	assert.True(t, names["version"])
-	assert.True(t, names["validate"])
-	assert.True(t, names["schema"])
-	assert.True(t, names["generate-docs"])
+// Generator renders a workflow definition as a graph.
+type Generator interface {
+	Generate(wf *model.Workflow) (string, error)
 }
 
-func TestNewRootCmd_Flags(t *testing.T) {
-	cmd := newRootCmd()
-
-	assert.NotNil(t, cmd.PersistentFlags().Lookup("log-level"))
+// New returns a Generator for the given format.
+func New(format Format) (Generator, error) {
+	switch format {
+	case FormatMermaid:
+		return &mermaidGenerator{}, nil
+	default:
+		return nil, fmt.Errorf("unsupported graph format: %q", format)
+	}
 }

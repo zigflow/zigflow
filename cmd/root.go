@@ -82,6 +82,7 @@ platform.`,
 		newVersionCmd(),
 		newValidateCmd(),
 		newSchemaCmd(),
+		newGraphCmd(),
 		newGenerateDocsCmd(rootCmd),
 	)
 
