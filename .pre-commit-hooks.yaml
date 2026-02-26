@@ -1,0 +1,26 @@
+#############################
+# Installation instructions #
+#                           #
+# Requires at least v0.8.1  #
+#############################
+# - repo: https://github.com/mrsimonemms/zigflow
+#   rev: v0.8.1
+#   hooks:
+#     - id: zigflow-graph-inject
+
+- id: zigflow-graph-inject
+  name: Inject Zigflow graph
+  description: >
+    Updates workflow graph visualisations embedded in documentation files.
+    Finds <!-- ZIGFLOW_GRAPH_START --> / <!-- ZIGFLOW_GRAPH_END --> markers
+    and replaces the content between them with a freshly rendered graph.
+    In one-argument form the workflow file path may be embedded in the start
+    marker: <!-- ZIGFLOW_GRAPH_START ./workflow.yaml -->. When no path is
+    embedded the default "workflow.yaml" in the target file's directory is used.
+    Add args: [<target-file>] to your hook configuration, or supply both
+    args: [<workflow-file>, <target-file>] for explicit control.
+  language: script
+  entry: ./scripts/pre-commit-zigflow.sh
+  pass_filenames: true
+  require_serial: true
+  types: [markdown]

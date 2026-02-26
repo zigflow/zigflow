@@ -93,5 +93,7 @@ Arguments:
 		string(graph.FormatMermaid), "Output format (mermaid)",
 	)
 
+	cmd.AddCommand(newGraphInjectCmd())
+
 	return cmd
 }
