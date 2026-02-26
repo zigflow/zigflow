@@ -209,3 +209,43 @@ If something is unclear:
 
 Correctness beats convenience.
 Determinism beats expressiveness.
+
+---
+
+## Documentation Drift & Behavioural Changes
+
+Documentation represents the **intended and supported behaviour** of Zigflow.
+
+When behaviour changes, Claude must determine whether the change is:
+
+1. **Intentional (feature, improvement, or breaking change)**
+   - Update documentation to reflect the new behaviour.
+   - Ensure examples, CLI output, validation messages, and deployment guidance
+     remain accurate.
+   - If the change is breaking, ensure documentation clearly reflects the new contract.
+
+2. **Unintentional (regression or accidental behaviour change)**
+   - Do NOT update documentation to match the regression.
+   - Fix the implementation to restore documented behaviour.
+   - If uncertain whether behaviour is correct, stop and ask.
+
+Documentation must never be altered solely to match incorrect or unintended behaviour.
+
+If code and documentation disagree:
+
+- Determine whether the implementation or the documentation reflects the
+  intended contract.
+- Tests, validation logic, and architectural principles are authoritative indicators.
+- If ambiguity exists, ask before proceeding.
+
+No change is complete unless:
+
+- Behaviour and documentation are aligned.
+- Examples validate successfully.
+- Validation messages reflect actual output.
+- Determinism and correctness guarantees remain intact.
+
+Accuracy is mandatory.
+Intentionality must be explicit.
+
+If a behavioural change affects public contracts, treat it as a versioning decision.
