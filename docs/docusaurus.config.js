@@ -109,6 +109,12 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
+      algolia: {
+        appId: 'MQUMW9FAV4',
+        apiKey: '9f4d9b228ac7b327c04a19230fcd0b25',
+        indexName: 'Zigflow docs',
+        contextualSearch: true,
+      },
       announcementBar: {
         content: `⭐ <a href="${githubURL}" target="_blank">Star Zigflow on GitHub</a> to help more developers discover it.`,
         backgroundColor: '#E1062C',
