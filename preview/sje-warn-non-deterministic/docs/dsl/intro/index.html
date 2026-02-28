@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/preview/sje-warn-non-deterministic/assets/css/styles.179044d7.css">
-<script src="/preview/sje-warn-non-deterministic/assets/js/runtime~main.178e93fe.js" defer="defer"></script>
+<script src="/preview/sje-warn-non-deterministic/assets/js/runtime~main.dacfcde5.js" defer="defer"></script>
 <script src="/preview/sje-warn-non-deterministic/assets/js/main.1e884487.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -35,8 +35,9 @@ These will be documented.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="workflow">Workflow<a href="#workflow" class="hash-link" aria-label="Direct link to Workflow" title="Direct link to Workflow" translate="no">​</a></h2>
 <p>A <a href="#workflow" class="">workflow</a> serves as a blueprint outlining the series of <a class="" href="/preview/sje-warn-non-deterministic/docs/dsl/tasks/intro">tasks</a>
 required to execute a specific business operation. It details the sequence in
-which <a class="" href="/preview/sje-warn-non-deterministic/docs/dsl/tasks/intro">tasks</a> must be completed, guiding users through the process
-from start to finish, and helps streamline operations, ensure consistency, and
+which <a class="" href="/preview/sje-warn-non-deterministic/docs/dsl/tasks/intro">tasks</a> must be completed, guiding users through
+the process from start to finish, and helps streamline operations, ensure
+consistency, and
 optimise efficiency within an organisation.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="workflow-properties">Properties<a href="#workflow-properties" class="hash-link" aria-label="Direct link to Properties" title="Direct link to Properties" translate="no">​</a></h3>
 <table><thead><tr><th>Name</th><th style="text-align:center">Type</th><th style="text-align:center">Required</th><th>Description</th></tr></thead><tbody><tr><td>document</td><td style="text-align:center"><a href="#document" class=""><code>document</code></a></td><td style="text-align:center"><code>yes</code></td><td>Documents the defined workflow.</td></tr><tr><td>do</td><td style="text-align:center"><a class="" href="/preview/sje-warn-non-deterministic/docs/dsl/tasks/intro"><code>map[string, task]</code></a></td><td style="text-align:center"><code>yes</code></td><td>The <a class="" href="/preview/sje-warn-non-deterministic/docs/dsl/tasks/intro">task(s)</a> that must be performed by the <a href="#workflow" class="">workflow</a>.</td></tr><tr><td>input</td><td style="text-align:center"><a href="#input" class=""><code>input</code></a></td><td style="text-align:center"><code>no</code></td><td>Configures the workflow&#x27;s input.</td></tr><tr><td>timeout</td><td style="text-align:center"><a href="#timeout" class=""><code>timeout</code></a></td><td style="text-align:center"><code>no</code></td><td>The configuration of the workflow&#x27;s activity <a href="https://docs.temporal.io/encyclopedia/detecting-activity-failures#start-to-close-timeout" target="_blank" rel="noopener noreferrer" class="">Start-To-Close timeout</a>. Defaults to 5 minutes</td></tr><tr><td>schedule</td><td style="text-align:center"><a href="#schedule" class=""><code>schedule</code></a></td><td style="text-align:center"><code>no</code></td><td>Configures the workflow&#x27;s schedule, if any.</td></tr></tbody></table>

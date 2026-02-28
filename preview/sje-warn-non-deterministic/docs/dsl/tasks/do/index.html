@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/preview/sje-warn-non-deterministic/assets/css/styles.179044d7.css">
-<script src="/preview/sje-warn-non-deterministic/assets/js/runtime~main.178e93fe.js" defer="defer"></script>
+<script src="/preview/sje-warn-non-deterministic/assets/js/runtime~main.dacfcde5.js" defer="defer"></script>
 <script src="/preview/sje-warn-non-deterministic/assets/js/main.1e884487.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -41,8 +41,8 @@ In this example, the workflow name is <code>single-workflow</code>:</p>
 <p>This workflow is very basic, but explain the steps in details:</p>
 <ol>
 <li class=""><strong>setData</strong>: this sets some data, which is randomly generated UUID key. This
-is available on <code>${ $data.key }</code>. See <a class="" href="/preview/sje-warn-non-deterministic/docs/dsl/tasks/set">Set</a> for a detailed explanation
-of why generated data should be used sparingly.</li>
+is available on <code>${ $data.key }</code>. See <a class="" href="/preview/sje-warn-non-deterministic/docs/dsl/tasks/set">Set</a> for a
+detailed explanation of why generated data should be used sparingly.</li>
 <li class=""><strong>wait</strong>: pause the workflow, using a <a href="https://docs.temporal.io/workflow-execution/timers-delays" target="_blank" rel="noopener noreferrer" class="">Durable Timer</a></li>
 <li class=""><strong>getUser</strong>: call an HTTP endpoint, using the previously generated UUID as a
 header.</li>
