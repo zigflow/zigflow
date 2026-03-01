@@ -14,6 +14,18 @@
  * limitations under the License.
  */
 
+.navbar-github-stars {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+@media (max-width: 996px) {
+  .navbar-github-stars {
+    display: none;
+  }
+}
+
 .theme-announcement-bar {
   font-weight: 600;
   letter-spacing: 0.2px;

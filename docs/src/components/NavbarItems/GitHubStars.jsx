@@ -27,7 +27,7 @@ function formatStars(count) {
   return o;
 }
 
-export default function GitHubStars() {
+export default function GitHubStars({ mobile = false }) {
   const { siteConfig } = useDocusaurusContext();
   const { githubDomain, githubURL } = siteConfig.customFields;
   const apiURL = `https://api.github.com/repos/${githubDomain}`;
@@ -46,16 +46,32 @@ export default function GitHubStars() {
       });
   }, [apiURL]);
 
+  const label = `GitHub${stars !== null ? ` • ⭐ ${formatStars(stars)}` : ''}`;
+  const ariaLabel = `GitHub repository${stars !== null ? ` — ${formatStars(stars)} stars` : ''}`;
+
+  if (mobile) {
+    return (
+      <a
+        href={githubURL}
+        target="_blank"
+        rel="noreferrer"
+        className="menu__link"
+        aria-label={ariaLabel}
+      >
+        {label}
+      </a>
+    );
+  }
+
   return (
     <a
       href={githubURL}
       target="_blank"
       rel="noreferrer"
-      className="navbar__item navbar__link"
-      aria-label={`GitHub repository${stars !== null ? ` — ${formatStars(stars)} stars` : ''}`}
-      style={{ display: 'flex', alignItems: 'center', gap: '0.4em' }}
+      className="navbar__item navbar__link navbar-github-stars"
+      aria-label={ariaLabel}
     >
-      GitHub • ⭐ {stars !== null ? formatStars(stars) : ''}
+      {label}
     </a>
   );
 }
