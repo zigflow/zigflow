@@ -12,7 +12,7 @@
   ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
--->
+  -->
 
 <script lang="ts">
   import type { Node } from '$lib/tasks/model';
@@ -28,6 +28,15 @@
     onmoveup?: () => void;
     onmovedown?: () => void;
     ondelete?: () => void;
+    // Navigation into subgraphs
+    onenternode?: (nodeId: string) => void; // loop body
+    onenterbranch?: (nodeId: string, branchId: string) => void; // switch/fork/try
+    // Branch management (switch / fork)
+    onaddbranch?: (nodeId: string) => void;
+    onremovebranch?: (nodeId: string, branchId: string) => void;
+    onrenamebranch?: (nodeId: string, branchId: string, label: string) => void;
+    // Try-specific: add catchGraph section
+    onaddcatch?: (nodeId: string) => void;
   }
 
   let {
@@ -37,6 +46,12 @@
     onmoveup,
     onmovedown,
     ondelete,
+    onenternode,
+    onenterbranch,
+    onaddbranch,
+    onremovebranch,
+    onrenamebranch,
+    onaddcatch,
   }: Props = $props();
 
   // ---------------------------------------------------------------------------
@@ -87,6 +102,11 @@
         return '';
     }
   }
+
+  // Minimum branch count: fork requires at least 2; switch requires at least 1.
+  function minBranches(n: Node): number {
+    return n.type === 'fork' ? 2 : 1;
+  }
 </script>
 
 <aside class="inspector">
@@ -123,7 +143,110 @@
       </dl>
     </section>
 
-    <p class="inspector-hint">Full editing UI coming soon.</p>
+    <!-- -----------------------------------------------------------------------
+      Structural node management: branches, sections, body navigation.
+      Replaces the generic "coming soon" hint for all structural node types.
+    ----------------------------------------------------------------------- -->
+
+    {#if node.type === 'switch' || node.type === 'fork'}
+      <section class="inspector-branches">
+        <h3 class="inspector-section-title">Branches</h3>
+        <ul class="branch-list" role="list">
+          {#each node.branches as branch (branch.id)}
+            <li class="branch-item">
+              <input
+                class="branch-label-input"
+                type="text"
+                value={branch.label}
+                aria-label="Branch label"
+                onblur={(e) => {
+                  const newLabel = (
+                    e.currentTarget as HTMLInputElement
+                  ).value.trim();
+                  if (newLabel && newLabel !== branch.label) {
+                    onrenamebranch?.(node.id, branch.id, newLabel);
+                  }
+                }}
+                onkeydown={(e) => {
+                  if (e.key === 'Enter') {
+                    (e.currentTarget as HTMLInputElement).blur();
+                  }
+                }}
+              />
+              <div class="branch-actions">
+                <button
+                  class="branch-enter-btn"
+                  onclick={() => onenterbranch?.(node.id, branch.id)}
+                  type="button"
+                  title="Navigate into this branch"
+                >
+                  Enter
+                </button>
+                {#if node.branches.length > minBranches(node)}
+                  <button
+                    class="branch-remove-btn"
+                    onclick={() => onremovebranch?.(node.id, branch.id)}
+                    type="button"
+                    aria-label="Remove branch {branch.label}"
+                  >
+                    ✕
+                  </button>
+                {/if}
+              </div>
+            </li>
+          {/each}
+        </ul>
+        <button
+          class="branch-add-btn"
+          onclick={() => onaddbranch?.(node.id)}
+          type="button"
+        >
+          + Add branch
+        </button>
+      </section>
+    {:else if node.type === 'try'}
+      <section class="inspector-branches">
+        <h3 class="inspector-section-title">Sections</h3>
+        <div class="try-sections">
+          <button
+            class="try-section-btn"
+            onclick={() => onenterbranch?.(node.id, 'tryGraph')}
+            type="button"
+          >
+            Enter try body
+          </button>
+          {#if node.catchGraph !== undefined}
+            <button
+              class="try-section-btn"
+              onclick={() => onenterbranch?.(node.id, 'catchGraph')}
+              type="button"
+            >
+              Enter catch block
+            </button>
+          {:else}
+            <button
+              class="try-add-catch-btn"
+              onclick={() => onaddcatch?.(node.id)}
+              type="button"
+            >
+              + Add catch block
+            </button>
+          {/if}
+        </div>
+      </section>
+    {:else if node.type === 'loop'}
+      <section class="inspector-branches">
+        <button
+          class="loop-enter-btn"
+          onclick={() => onenternode?.(node.id)}
+          type="button"
+        >
+          Enter loop body
+        </button>
+      </section>
+    {:else}
+      <p class="inspector-hint">Full editing UI coming soon.</p>
+    {/if}
 
     <div class="move-row">
       <button
@@ -230,6 +353,179 @@
     color: #999;
     font-style: italic;
   }
+
+  /* -------------------------------------------------------------------------
+     Branch / structural management
+  ------------------------------------------------------------------------- */
+
+  .inspector-branches {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #eee;
+  }
+
+  .inspector-section-title {
+    margin: 0 0 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #444;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .branch-list {
+    list-style: none;
+    margin: 0 0 0.5rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .branch-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .branch-label-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.25rem 0.4rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    color: #111;
+    background: #fafafa;
+  }
+
+  .branch-label-input:focus {
+    outline: none;
+    border-color: #1a56cc;
+    background: #fff;
+  }
+
+  .branch-actions {
+    display: flex;
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .branch-enter-btn {
+    padding: 0.2rem 0.45rem;
+    background: #1a56cc;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .branch-enter-btn:hover {
+    background: #1344a8;
+  }
+
+  .branch-remove-btn {
+    padding: 0.2rem 0.375rem;
+    background: transparent;
+    border: 1px solid #e0a0a0;
+    border-radius: 4px;
+    color: #c0392b;
+    font-size: 0.72rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  .branch-remove-btn:hover {
+    background: #fff0f0;
+  }
+
+  .branch-add-btn {
+    width: 100%;
+    padding: 0.3rem 0.5rem;
+    background: transparent;
+    border: 1px dashed #aaa;
+    border-radius: 4px;
+    color: #555;
+    font-size: 0.78rem;
+    cursor: pointer;
+    text-align: center;
+  }
+
+  .branch-add-btn:hover {
+    border-color: #1a56cc;
+    color: #1a56cc;
+    background: #f0f4ff;
+  }
+
+  /* Try sections */
+
+  .try-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .try-section-btn {
+    width: 100%;
+    padding: 0.35rem 0.6rem;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    color: #333;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .try-section-btn:hover {
+    background: #eee;
+    border-color: #aaa;
+  }
+
+  .try-add-catch-btn {
+    width: 100%;
+    padding: 0.3rem 0.5rem;
+    background: transparent;
+    border: 1px dashed #aaa;
+    border-radius: 4px;
+    color: #555;
+    font-size: 0.78rem;
+    cursor: pointer;
+    text-align: center;
+  }
+
+  .try-add-catch-btn:hover {
+    border-color: #dc2626;
+    color: #dc2626;
+    background: #fff5f5;
+  }
+
+  /* Loop body */
+
+  .loop-enter-btn {
+    width: 100%;
+    padding: 0.35rem 0.6rem;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    color: #333;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .loop-enter-btn:hover {
+    background: #eee;
+    border-color: #aaa;
+  }
+
+  /* -------------------------------------------------------------------------
+     Move / delete controls
+  ------------------------------------------------------------------------- */
 
   .move-row {
     display: flex;

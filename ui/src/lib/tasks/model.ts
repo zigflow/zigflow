@@ -96,6 +96,7 @@ export type SwitchBranch = {
   label: string;
   condition?: string; // undefined = default branch
   graph: FlowGraph;
+  metadata?: Record<string, unknown>;
 };
 
 // ---------------------------------------------------------------------------
@@ -116,6 +117,7 @@ export type ForkBranch = {
   id: string;
   label: string;
   graph: FlowGraph;
+  metadata?: Record<string, unknown>;
 };
 
 // ---------------------------------------------------------------------------
@@ -260,3 +262,23 @@ export type TaskConfig =
   | ListenConfig;
 
 export type NodeType = TaskConfig['kind'] | 'switch' | 'fork' | 'try' | 'loop';
+
+// ---------------------------------------------------------------------------
+// GraphPath — stable, ID-based navigation into nested FlowGraphs
+//
+// Encoding rules:
+//   segments = []                    → root graph of the named workflow
+//   segments = [nodeId]              → bodyGraph of a LoopNode
+//   segments = [nodeId, branchId]    → branch graph of SwitchNode or ForkNode
+//   segments = [nodeId, 'tryGraph']  → tryGraph of a TryNode
+//   segments = [nodeId, 'catchGraph']→ catchGraph of a TryNode
+//   Segments recurse for deeper nesting.
+//
+// Never store FlowGraph references directly. Always derive from WorkflowFile
+// plus GraphPath so state remains stable across immutable updates.
+// ---------------------------------------------------------------------------
+
+export type GraphPath = {
+  workflowId: string;
+  segments: string[];
+};

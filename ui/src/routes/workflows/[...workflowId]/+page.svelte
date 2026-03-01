@@ -15,6 +15,7 @@
   -->
 
 <script lang="ts">
+  import { browser } from '$app/environment';
   import { exportToYaml } from '$lib/export/yaml';
   import {
     addForkBranch,
@@ -28,22 +29,32 @@
     createTryNode,
     createWaitNode,
     createWorkflowFile,
-    insertNode,
+    emptyFlowGraph,
+    getGraphAtPath,
+    insertNodeAtPath,
     moveNode,
+    removeForkBranch,
     removeNode,
+    removeSwitchBranch,
+    renameForkBranch,
+    renameSwitchBranch,
     replaceNode,
-    setWorkflowRoot,
+    updateGraphAtPath,
+    updateTrySection,
   } from '$lib/tasks/actions';
   import type {
     FlowGraph,
+    GraphPath,
     Node,
     NodeType,
     WorkflowFile,
   } from '$lib/tasks/model';
   import Breadcrumb from '$lib/ui/Breadcrumb.svelte';
   import Canvas from '$lib/ui/Canvas.svelte';
+  import ContextIndicator from '$lib/ui/ContextIndicator.svelte';
   import Inspector from '$lib/ui/Inspector.svelte';
   import Sidebar from '$lib/ui/Sidebar.svelte';
+  import { onMount } from 'svelte';
 
   // ---------------------------------------------------------------------------
   // Workflow state (IR)
@@ -108,112 +119,388 @@
   let workflowFile = $state<WorkflowFile>(_initialFile);
 
   // ---------------------------------------------------------------------------
-  // Navigation state (UI-only — which FlowGraph is currently visible)
+  // URL hash ↔ GraphPath sync
+  //
+  // Hash format: #<workflowId>/<segment1>/<segment2>/...
+  // Example:     #abc-123 / #abc-123/nodeId / #abc-123/nodeId/branchId
+  //
+  // parseHashToGraphPath runs synchronously during initialisation so the
+  // correct subgraph is shown from the first render without flickering.
   // ---------------------------------------------------------------------------
 
-  type NavEntry =
-    | { kind: 'workflow'; workflowId: string }
-    | { kind: 'switch-branch'; nodeId: string; branchId: string }
-    | { kind: 'fork-branch'; nodeId: string; branchId: string }
-    | { kind: 'try-section'; nodeId: string; section: 'try' | 'catch' }
-    | { kind: 'loop-body'; nodeId: string };
-
-  let selectedWorkflowId = $state<string>(_initialWorkflowId);
-  let navStack = $state<NavEntry[]>([
-    { kind: 'workflow', workflowId: _initialWorkflowId },
-  ]);
-  let selectedNodeId = $state<string | null>(null);
-
   // ---------------------------------------------------------------------------
-  // Derive the current FlowGraph from the navigation stack
+  // Hash ID helpers — use metadata.__zigflow_id for stable URL segments.
+  //
+  // Nodes and branches carry a __zigflow_id in their metadata that is
+  // preserved in YAML. The URL hash uses these IDs rather than the internal
+  // node.id / branch.id, so navigation links survive YAML round-trips once
+  // import is implemented.
+  //
+  // Both helpers fall back to the internal ID when __zigflow_id is absent,
+  // ensuring existing sessions keep working without a forced migration.
   // ---------------------------------------------------------------------------
 
-  function resolveGraph(
+  function getNodeHashId(node: Node): string {
+    return (node.metadata?.__zigflow_id as string | undefined) ?? node.id;
+  }
+
+  function getBranchHashId(branch: {
+    id: string;
+    metadata?: Record<string, unknown>;
+  }): string {
+    return (branch.metadata?.__zigflow_id as string | undefined) ?? branch.id;
+  }
+
+  // Convert internal GraphPath segments (node.id / branch.id) to URL-safe
+  // hash segments (__zigflow_id). Traverses the WorkflowFile to resolve each
+  // segment; returns [] if the path cannot be fully resolved.
+  function graphPathToHashSegments(
     file: WorkflowFile,
-    stack: NavEntry[],
-  ): FlowGraph | null {
-    if (stack.length === 0) return null;
+    path: GraphPath,
+  ): string[] {
+    const wf = file.workflows[path.workflowId];
+    if (!wf || path.segments.length === 0) return [];
 
-    const root = stack[0];
-    if (root.kind !== 'workflow') return null;
-
-    const wf = file.workflows[root.workflowId];
-    if (!wf) return null;
-
+    const hashSegs: string[] = [];
     let graph: FlowGraph = wf.root;
+    let i = 0;
 
-    for (const entry of stack.slice(1)) {
-      if (entry.kind === 'switch-branch') {
-        const node = graph.nodes[entry.nodeId];
-        if (!node || node.type !== 'switch') return null;
-        const branch = node.branches.find((b) => b.id === entry.branchId);
-        if (!branch) return null;
+    while (i < path.segments.length) {
+      const nodeId = path.segments[i]!;
+      const node = graph.nodes[nodeId];
+      if (!node) break;
+
+      hashSegs.push(getNodeHashId(node));
+
+      if (node.type === 'loop') {
+        graph = node.bodyGraph;
+        i += 1;
+        continue;
+      }
+
+      // switch, fork, try — next segment identifies the sub-graph
+      i += 1;
+      if (i >= path.segments.length) break;
+      const subId = path.segments[i]!;
+
+      if (node.type === 'switch') {
+        const branch = node.branches.find((b) => b.id === subId);
+        if (!branch) break;
+        hashSegs.push(getBranchHashId(branch));
         graph = branch.graph;
-      } else if (entry.kind === 'fork-branch') {
-        const node = graph.nodes[entry.nodeId];
-        if (!node || node.type !== 'fork') return null;
-        const branch = node.branches.find((b) => b.id === entry.branchId);
-        if (!branch) return null;
+      } else if (node.type === 'fork') {
+        const branch = node.branches.find((b) => b.id === subId);
+        if (!branch) break;
+        hashSegs.push(getBranchHashId(branch));
         graph = branch.graph;
-      } else if (entry.kind === 'try-section') {
-        const node = graph.nodes[entry.nodeId];
-        if (!node || node.type !== 'try') return null;
+      } else if (node.type === 'try') {
+        // 'tryGraph' and 'catchGraph' are stable string constants, not IDs.
+        hashSegs.push(subId);
         graph =
-          entry.section === 'catch'
+          subId === 'catchGraph'
             ? (node.catchGraph ?? node.tryGraph)
             : node.tryGraph;
-      } else if (entry.kind === 'loop-body') {
-        const node = graph.nodes[entry.nodeId];
-        if (!node || node.type !== 'loop') return null;
+      }
+
+      i += 1;
+    }
+
+    return hashSegs;
+  }
+
+  // Find a node in graph whose __zigflow_id (or node.id fallback) matches hashId.
+  function findNodeByHashId(
+    graph: FlowGraph,
+    hashId: string,
+  ): Node | undefined {
+    for (const nodeId of graph.order) {
+      const node = graph.nodes[nodeId];
+      if (!node) continue;
+      if (getNodeHashId(node) === hashId) return node;
+    }
+    return undefined;
+  }
+
+  // Convert URL hash segments (__zigflow_id) back to internal GraphPath
+  // segments (node.id / branch.id). Returns null if any segment cannot be
+  // resolved.
+  function hashSegmentsToGraphPath(
+    file: WorkflowFile,
+    workflowId: string,
+    hashSegs: string[],
+  ): GraphPath | null {
+    const wf = file.workflows[workflowId];
+    if (!wf) return null;
+    if (hashSegs.length === 0) return { workflowId, segments: [] };
+
+    const segments: string[] = [];
+    let graph: FlowGraph = wf.root;
+    let i = 0;
+
+    while (i < hashSegs.length) {
+      const hashId = hashSegs[i]!;
+      const node = findNodeByHashId(graph, hashId);
+      if (!node) return null;
+
+      segments.push(node.id);
+
+      if (node.type === 'loop') {
         graph = node.bodyGraph;
+        i += 1;
+        continue;
+      }
+
+      // switch, fork, try
+      i += 1;
+      if (i >= hashSegs.length) break;
+      const subHashId = hashSegs[i]!;
+
+      if (node.type === 'switch') {
+        const branch = node.branches.find(
+          (b) => getBranchHashId(b) === subHashId,
+        );
+        if (!branch) return null;
+        segments.push(branch.id);
+        graph = branch.graph;
+      } else if (node.type === 'fork') {
+        const branch = node.branches.find(
+          (b) => getBranchHashId(b) === subHashId,
+        );
+        if (!branch) return null;
+        segments.push(branch.id);
+        graph = branch.graph;
+      } else if (node.type === 'try') {
+        if (subHashId !== 'tryGraph' && subHashId !== 'catchGraph') return null;
+        segments.push(subHashId);
+        graph =
+          subHashId === 'catchGraph'
+            ? (node.catchGraph ?? node.tryGraph)
+            : node.tryGraph;
+      }
+
+      i += 1;
+    }
+
+    return { workflowId, segments };
+  }
+
+  function parseHashToGraphPath(
+    file: WorkflowFile,
+    defaultId: string,
+  ): GraphPath {
+    if (!browser) return { workflowId: defaultId, segments: [] };
+    const raw = window.location.hash.slice(1);
+    if (!raw) return { workflowId: defaultId, segments: [] };
+    const parts = raw.split('/').filter(Boolean);
+    const [workflowId, ...hashSegs] = parts;
+    if (!workflowId || !file.workflows[workflowId]) {
+      return { workflowId: defaultId, segments: [] };
+    }
+    if (hashSegs.length === 0) return { workflowId, segments: [] };
+    const path = hashSegmentsToGraphPath(file, workflowId, hashSegs);
+    return path ?? { workflowId, segments: [] };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Navigation state — GraphPath (Steps 4 & 6)
+  //
+  // graphPath.workflowId identifies the active workflow.
+  // graphPath.segments encodes the path into nested sub-graphs.
+  //
+  // Derive the active FlowGraph from workflowFile + graphPath; never store
+  // FlowGraph references directly so state stays stable across immutable updates.
+  // ---------------------------------------------------------------------------
+
+  const _initialPath = parseHashToGraphPath(_initialFile, _initialWorkflowId);
+
+  let selectedWorkflowId = $state<string>(_initialPath.workflowId);
+  let graphPath = $state<GraphPath>(_initialPath);
+  let selectedNodeId = $state<string | null>(null);
+
+  // Sync graphPath changes to the URL hash using __zigflow_id segments.
+  $effect(() => {
+    if (!browser) return;
+    const hashSegs = graphPathToHashSegments(workflowFile, graphPath);
+    const parts = [graphPath.workflowId, ...hashSegs].filter(Boolean);
+    const newHash = '#' + parts.join('/');
+    if (window.location.hash !== newHash) {
+      window.location.hash = newHash;
+    }
+  });
+
+  // Listen for browser back / forward navigation changing the hash externally.
+  onMount(() => {
+    function onHashChange() {
+      const raw = window.location.hash.slice(1);
+      const parts = (raw || '').split('/').filter(Boolean);
+      const [workflowId, ...hashSegs] = parts;
+      if (!workflowId) return;
+      // Skip if hash already matches current state (hash sync wrote it).
+      const currentHashSegs = graphPathToHashSegments(workflowFile, graphPath);
+      if (
+        workflowId === graphPath.workflowId &&
+        hashSegs.join('/') === currentHashSegs.join('/')
+      )
+        return;
+      if (!workflowFile.workflows[workflowId]) return;
+      const path = hashSegmentsToGraphPath(workflowFile, workflowId, hashSegs);
+      if (!path) return;
+      graphPath = path;
+      selectedWorkflowId = workflowId;
+      selectedNodeId = null;
+    }
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Derive the current FlowGraph (Step 5)
+  // ---------------------------------------------------------------------------
+
+  const currentGraph = $derived.by((): FlowGraph | null => {
+    try {
+      return getGraphAtPath(workflowFile, graphPath);
+    } catch {
+      return null;
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Breadcrumb labels + segment boundaries (for navigating back by crumb index)
+  //
+  // boundaries[i] = number of segments in graphPath.segments that correspond
+  // to crumb i. Used by handleNavigate to trim segments precisely.
+  // ---------------------------------------------------------------------------
+
+  type CrumbInfo = { crumbs: string[]; boundaries: number[] };
+
+  function buildCrumbInfo(file: WorkflowFile, path: GraphPath): CrumbInfo {
+    const crumbs: string[] = [];
+    const boundaries: number[] = [];
+
+    const wf = file.workflows[path.workflowId];
+    if (!wf) return { crumbs: [], boundaries: [] };
+
+    crumbs.push(wf.name);
+    boundaries.push(0); // root = 0 segments consumed
+
+    let graph: FlowGraph = wf.root;
+    let i = 0;
+
+    while (i < path.segments.length) {
+      const nodeId = path.segments[i];
+      if (!nodeId) break;
+      const node = graph.nodes[nodeId];
+      if (!node) break;
+
+      if (node.type === 'loop') {
+        crumbs.push(`${node.name} › body`);
+        boundaries.push(i + 1);
+        graph = node.bodyGraph;
+        i += 1;
+        continue;
+      }
+
+      // switch, fork, try — consume two segments
+      const nextI = i + 1;
+      if (nextI >= path.segments.length) break;
+      const subId = path.segments[nextI];
+      if (!subId) break;
+
+      if (node.type === 'switch') {
+        const branch = node.branches.find((b) => b.id === subId);
+        crumbs.push(`${node.name} › ${branch?.label ?? subId}`);
+        boundaries.push(nextI + 1);
+        if (branch) graph = branch.graph;
+        i = nextI + 1;
+      } else if (node.type === 'fork') {
+        const branch = node.branches.find((b) => b.id === subId);
+        crumbs.push(`${node.name} › ${branch?.label ?? subId}`);
+        boundaries.push(nextI + 1);
+        if (branch) graph = branch.graph;
+        i = nextI + 1;
+      } else if (node.type === 'try') {
+        const label = subId === 'catchGraph' ? 'catch' : 'try';
+        crumbs.push(`${node.name} › ${label}`);
+        boundaries.push(nextI + 1);
+        graph =
+          subId === 'catchGraph'
+            ? (node.catchGraph ?? node.tryGraph)
+            : node.tryGraph;
+        i = nextI + 1;
       } else {
-        return null;
+        break;
       }
     }
 
-    return graph;
+    return { crumbs, boundaries };
   }
 
-  const currentGraph = $derived(resolveGraph(workflowFile, navStack));
+  const crumbInfo = $derived(buildCrumbInfo(workflowFile, graphPath));
+  const breadcrumbs = $derived(crumbInfo.crumbs);
 
   // ---------------------------------------------------------------------------
-  // Breadcrumb labels
+  // Context indicator label — derives a human-readable sentence that describes
+  // exactly where the user is currently editing.
   // ---------------------------------------------------------------------------
 
-  function buildCrumbs(file: WorkflowFile, stack: NavEntry[]): string[] {
-    return stack.map((entry, i) => {
-      if (entry.kind === 'workflow') {
-        return file.workflows[entry.workflowId]?.name ?? entry.workflowId;
+  function buildContextLabel(file: WorkflowFile, path: GraphPath): string {
+    const wf = file.workflows[path.workflowId];
+    if (!wf) return '';
+
+    if (path.segments.length === 0) {
+      return `Editing Workflow: ${wf.name}`;
+    }
+
+    let graph: FlowGraph = wf.root;
+    let i = 0;
+    let label = '';
+
+    while (i < path.segments.length) {
+      const nodeId = path.segments[i];
+      if (!nodeId) break;
+      const node = graph.nodes[nodeId];
+      if (!node) break;
+
+      if (node.type === 'loop') {
+        label = `Editing Loop Body: ${node.name}`;
+        graph = node.bodyGraph;
+        i += 1;
+        continue;
       }
-      // For nested entries, look up the node name from the previous graph
-      const parentGraph = resolveGraph(file, stack.slice(0, i));
-      if (!parentGraph) return entry.kind;
-      const node = parentGraph.nodes[entry.nodeId];
-      if (!node) return entry.kind;
-      switch (entry.kind) {
-        case 'switch-branch': {
-          const branch =
-            node.type === 'switch'
-              ? node.branches.find((b) => b.id === entry.branchId)
-              : null;
-          return `${node.name} › ${branch?.label ?? entry.branchId}`;
-        }
-        case 'fork-branch': {
-          const branch =
-            node.type === 'fork'
-              ? node.branches.find((b) => b.id === entry.branchId)
-              : null;
-          return `${node.name} › ${branch?.label ?? entry.branchId}`;
-        }
-        case 'try-section':
-          return `${node.name} › ${entry.section}`;
-        case 'loop-body':
-          return `${node.name} › body`;
+
+      const nextI = i + 1;
+      if (nextI >= path.segments.length) break;
+      const subId = path.segments[nextI];
+      if (!subId) break;
+
+      if (node.type === 'switch') {
+        const branch = node.branches.find((b) => b.id === subId);
+        label = `Editing Switch Branch: ${branch?.label ?? subId}`;
+        if (branch) graph = branch.graph;
+        i = nextI + 1;
+      } else if (node.type === 'fork') {
+        const branch = node.branches.find((b) => b.id === subId);
+        label = `Editing Fork Branch: ${branch?.label ?? subId}`;
+        if (branch) graph = branch.graph;
+        i = nextI + 1;
+      } else if (node.type === 'try') {
+        const section = subId === 'catchGraph' ? 'catch' : 'try';
+        label = `Editing Try Section: ${section} (${node.name})`;
+        graph =
+          subId === 'catchGraph'
+            ? (node.catchGraph ?? node.tryGraph)
+            : node.tryGraph;
+        i = nextI + 1;
+      } else {
+        break;
       }
-    });
+    }
+
+    return label;
   }
 
-  const breadcrumbs = $derived(buildCrumbs(workflowFile, navStack));
+  const contextLabel = $derived(buildContextLabel(workflowFile, graphPath));
 
   // ---------------------------------------------------------------------------
   // Selected node (resolved from current graph)
@@ -226,12 +513,46 @@
   );
 
   // ---------------------------------------------------------------------------
+  // Navigation helpers (Step 6)
+  //
+  // All three functions update graphPath only — no WorkflowFile mutation.
+  // ---------------------------------------------------------------------------
+
+  // Navigate into a LoopNode's bodyGraph (single sub-graph).
+  function navigateInto(nodeId: string) {
+    graphPath = { ...graphPath, segments: [...graphPath.segments, nodeId] };
+    selectedNodeId = null;
+  }
+
+  // Navigate into a branch or named section of a SwitchNode, ForkNode, or TryNode.
+  // For TryNode use branchId = 'tryGraph' or 'catchGraph'.
+  function navigateIntoBranch(nodeId: string, branchId: string) {
+    graphPath = {
+      ...graphPath,
+      segments: [...graphPath.segments, nodeId, branchId],
+    };
+    selectedNodeId = null;
+  }
+
+  // Navigate up one level in the crumb trail.
+  function navigateBack() {
+    const { boundaries } = crumbInfo;
+    if (boundaries.length <= 1) return;
+    const targetBoundary = boundaries[boundaries.length - 2] ?? 0;
+    graphPath = {
+      ...graphPath,
+      segments: graphPath.segments.slice(0, targetBoundary),
+    };
+    selectedNodeId = null;
+  }
+
+  // ---------------------------------------------------------------------------
   // Event handlers
   // ---------------------------------------------------------------------------
 
   function handleWorkflowSelect(id: string) {
     selectedWorkflowId = id;
-    navStack = [{ kind: 'workflow', workflowId: id }];
+    graphPath = { workflowId: id, segments: [] };
     selectedNodeId = null;
   }
 
@@ -245,84 +566,30 @@
     selectedNodeId = nodeId;
   }
 
+  // Navigate to a crumb by its index. The Breadcrumb component passes the
+  // array index; we map it to a segment count using boundaries.
   function handleNavigate(index: number) {
-    navStack = navStack.slice(0, index + 1);
+    const boundary = crumbInfo.boundaries[index] ?? 0;
+    graphPath = {
+      ...graphPath,
+      segments: graphPath.segments.slice(0, boundary),
+    };
     selectedNodeId = null;
   }
 
+  // Insert a new node into the currently active graph (Step 5 wiring).
   function handleInsert(nodeType: NodeType) {
-    workflowFile = insertNode(workflowFile, selectedWorkflowId, nodeType);
+    workflowFile = insertNodeAtPath(workflowFile, graphPath, nodeType);
   }
 
-  // Apply a FlowGraph transform at whatever depth the navStack currently points
-  // to, threading the result back up through the IR to produce a new WorkflowFile.
+  // Apply a pure FlowGraph transform at the current graphPath, threading the
+  // result back up to produce a new WorkflowFile.
   function updateCurrentGraph(transform: (g: FlowGraph) => FlowGraph): void {
-    const stack = navStack;
-    if (stack.length === 0) return;
-    const top = stack[0];
-    if (top.kind !== 'workflow') return;
-    const wfId = top.workflowId;
-    const wf = workflowFile.workflows[wfId];
-    if (!wf) return;
-
-    function applyAt(graph: FlowGraph, depth: number): FlowGraph {
-      if (depth >= stack.length) return transform(graph);
-      const entry = stack[depth];
-      switch (entry.kind) {
-        case 'switch-branch': {
-          const node = graph.nodes[entry.nodeId];
-          if (!node || node.type !== 'switch') return graph;
-          const newNode = {
-            ...node,
-            branches: node.branches.map((b) =>
-              b.id === entry.branchId
-                ? { ...b, graph: applyAt(b.graph, depth + 1) }
-                : b,
-            ),
-          };
-          return replaceNode(graph, newNode);
-        }
-        case 'fork-branch': {
-          const node = graph.nodes[entry.nodeId];
-          if (!node || node.type !== 'fork') return graph;
-          const newNode = {
-            ...node,
-            branches: node.branches.map((b) =>
-              b.id === entry.branchId
-                ? { ...b, graph: applyAt(b.graph, depth + 1) }
-                : b,
-            ),
-          };
-          return replaceNode(graph, newNode);
-        }
-        case 'try-section': {
-          const node = graph.nodes[entry.nodeId];
-          if (!node || node.type !== 'try') return graph;
-          const sub =
-            entry.section === 'catch'
-              ? (node.catchGraph ?? node.tryGraph)
-              : node.tryGraph;
-          const updated = applyAt(sub, depth + 1);
-          const newNode =
-            entry.section === 'catch'
-              ? { ...node, catchGraph: updated }
-              : { ...node, tryGraph: updated };
-          return replaceNode(graph, newNode);
-        }
-        case 'loop-body': {
-          const node = graph.nodes[entry.nodeId];
-          if (!node || node.type !== 'loop') return graph;
-          return replaceNode(graph, {
-            ...node,
-            bodyGraph: applyAt(node.bodyGraph, depth + 1),
-          });
-        }
-        default:
-          return graph;
-      }
+    try {
+      workflowFile = updateGraphAtPath(workflowFile, graphPath, transform);
+    } catch (err) {
+      console.error('updateCurrentGraph failed:', err);
     }
-
-    workflowFile = setWorkflowRoot(workflowFile, wfId, applyAt(wf.root, 1));
   }
 
   function handleDelete() {
@@ -357,6 +624,82 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Navigation callbacks (forwarded from Inspector)
+  // ---------------------------------------------------------------------------
+
+  function handleEnterNode(nodeId: string) {
+    navigateInto(nodeId);
+  }
+
+  function handleEnterBranch(nodeId: string, branchId: string) {
+    navigateIntoBranch(nodeId, branchId);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Branch management callbacks (forwarded from Inspector)
+  // ---------------------------------------------------------------------------
+
+  function resolveNode(nodeId: string): Node | null {
+    return currentGraph?.nodes[nodeId] ?? null;
+  }
+
+  function handleAddBranch(nodeId: string) {
+    const node = resolveNode(nodeId);
+    if (!node) return;
+    if (node.type === 'switch') {
+      updateCurrentGraph((g) =>
+        replaceNode(g, addSwitchBranch(node, 'new-branch')),
+      );
+    } else if (node.type === 'fork') {
+      updateCurrentGraph((g) =>
+        replaceNode(g, addForkBranch(node, 'new-branch')),
+      );
+    }
+  }
+
+  function handleRemoveBranch(nodeId: string, branchId: string) {
+    const node = resolveNode(nodeId);
+    if (!node) return;
+    if (node.type === 'switch') {
+      updateCurrentGraph((g) =>
+        replaceNode(g, removeSwitchBranch(node, branchId)),
+      );
+    } else if (node.type === 'fork') {
+      updateCurrentGraph((g) =>
+        replaceNode(g, removeForkBranch(node, branchId)),
+      );
+    }
+  }
+
+  function handleRenameBranch(nodeId: string, branchId: string, label: string) {
+    const node = resolveNode(nodeId);
+    if (!node) return;
+    if (node.type === 'switch') {
+      updateCurrentGraph((g) =>
+        replaceNode(g, renameSwitchBranch(node, branchId, label)),
+      );
+    } else if (node.type === 'fork') {
+      updateCurrentGraph((g) =>
+        replaceNode(g, renameForkBranch(node, branchId, label)),
+      );
+    }
+  }
+
+  // Add a catchGraph to a TryNode and navigate into it immediately.
+  function handleAddCatch(nodeId: string) {
+    const node = resolveNode(nodeId);
+    if (!node || node.type !== 'try' || node.catchGraph !== undefined) return;
+    updateCurrentGraph((g) =>
+      replaceNode(g, updateTrySection(node, 'catchGraph', emptyFlowGraph())),
+    );
+    navigateIntoBranch(nodeId, 'catchGraph');
+  }
+
+  // Expose navigation helpers so child components can invoke them in future.
+  // Currently unused in the template; defined here so the API is established.
+  export { navigateInto, navigateIntoBranch, navigateBack };
+
+  // ---------------------------------------------------------------------------
   // YAML export
   // ---------------------------------------------------------------------------
 
@@ -386,7 +729,7 @@
     onaddworkflow={handleAddWorkflow}
   />
 
-  <!-- Main area: breadcrumb + canvas + inspector -->
+  <!-- Main area: breadcrumb + context indicator + canvas + inspector -->
   <div class="editor-main">
     <div class="editor-topbar">
       <Breadcrumb crumbs={breadcrumbs} onnavigate={handleNavigate} />
@@ -395,6 +738,8 @@
       </button>
     </div>
 
+    <ContextIndicator label={contextLabel} />
+
     <div class="editor-canvas-area">
       {#if currentGraph !== null}
         <Canvas
@@ -402,6 +747,8 @@
           {selectedNodeId}
           onnodeselect={handleNodeSelect}
           oninsert={handleInsert}
+          onenternode={handleEnterNode}
+          onenterbranch={handleEnterBranch}
         />
       {:else}
         <div class="canvas-placeholder">No graph to display.</div>
@@ -414,6 +761,12 @@
         onmoveup={handleMoveUp}
         onmovedown={handleMoveDown}
         ondelete={handleDelete}
+        onenternode={handleEnterNode}
+        onenterbranch={handleEnterBranch}
+        onaddbranch={handleAddBranch}
+        onremovebranch={handleRemoveBranch}
+        onrenamebranch={handleRenameBranch}
+        onaddcatch={handleAddCatch}
       />
     </div>
   </div>
