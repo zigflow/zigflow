@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/assets/css/styles.aafb0404.css">
-<script src="/assets/js/runtime~main.aee7e8df.js" defer="defer"></script>
-<script src="/assets/js/main.e62c839b.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.11586bdb.js" defer="defer"></script>
+<script src="/assets/js/main.c27d747a.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -222,8 +222,8 @@ before starting the worker. Run <code>zigflow validate</code> to see the error:<
 <p>Fix the reported field and restart the worker.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="non-determinism-error-during-workflow-replay">Non-Determinism Error during workflow replay<a href="#non-determinism-error-during-workflow-replay" class="hash-link" aria-label="Direct link to Non-Determinism Error during workflow replay" title="Direct link to Non-Determinism Error during workflow replay" translate="no">​</a></h3>
 <p>Temporal replays workflows from their event history. If a workflow produces
-different results on replay — for example because a UUID or timestamp is
-generated outside a <code>set</code> task — Temporal raises a Non-Determinism Error.</p>
+different results on replay. For example, if a UUID or timestamp is
+generated outside a <code>set</code> task, Temporal raises a Non-Determinism Error.</p>
 <p>Check your logs for lines containing <code>NonDeterministicWorkflowError</code>. The fix
 is to move any generated value into a <code>set</code> task, which wraps the generation
 in a Temporal side-effect.</p>
