@@ -85,13 +85,19 @@ All deployment methods share the same connection flags:
 | --- | --- | --- | --- |
 | `--temporal-address` | `TEMPORAL_ADDRESS` | `localhost:7233` | Temporal server address |
 | `--temporal-namespace` | `TEMPORAL_NAMESPACE` | `default` | Temporal namespace |
-| `--temporal-tls` | `TEMPORAL_TLS` | `false` | Enable TLS |
+| `--temporal-tls` | `TEMPORAL_TLS` | `false` | Enable TLS. Required when connecting to Temporal Cloud |
 | `--temporal-api-key` | `TEMPORAL_API_KEY` | (none) | API key for Temporal Cloud |
 | `--tls-client-cert-path` | `TEMPORAL_TLS_CLIENT_CERT_PATH` | (none) | Path to mTLS client certificate |
 | `--tls-client-key-path` | `TEMPORAL_TLS_CLIENT_KEY_PATH` | (none) | Path to mTLS client key |
 
-For [Temporal Cloud](https://temporal.io/cloud), enable TLS and provide an
-API key:
+For [Temporal Cloud](https://temporal.io/cloud), enable TLS and provide authentication:
+
+### API key
+
+:::info
+API key requires TLS to be enabled. Set `--temporal-tls` in addition to providing
+API key.
+:::
 
 ```sh
 zigflow run \
@@ -100,6 +106,23 @@ zigflow run \
   --temporal-namespace your-namespace \
   --temporal-tls \
   --temporal-api-key your-api-key
+```
+
+### mTLS
+
+:::info
+mTLS requires TLS to be enabled. Set `--temporal-tls` in addition to providing the
+client certificate and key.
+:::
+
+```sh
+zigflow run \
+  -f workflow.yaml \
+  --temporal-address your-namespace.tmprl.cloud:7233 \
+  --temporal-namespace your-namespace \
+  --temporal-tls \
+  --tls-client-cert-path /path/to/cert \
+  --tls-client-key-path /path/to/key
 ```
 
 ---

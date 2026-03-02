@@ -107,10 +107,12 @@ config:
 For Temporal Cloud, use environment variables via the `envvars` list to
 keep credentials in a Secret:
 
+### API key
+
 ```yaml title="values.yaml"
 config:
   temporal-address: your-namespace.tmprl.cloud:7233
-  temporal-tls: "true"
+  temporal-tls: true
 
 envvars:
   - name: TEMPORAL_NAMESPACE
@@ -123,6 +125,35 @@ envvars:
       secretKeyRef:
         name: temporal-config
         key: api-key
+```
+
+### mTLS
+
+```yaml title="values.yaml"
+config:
+  temporal-address: your-namespace.tmprl.cloud:7233
+  temporal-tls: true
+
+envvars:
+  - name: TEMPORAL_NAMESPACE
+    valueFrom:
+      secretKeyRef:
+        name: temporal-config
+        key: namespace
+  - name: TEMPORAL_TLS_CLIENT_CERT_PATH
+    value: /certs/cert
+  - name: TEMPORAL_TLS_CLIENT_KEY_PATH
+    value: /certs/key
+
+volumes:
+  - name: temporal-mtls
+    secret:
+      secretName: temporal-mtls
+
+volumeMounts:
+  - name: temporal-mtls
+    mountPath: /certs
+    readOnly: true
 ```
 
 ---

@@ -155,7 +155,9 @@ ports:
 
 ## Connecting to Temporal Cloud
 
-For Temporal Cloud, enable TLS and provide an API key:
+For Temporal Cloud, enable TLS and provide authentication:
+
+### API key
 
 ```yaml
 environment:
@@ -163,6 +165,17 @@ environment:
   TEMPORAL_NAMESPACE: your-namespace
   TEMPORAL_TLS: "true"
   TEMPORAL_API_KEY: your-api-key
+```
+
+### mTLS
+
+```yaml
+environment:
+  TEMPORAL_ADDRESS: your-namespace.tmprl.cloud:7233
+  TEMPORAL_NAMESPACE: your-namespace
+  TEMPORAL_TLS: "true"
+  TEMPORAL_TLS_CLIENT_CERT_PATH: /path/to/cert
+  TEMPORAL_TLS_CLIENT_KEY_PATH: /path/to/key
 ```
 
 ---
