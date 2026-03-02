@@ -38,6 +38,10 @@ Your infrastructure requirements are:
 | [Docker](/docs/deployment/docker) | Containerised environments, Docker Compose |
 | [Kubernetes / Helm](/docs/deployment/kubernetes) | Production Kubernetes clusters |
 
+For Docker and Kubernetes deployments, you can also
+[build a dedicated image](/docs/deployment/dedicated-image) with the workflow
+baked in at build time rather than mounted at runtime.
+
 ---
 
 ## Assumptions
@@ -163,4 +167,5 @@ zigflow run -f workflow.yaml --disable-telemetry
 
 - [Docker](/docs/deployment/docker) — running Zigflow in a container
 - [Kubernetes](/docs/deployment/kubernetes) — deploying with the official Helm chart
+- [Dedicated image](/docs/deployment/dedicated-image) — workflow at build time
 - [Observability](/docs/deployment/observability) — health checks, metrics and CloudEvents

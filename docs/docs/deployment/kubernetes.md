@@ -65,14 +65,29 @@ helm install my-workflow oci://ghcr.io/mrsimonemms/charts/zigflow@${ZIGFLOW_VERS
 
 ## Workflow delivery options
 
-The chart supports two ways to provide the workflow file:
+The chart supports three ways to provide the workflow file:
 
-### Option 1 — Inline YAML (default)
+### Option 1 - Inline YAML (default)
 
 Set `workflow.useInline: true` and provide the workflow under `workflow.inline`.
 The chart renders the workflow into a ConfigMap.
 
-### Option 2 — Kubernetes Secret
+```yaml title="values.yaml"
+workflow:
+  useInline: true
+  inline:
+    document:
+      dsl: 1.0.0
+      namespace: zigflow
+      name: my-workflow
+      version: 1.0.0
+    do:
+      - ...
+```
+
+See [Minimal configuration](#minimal-configuration) for a complete example.
+
+### Option 2 - Kubernetes Secret
 
 Set `workflow.useInline: false` and create a Secret that contains the workflow:
 
@@ -89,6 +104,29 @@ workflow:
   secret: workflow
   file: /data/workflow.yaml
 ```
+
+### Option 3 - Dedicated image
+
+If you have built an image with the workflow baked in (see
+[Dedicated image](/docs/deployment/dedicated-image)), set `workflow.enabled: false`
+to disable workflow injection entirely:
+
+```yaml title="values.yaml"
+# Add your image name and tag
+image:
+  repository: your-registry/your-image
+  tag: your-tag
+
+# Optionally, add in private registry credentials
+imagePullSecrets:
+  - name: my-registry-secret
+
+workflow:
+  enabled: false
+```
+
+The worker reads the workflow from the path already present inside the
+image. No Secret or ConfigMap is created.
 
 ---
 
@@ -247,4 +285,5 @@ upgrade`, the pod must be restarted to pick up the new workflow.
 
 - [Deploying overview](/docs/deployment/intro) — connection flags and telemetry
 - [Docker](/docs/deployment/docker) — Docker and Docker Compose
+- [Dedicated image](/docs/deployment/dedicated-image) — workflow in the image
 - [Observability](/docs/deployment/observability) — health, metrics and CloudEvents

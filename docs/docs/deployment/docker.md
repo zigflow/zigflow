@@ -191,8 +191,17 @@ Verify the volume mount path matches the path passed to `-f`.
 
 ---
 
+## Building a dedicated image
+
+For production use, consider building an image with the workflow definition
+baked in rather than mounting it at runtime. See
+[Dedicated image](/docs/deployment/dedicated-image).
+
+---
+
 ## Related pages
 
 - [Deploying overview](/docs/deployment/intro) — connection flags and telemetry
+- [Dedicated image](/docs/deployment/dedicated-image) — workflow in the image
 - [Kubernetes](/docs/deployment/kubernetes) — Helm chart deployment
 - [Observability](/docs/deployment/observability) — health and metrics
