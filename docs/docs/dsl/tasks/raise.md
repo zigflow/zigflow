@@ -59,7 +59,7 @@ Standard error types serve the purpose of categorizing errors consistently acros
 different runtimes, facilitating seamless migration from one runtime environment
 to another.
 
-| Type | Status[¹](#footnote-1) | Description |
+| Type | Status[^1] | Description |
 | --- | :---: | --- |
 | [https://serverlessworkflow.io/spec/1.0.0/errors/configuration](https://serverlessworkflow.io/spec/1.0.0/errors/configuration) | `400` | Errors resulting from incorrect or invalid configuration settings, such as missing or misconfigured environment variables, incorrect parameter values, or configuration file errors. |
 | [https://serverlessworkflow.io/spec/1.0.0/errors/validation](https://serverlessworkflow.io/spec/1.0.0/errors/validation) | `400` | Errors arising from validation processes, such as validation of input data, schema validation failures, or validation constraints not being met. These errors indicate that the provided data or configuration does not adhere to the expected format or requirements specified by the workflow. |
@@ -70,8 +70,7 @@ to another.
 | [https://serverlessworkflow.io/spec/1.0.0/errors/communication](https://serverlessworkflow.io/spec/1.0.0/errors/communication) | `500` | Errors  encountered while communicating with external services, including network errors, service unavailable, or invalid responses. |
 | [https://serverlessworkflow.io/spec/1.0.0/errors/runtime](https://serverlessworkflow.io/spec/1.0.0/errors/runtime) | `500` | Errors occurring during the runtime execution of a workflow, including unexpected exceptions, errors related to resource allocation, or failures in handling workflow tasks. These errors typically occur during the actual execution of workflow components and may require runtime-specific handling and resolution strategies. |
 
-<span id="footnote-1">¹</span> *Default value. The `status code` that best
-describes the error should always be used.*
+[^1]: Default value. The `status code` that best describes the error should always be used.
 
 ## Gotchas
 

@@ -61,7 +61,7 @@ The workflow file is already present inside the image. Deploy it as you would
 any other Zigflow container. No `-f` flag and no volume mount are required.
 
 - [Docker](/docs/deployment/docker): run with `docker run` or Docker Compose
-- [Kubernetes](/docs/deployment/kubernetes#option-3--dedicated-image): use
+- [Kubernetes](/docs/deployment/kubernetes#option-3---dedicated-image): use
   Option 3 in the Helm chart workflow delivery options
 
 ---
