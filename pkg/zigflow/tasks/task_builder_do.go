@@ -22,6 +22,7 @@ import (
 
 	ceSDK "github.com/cloudevents/sdk-go/v2"
 	"github.com/mrsimonemms/zigflow/pkg/cloudevents"
+	"github.com/mrsimonemms/zigflow/pkg/telemetry"
 	"github.com/mrsimonemms/zigflow/pkg/utils"
 	"github.com/mrsimonemms/zigflow/pkg/zigflow/metadata"
 	"github.com/rs/zerolog/log"
@@ -36,6 +37,7 @@ type DoTaskOpts struct {
 	DisableRegisterWorkflow bool
 	Envvars                 map[string]any
 	MaxHistoryLength        int
+	Telemetry               *telemetry.Telemetry
 	Validator               *utils.Validator
 }
 
@@ -181,6 +183,12 @@ func (t *DoTaskBuilder) workflowExecutor(tasks []workflowFunc) TemporalWorkflowF
 	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
 		logger := workflow.GetLogger(ctx)
 		logger.Info("Running workflow", "workflow", t.GetTaskName())
+
+		// Increment number of workflow runs - a new Do task, even if a child workflow,
+		// counts as a new workflow run. This is designed to be an indication of usage
+		if t.opts.Telemetry != nil && !workflow.IsReplaying(ctx) {
+			t.opts.Telemetry.IncrementRun()
+		}
 
 		if state == nil {
 			logger.Debug("Creating new state instance")

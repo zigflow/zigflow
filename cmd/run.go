@@ -42,7 +42,6 @@ type runOptions struct {
 	CodecHeaders         map[string]string
 	ConvertData          string
 	ConvertKeyPath       string
-	DisableTelemetry     bool
 	EnvPrefix            string
 	FilePath             string
 	HealthListenAddress  string
@@ -55,6 +54,8 @@ type runOptions struct {
 	TemporalTLSEnabled   bool
 	TemporalNamespace    string
 	Validate             bool
+
+	Telemetry *telemetry.Telemetry
 }
 
 func panicMessage(r any) string {
@@ -108,6 +109,7 @@ func startWorker(
 	workflowDefinition *model.Workflow,
 	envvars map[string]any,
 	events *cloudevents.Events,
+	telem *telemetry.Telemetry,
 ) error {
 	pollerAutoscaler := worker.NewPollerBehaviorAutoscaling(worker.PollerBehaviorAutoscalingOptions{})
 	temporalWorker := worker.New(temporalClient, taskQueue, worker.Options{
@@ -116,11 +118,16 @@ func startWorker(
 		NexusTaskPollerBehavior:    pollerAutoscaler,
 	})
 
-	if err := zigflow.NewWorkflow(temporalWorker, workflowDefinition, envvars, events); err != nil {
+	if err := zigflow.NewWorkflow(temporalWorker, workflowDefinition, envvars, events, telem); err != nil {
 		return gh.FatalError{
 			Cause: err,
 			Msg:   "Unable to build workflow from DSL",
 		}
+	}
+
+	if telem != nil {
+		telem.StartWorker()
+		defer telem.Shutdown()
 	}
 
 	if err := temporalWorker.Run(worker.InterruptCh()); err != nil {
@@ -220,7 +227,7 @@ func runRunCmd(ctx context.Context, opts *runOptions) error {
 
 	log.Info().Str("task-queue", taskQueue).Msg("Starting workflow")
 
-	return startWorker(temporalClient, taskQueue, workflowDefinition, envvars, events)
+	return startWorker(temporalClient, taskQueue, workflowDefinition, envvars, events, opts.Telemetry)
 }
 
 func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
@@ -249,12 +256,6 @@ func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
 	cmd.Flags().StringVar(
 		&opts.ConvertKeyPath, "converter-key-path",
 		viper.GetString("converter_key_path"), "Path to conversion keys to encrypt Temporal data with AES",
-	)
-
-	viper.SetDefault("disable_telemetry", false)
-	cmd.Flags().BoolVar(
-		&opts.DisableTelemetry, "disable-telemetry", viper.GetBool("disable_telemetry"),
-		"Disables all anonymous usage reporting. No telemetry data will be sent.",
 	)
 
 	cmd.Flags().StringVarP(
@@ -343,14 +344,6 @@ until interrupted.
 Use this command to deploy and run your Zigflow workflows in any environment,
 from local development to production.`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if !opts.DisableTelemetry {
-				// Thank you - it helps us to see usage
-				if err := telemetry.Notify(Version); err != nil {
-					// Log the error, but that's all
-					log.Trace().Err(err).Msg("Failed to send anonymous telemetry - oh well")
-				}
-			}
-
 			if _, err := codec.ParseCodecType(opts.ConvertData); err != nil {
 				return err
 			}
@@ -358,6 +351,7 @@ from local development to production.`,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			opts.Telemetry = app.Telemetry
 			return runRunCmd(cmd.Context(), &opts)
 		},
 	}

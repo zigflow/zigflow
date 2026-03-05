@@ -148,17 +148,45 @@ expressions as `${ $env.API_BASE_URL }`.
 
 ## Telemetry
 
-Zigflow sends anonymous usage data (a UUID and version number) to help
-the project understand adoption. No workflow data is included.
+Telemetry helps the maintainers understand whether Zigflow is being used in
+real production environments. No personal data is collected.
 
-Disable it:
+When a worker starts, Zigflow sends:
+
+- an anonymous installation ID (generated locally on first run, or derived from
+  the container hostname)
+- the Zigflow version
+- basic runtime information (OS, architecture, container detection)
+
+When workflows are executed, Zigflow sends a periodic heartbeat (once per minute)
+containing:
+
+- the total number of workflow runs since the worker started
+- the worker uptime in seconds
+
+Heartbeats are only sent when the run count changes. Idle workers do not
+emit repeated telemetry.
+
+Zigflow does **not** collect:
+
+- workflow definitions
+- workflow inputs or outputs
+- execution IDs
+- task names
+- hostnames
+- environment variable values
+- organisation identifiers
+
+Telemetry exists solely to understand real-world adoption and usage.
+
+**Opting out** is straightforward:
 
 ```sh
 # Environment variable
-DISABLE_TELEMETRY=true zigflow run -f workflow.yaml
+DISABLE_TELEMETRY=true
 
 # CLI flag
-zigflow run -f workflow.yaml --disable-telemetry
+--disable-telemetry
 ```
 
 ---

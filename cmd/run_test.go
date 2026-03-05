@@ -128,5 +128,4 @@ func TestNewRunCmd_Flags(t *testing.T) {
 	assert.NotNil(t, cmd.Flags().Lookup("env-prefix"))
 	assert.NotNil(t, cmd.Flags().Lookup("health-listen-address"))
 	assert.NotNil(t, cmd.Flags().Lookup("metrics-listen-address"))
-	assert.NotNil(t, cmd.Flags().Lookup("disable-telemetry"))
 }

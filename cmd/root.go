@@ -20,16 +20,26 @@ import (
 	"os"
 
 	gh "github.com/mrsimonemms/golang-helpers"
+	"github.com/mrsimonemms/zigflow/pkg/telemetry"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
+type cli struct {
+	Telemetry *telemetry.Telemetry
+}
+
+var app *cli
+
 func newRootCmd() *cobra.Command {
+	app = &cli{}
 	viper.AutomaticEnv()
 
 	var opts struct {
-		LogLevel string
+		DisableTelemetry bool
+		LogLevel         string
 	}
 
 	rootCmd := &cobra.Command{
@@ -67,9 +77,22 @@ platform.`,
 			}
 			zerolog.SetGlobalLevel(level)
 
+			if t, err := telemetry.New(Version, opts.DisableTelemetry); err != nil {
+				// Log the error, but that's all
+				log.Trace().Err(err).Msg("Failed to send anonymous telemetry - oh well")
+			} else {
+				app.Telemetry = t
+			}
+
 			return nil
 		},
 	}
+
+	viper.SetDefault("disable_telemetry", false)
+	rootCmd.PersistentFlags().BoolVar(
+		&opts.DisableTelemetry, "disable-telemetry", viper.GetBool("disable_telemetry"),
+		"Disables all anonymous usage reporting. No telemetry data will be sent.",
+	)
 
 	viper.SetDefault("log_level", zerolog.InfoLevel.String())
 	rootCmd.PersistentFlags().StringVarP(

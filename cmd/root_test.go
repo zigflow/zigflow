@@ -41,5 +41,6 @@ func TestNewRootCmd_Subcommands(t *testing.T) {
 func TestNewRootCmd_Flags(t *testing.T) {
 	cmd := newRootCmd()
 
+	assert.NotNil(t, cmd.PersistentFlags().Lookup("disable-telemetry"))
 	assert.NotNil(t, cmd.PersistentFlags().Lookup("log-level"))
 }

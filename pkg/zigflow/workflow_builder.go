@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/mrsimonemms/zigflow/pkg/cloudevents"
+	"github.com/mrsimonemms/zigflow/pkg/telemetry"
 	"github.com/mrsimonemms/zigflow/pkg/zigflow/metadata"
 	"github.com/mrsimonemms/zigflow/pkg/zigflow/tasks"
 	"github.com/rs/zerolog/log"
@@ -27,7 +28,13 @@ import (
 	"go.temporal.io/sdk/worker"
 )
 
-func NewWorkflow(temporalWorker worker.Worker, doc *model.Workflow, envvars map[string]any, emitter *cloudevents.Events) error {
+func NewWorkflow(
+	temporalWorker worker.Worker,
+	doc *model.Workflow,
+	envvars map[string]any,
+	emitter *cloudevents.Events,
+	telem *telemetry.Telemetry,
+) error {
 	workflowName := doc.Document.Name
 	l := log.With().Str("workflowName", workflowName).Logger()
 
@@ -48,6 +55,8 @@ func NewWorkflow(temporalWorker worker.Worker, doc *model.Workflow, envvars map[
 			Envvars: envvars,
 			// Search for a max history length for CAN override
 			MaxHistoryLength: maxHistoryLength,
+			// Add in telemetry
+			Telemetry: telem,
 		},
 	)
 	if err != nil {

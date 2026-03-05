@@ -282,16 +282,36 @@ Also, the colours are based on the Ziggy Stardust lightning bolt.
 
 ## Telemetry
 
-Telemetry helps the maintainers understand whether Zigflow is actually being
-used and which versions are in the field. No personal data is collected.
+Telemetry helps the maintainers understand whether Zigflow is being used in
+real production environments. No personal data is collected.
 
-Zigflow generates a UUID on first run (stored in `~/.config/zigflow`) and sends
-only two things to the telemetry endpoint:
+When a worker starts, Zigflow sends:
 
-- the anonymous UUID
-- the Zigflow version you are running
+- an anonymous installation ID (generated locally on first run, or derived from
+  the container hostname)
+- the Zigflow version
+- basic runtime information (OS, architecture, container detection)
 
-Nothing else. No hostnames, no workflow definitions, no environment data.
+When workflows are executed, Zigflow sends a periodic heartbeat (once per minute)
+containing:
+
+- the total number of workflow runs since the worker started
+- the worker uptime in seconds
+
+Heartbeats are only sent when the run count changes. Idle workers do not
+emit repeated telemetry.
+
+Zigflow does **not** collect:
+
+- workflow definitions
+- workflow inputs or outputs
+- execution IDs
+- task names
+- hostnames
+- environment variable values
+- organisation identifiers
+
+Telemetry exists solely to understand real-world adoption and usage.
 
 **Opting out** is straightforward:
 
@@ -302,9 +322,6 @@ DISABLE_TELEMETRY=true
 # CLI flag
 --disable-telemetry
 ```
-
-<!-- Suggested link: public telemetry spec / privacy note
-     at zigflow.dev/telemetry -->
 
 ---
 
