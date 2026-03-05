@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkzigflow=globalThis.webpackChunkzigflow||[]).push([[225],{225(e,c,i){i.d(c,{createArchitectureServices:()=>a.S});var a=i(7713);i(808)}}]);
