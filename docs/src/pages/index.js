@@ -29,10 +29,12 @@ function HomepageHeader() {
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
-        <Heading as="h1" className="hero__title">
+        <Heading as="h1" className={clsx('hero__title', styles.textWhite)}>
           {siteConfig.title}
         </Heading>
-        <p className="hero__subtitle">{siteConfig.tagline}</p>
+        <p className={clsx('hero__subtitle', styles.textWhite)}>
+          {siteConfig.tagline}
+        </p>
         <div
           className={styles.buttons}
           style={{ display: 'flex', gap: '1rem' }}

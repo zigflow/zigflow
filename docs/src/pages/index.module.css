@@ -19,6 +19,10 @@
  * and scoped locally.
  */
 
+.textWhite {
+  color: var(--ifm-color-white);
+}
+
 .heroBanner {
   padding: 4rem 0;
   text-align: center;
