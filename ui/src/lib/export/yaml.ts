@@ -317,6 +317,7 @@ function exportSwitchNode(node: SwitchNode, ctx: ExportContext): unknown {
 
     const entry: Record<string, unknown> = { then: hoistedName };
     if (branch.condition !== undefined) entry.when = branch.condition;
+    if (branch.metadata !== undefined) entry.metadata = branch.metadata;
     return { [branch.label]: entry };
   });
 
@@ -333,7 +334,9 @@ function exportSwitchNode(node: SwitchNode, ctx: ExportContext): unknown {
 function exportForkNode(node: ForkNode, ctx: ExportContext): unknown {
   const branches = node.branches.map((branch) => {
     const tasks = exportFlowGraphTasks(branch.graph, ctx);
-    return { [branch.label]: { do: tasks } };
+    const branchDef: Record<string, unknown> = { do: tasks };
+    if (branch.metadata !== undefined) branchDef.metadata = branch.metadata;
+    return { [branch.label]: branchDef };
   });
 
   const def: Record<string, unknown> = {

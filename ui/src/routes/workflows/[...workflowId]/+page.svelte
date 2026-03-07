@@ -28,8 +28,6 @@
     removeForkBranch,
     removeNode,
     removeSwitchBranch,
-    renameForkBranch,
-    renameSwitchBranch,
     replaceNode,
     updateGraphAtPath,
     updateTrySection,
@@ -60,12 +58,12 @@
   // Workflow state (IR)
   // ---------------------------------------------------------------------------
 
-  // The demo workflow file is provided by the server load (stable singleton).
+  // The workflow file is loaded from disk by the server load function.
   // _initialWorkflowId captures the root workflow ID once; it never changes.
   // workflowFile is mutable state — untrack intentionally captures initial value.
-  const _initialWorkflowId = untrack(() => data.demoFile.order[0]!);
+  const _initialWorkflowId = untrack(() => data.workflowFile.order[0]!);
 
-  let workflowFile = $state<WorkflowFile>(untrack(() => data.demoFile));
+  let workflowFile = $state<WorkflowFile>(untrack(() => data.workflowFile));
 
   // ---------------------------------------------------------------------------
   // Query param ↔ GraphPath sync
@@ -271,7 +269,7 @@
   // warning for data.selectedSegments since the initial capture is intentional.
   const _initialParsed = untrack(() =>
     parseSelectedSegments(
-      data.demoFile,
+      data.workflowFile,
       _initialWorkflowId,
       data.selectedSegments,
     ),
@@ -523,7 +521,11 @@
     selectedNodeId = null;
     inspectorOpen = false;
     if (newPath.segments.length === 0) {
-      history.pushState(null, '', resolve(`/workflows/${data.workflowId}` as WfPath));
+      history.pushState(
+        null,
+        '',
+        resolve(`/workflows/${data.workflowId}` as WfPath),
+      );
     } else {
       const hashSegs = graphPathToHashSegments(workflowFile, newPath);
       history.pushState(
@@ -545,7 +547,11 @@
     graphPath = { workflowId: id, segments: [] };
     selectedNodeId = null;
     inspectorOpen = false;
-    history.pushState(null, '', resolve(`/workflows/${data.workflowId}` as WfPath));
+    history.pushState(
+      null,
+      '',
+      resolve(`/workflows/${data.workflowId}` as WfPath),
+    );
   }
 
   function handleAddWorkflow(): void {
@@ -555,7 +561,11 @@
     graphPath = { workflowId: newId, segments: [] };
     selectedNodeId = null;
     inspectorOpen = false;
-    history.pushState(null, '', resolve(`/workflows/${data.workflowId}` as WfPath));
+    history.pushState(
+      null,
+      '',
+      resolve(`/workflows/${data.workflowId}` as WfPath),
+    );
   }
 
   function handleNodeSelect(nodeId: string | null): void {
@@ -570,7 +580,11 @@
       // Stay in the current sub-graph if we navigated into one; only return to
       // root when deselecting from the root graph.
       if (graphPath.segments.length === 0) {
-        history.pushState(null, '', resolve(`/workflows/${data.workflowId}` as WfPath));
+        history.pushState(
+          null,
+          '',
+          resolve(`/workflows/${data.workflowId}` as WfPath),
+        );
       } else {
         const hashSegs = graphPathToHashSegments(workflowFile, graphPath);
         history.pushState(
@@ -609,7 +623,11 @@
     selectedNodeId = null;
     inspectorOpen = false;
     if (newPath.segments.length === 0) {
-      history.pushState(null, '', resolve(`/workflows/${data.workflowId}` as WfPath));
+      history.pushState(
+        null,
+        '',
+        resolve(`/workflows/${data.workflowId}` as WfPath),
+      );
     } else {
       const hashSegs = graphPathToHashSegments(workflowFile, newPath);
       history.pushState(
@@ -642,7 +660,11 @@
     if (!id) return;
     selectedNodeId = null;
     inspectorOpen = false;
-    history.pushState(null, '', resolve(`/workflows/${data.workflowId}` as WfPath));
+    history.pushState(
+      null,
+      '',
+      resolve(`/workflows/${data.workflowId}` as WfPath),
+    );
     updateCurrentGraph((g) => removeNode(g, id));
   }
 
@@ -714,20 +736,6 @@
     } else if (node.type === 'fork') {
       updateCurrentGraph((g) =>
         replaceNode(g, removeForkBranch(node, branchId)),
-      );
-    }
-  }
-
-  function handleRenameBranch(nodeId: string, branchId: string, label: string) {
-    const node = resolveNode(nodeId);
-    if (!node) return;
-    if (node.type === 'switch') {
-      updateCurrentGraph((g) =>
-        replaceNode(g, renameSwitchBranch(node, branchId, label)),
-      );
-    } else if (node.type === 'fork') {
-      updateCurrentGraph((g) =>
-        replaceNode(g, renameForkBranch(node, branchId, label)),
       );
     }
   }
@@ -833,7 +841,6 @@
         onenterbranch={handleEnterBranch}
         onaddbranch={handleAddBranch}
         onremovebranch={handleRemoveBranch}
-        onrenamebranch={handleRenameBranch}
         onaddcatch={handleAddCatch}
       />
     </div>

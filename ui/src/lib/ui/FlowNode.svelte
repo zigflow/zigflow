@@ -104,7 +104,7 @@
       <span class="flow-node-name">{data.label}</span>
     </div>
 
-    {#if data.navRows && data.navRows.length > 0}
+    {#if data.navRows && data.navRows.length > 0 && !selected}
       <ul class="flow-node-rows" role="list">
         {#each data.navRows as row (row.id)}
           <li>

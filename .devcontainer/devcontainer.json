@@ -39,6 +39,7 @@
     "GIT_REPO": "github.com/mrsimonemms/zigflow",
     "LOG_LEVEL": "trace",
     "PLAYWRIGHT_HTML_HOST": "0.0.0.0",
+    "PUBLIC_WORKFLOWS_DIR": "/workspaces/zigflow/ui/workflows",
     "ZIGGY_EXAMPLE_ENVVAR": "some-example-envvar",
     "WORKFLOW_FILE": "./workflow.example.yaml"
   },

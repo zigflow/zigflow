@@ -30,3 +30,6 @@ static/fonts
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+/workflows
+!/workflows/demo-workflow.yaml

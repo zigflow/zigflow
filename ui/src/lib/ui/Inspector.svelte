@@ -34,7 +34,6 @@
     // Branch management (switch / fork)
     onaddbranch?: (nodeId: string) => void;
     onremovebranch?: (nodeId: string, branchId: string) => void;
-    onrenamebranch?: (nodeId: string, branchId: string, label: string) => void;
     // Try-specific: add catchGraph section
     onaddcatch?: (nodeId: string) => void;
   }
@@ -50,7 +49,6 @@
     onenterbranch,
     onaddbranch,
     onremovebranch,
-    onrenamebranch,
     onaddcatch,
   }: Props = $props();
 
@@ -154,45 +152,23 @@
         <ul class="branch-list" role="list">
           {#each node.branches as branch (branch.id)}
             <li class="branch-item">
-              <input
-                class="branch-label-input"
-                type="text"
-                value={branch.label}
-                aria-label="Branch label"
-                onblur={(e) => {
-                  const newLabel = (
-                    e.currentTarget as HTMLInputElement
-                  ).value.trim();
-                  if (newLabel && newLabel !== branch.label) {
-                    onrenamebranch?.(node.id, branch.id, newLabel);
-                  }
-                }}
-                onkeydown={(e) => {
-                  if (e.key === 'Enter') {
-                    (e.currentTarget as HTMLInputElement).blur();
-                  }
-                }}
-              />
-              <div class="branch-actions">
+              <button
+                class="branch-label-btn"
+                onclick={() => onenterbranch?.(node.id, branch.id)}
+                type="button"
+              >
+                {branch.label}
+              </button>
+              {#if node.branches.length > minBranches(node)}
                 <button
-                  class="branch-enter-btn"
-                  onclick={() => onenterbranch?.(node.id, branch.id)}
+                  class="branch-remove-btn"
+                  onclick={() => onremovebranch?.(node.id, branch.id)}
                   type="button"
-                  title="Navigate into this branch"
+                  aria-label="Remove branch {branch.label}"
                 >
-                  Enter
+                  ✕
                 </button>
-                {#if node.branches.length > minBranches(node)}
-                  <button
-                    class="branch-remove-btn"
-                    onclick={() => onremovebranch?.(node.id, branch.id)}
-                    type="button"
-                    aria-label="Remove branch {branch.label}"
-                  >
-                    ✕
-                  </button>
-                {/if}
-              </div>
+              {/if}
             </li>
           {/each}
         </ul>
@@ -388,44 +364,26 @@
     gap: 0.375rem;
   }
 
-  .branch-label-input {
+  .branch-label-btn {
     flex: 1;
     min-width: 0;
-    padding: 0.25rem 0.4rem;
-    border: 1px solid #ddd;
+    padding: 0.25rem 0.5rem;
+    background: #f0f4ff;
+    border: 1px solid #c5d5f5;
     border-radius: 4px;
     font-size: 0.8rem;
     font-family: inherit;
-    color: #111;
-    background: #fafafa;
-  }
-
-  .branch-label-input:focus {
-    outline: none;
-    border-color: #1a56cc;
-    background: #fff;
-  }
-
-  .branch-actions {
-    display: flex;
-    gap: 0.25rem;
-    flex-shrink: 0;
-  }
-
-  .branch-enter-btn {
-    padding: 0.2rem 0.45rem;
-    background: #1a56cc;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    font-size: 0.72rem;
-    font-weight: 500;
+    color: #1a56cc;
     cursor: pointer;
+    text-align: left;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .branch-enter-btn:hover {
-    background: #1344a8;
+  .branch-label-btn:hover {
+    background: #e0eaff;
+    border-color: #1a56cc;
   }
 
   .branch-remove-btn {

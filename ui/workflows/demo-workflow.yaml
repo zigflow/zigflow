@@ -1,0 +1,58 @@
+document:
+  dsl: 1.0.0
+  namespace: demo
+  name: demo-workflow
+  version: 0.0.1
+  title: Demo Workflow
+do:
+  - greet:
+      set:
+        message: Hello, World!
+      metadata:
+        __zigflow_id: 15b9ba59-d039-46cd-9d88-0b4adeae4d3d
+  - pause:
+      wait:
+        seconds: 5
+      metadata:
+        __zigflow_id: 76e94b56-cdef-4d2c-8e34-9ef4272c2022
+  - route:
+      switch:
+        - fast-path:
+            then: route-fast-path
+            when: ${ $input.fast == true }
+            metadata:
+              __zigflow_id: f24ed99f-e0f0-4779-8ab6-b013f2589889
+        - default:
+            then: route-default
+            metadata:
+              __zigflow_id: 895e4b0a-ff1e-4ccd-9295-e6c7b763958c
+      metadata:
+        __zigflow_id: c4dd198a-b394-4a7e-81c1-764c87ae509b
+  - parallel-work:
+      fork:
+        compete: false
+        branches:
+          - branch-a:
+              do: []
+              metadata:
+                __zigflow_id: 8fd21a81-26c0-4023-87c3-a284ee857f4c
+          - branch-b:
+              do: []
+              metadata:
+                __zigflow_id: 742eca7b-6f91-4200-901f-31b76a74395b
+      metadata:
+        __zigflow_id: a28d11d1-6e35-453f-b2af-64811c0ff650
+  - safe-call:
+      try: []
+      metadata:
+        __zigflow_id: 7e649e6b-50f6-4e93-a501-7f8ffaf4d6aa
+  - process-items:
+      for:
+        in: ${ $input.items }
+      do: []
+      metadata:
+        __zigflow_id: e4879bd8-ed9e-4955-bff1-33490e86e5f7
+  - route-fast-path:
+      do: []
+  - route-default:
+      do: []
