@@ -18,28 +18,36 @@ package utils
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 )
 
-// ExecuteEvery executes the given function on the duration until the context has stopped
+// ExecuteEvery executes the given function on the duration until the context has stopped.
+// The returned cancel function stops the background ticker; callers must call it when done.
 func ExecuteEvery(ctx context.Context, duration time.Duration, fn func(context.Context)) (cctx context.Context, cancel func()) {
-	cctx, cancel = context.WithCancel(ctx)
+	doneCh := make(chan struct{})
+	var once sync.Once
+	cctx = ctx
+	cancel = func() { once.Do(func() { close(doneCh) }) }
 
 	go func() {
 		ticker := time.NewTicker(duration)
 		defer ticker.Stop()
 
-		l := log.With().Ctx(cctx).Dur("duration", duration).Logger()
+		l := log.With().Ctx(ctx).Dur("duration", duration).Logger()
 
 		for {
 			select {
 			case <-ticker.C:
 				l.Debug().Msg("Triggering background function")
-				fn(cctx)
-			case <-cctx.Done():
+				fn(ctx)
+			case <-doneCh:
+				l.Debug().Msg("Stopping background function")
+				return
+			case <-ctx.Done():
 				l.Debug().Msg("Stopping background function")
 				return
 			}

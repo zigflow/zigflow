@@ -128,6 +128,12 @@ func execGraphInjectAuto(targetFile, outputFormat, endMarker string) error {
 }
 
 func execGraphInject(workflowFile, targetFile, outputFormat, startMarker, endMarker string) error {
+	// Resolve to an absolute path to prevent path traversal.
+	absTarget, pathErr := filepath.Abs(targetFile)
+	if pathErr != nil {
+		return gh.FatalError{Cause: pathErr, Msg: "Unable to resolve target file path"}
+	}
+
 	wf, err := zigflow.LoadFromFile(workflowFile)
 	if err != nil {
 		return gh.FatalError{Cause: err, Msg: "Unable to load workflow file"}
@@ -146,12 +152,12 @@ func execGraphInject(workflowFile, targetFile, outputFormat, startMarker, endMar
 	// Wrap in a fenced code block so it renders in Markdown.
 	codeBlock := fmt.Sprintf("```%s\n%s```", outputFormat, graphOutput)
 
-	info, err := os.Stat(targetFile)
+	info, err := os.Stat(absTarget)
 	if err != nil {
 		return gh.FatalError{Cause: err, Msg: "Unable to read target file"}
 	}
 
-	fileData, err := os.ReadFile(targetFile)
+	fileData, err := os.ReadFile(absTarget)
 	if err != nil {
 		return gh.FatalError{Cause: err, Msg: "Unable to read target file"}
 	}
@@ -161,7 +167,9 @@ func execGraphInject(workflowFile, targetFile, outputFormat, startMarker, endMar
 		return gh.FatalError{Cause: err, Msg: "Unable to inject graph"}
 	}
 
-	if err := os.WriteFile(targetFile, []byte(result), info.Mode()); err != nil {
+	// absTarget is resolved via filepath.Abs from a user-supplied CLI argument; path traversal is
+	// intentional and expected for a CLI tool. gosec G703 is a false positive here.
+	if err := os.WriteFile(absTarget, []byte(result), info.Mode()); err != nil { //nolint:gosec
 		return gh.FatalError{Cause: err, Msg: "Unable to write target file"}
 	}
 
