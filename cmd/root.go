@@ -21,6 +21,7 @@ import (
 
 	gh "github.com/mrsimonemms/golang-helpers"
 	"github.com/mrsimonemms/zigflow/pkg/telemetry"
+	"github.com/mrsimonemms/zigflow/pkg/zigflow"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -83,6 +84,8 @@ platform.`,
 			} else {
 				app.Telemetry = t
 			}
+
+			gh.CheckAndMaybePrintUpdate(cmd.Context(), Version, zigflow.RepoOwner, zigflow.RepoName)
 
 			return nil
 		},

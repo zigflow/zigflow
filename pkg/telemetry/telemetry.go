@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	gh "github.com/mrsimonemms/golang-helpers"
 	"github.com/posthog/posthog-go"
 	"github.com/rs/zerolog/log"
 )
@@ -37,7 +38,6 @@ const (
 	// @link https://posthog.com/docs/privacy
 	//nolint:gosec
 	apiKey           = "phc_aAZLi0FMmGUug73jLYdTIkFjns49I9YcpOUs6TztZ0B"
-	development      = "development"
 	endpoint         = "https://cli.zigflow.dev"
 	heartbeatTimeout = time.Minute
 )
@@ -185,7 +185,7 @@ func (t *Telemetry) startHeartbeat() {
 func New(version string, disabled bool) (*Telemetry, error) {
 	t := &Telemetry{
 		arch:       runtime.GOARCH,
-		isDisabled: disabled || version == development,
+		isDisabled: disabled || version == gh.Development,
 		os:         runtime.GOOS,
 		startTime:  time.Now(),
 		stopCh:     make(chan struct{}),
