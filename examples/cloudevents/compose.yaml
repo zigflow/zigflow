@@ -2,7 +2,7 @@ services:
   http:
     build:
       context: ../../
-      target: builder
+      target: dev
     volumes:
       - ./http:/go/app
 
@@ -20,7 +20,7 @@ services:
   workflow: &trigger
     build:
       context: ../../
-      target: builder
+      target: dev
     environment:
       CLOUDEVENTS_CONFIG: ./examples/cloudevents/cloudevents.yaml
       FILE_TARGET: ./tmp/events

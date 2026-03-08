@@ -10,9 +10,12 @@ on:
       - main
   workflow_dispatch:
 permissions:
+  actions: read
   contents: write
   packages: write
+  id-token: write
   pull-requests: read
+  security-events: write
 jobs:
   commitlint:
     runs-on: ubuntu-latest
@@ -125,6 +128,23 @@ jobs:
       - name: helm lint
         run: helm lint charts/zigflow
 
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: config
+          scan-ref: ./charts/zigflow
+          format: sarif
+          output: trivy-helm.sarif
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-helm.sarif
+
       - name: Install Skaffold
         run: |
           curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64
@@ -146,7 +166,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          target: builder
+          target: dev
           tags: zigflow:latest
           load: true
           cache-from: type=gha
@@ -278,19 +298,34 @@ jobs:
             GIT_COMMIT=${{ needs.metadata.outputs.commit_id }}
             GIT_REPO=${{ needs.metadata.outputs.git_repo }}
             VERSION=${{ needs.metadata.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           platforms: ${{ matrix.platform }}
-          push: ${{ needs.metadata.outputs.push }}
+          load: ${{ needs.metadata.outputs.push == 'false' }}
+          push: ${{ needs.metadata.outputs.push == 'true' }}
           tags: ${{ steps.tag.outputs.image_ref }}
-          # Save as artifact for non-main branches
-          outputs: ${{ needs.metadata.outputs.push == 'false' && 'type=docker,dest=/tmp/zigflow-image.tar' || '' }}
 
-      - name: Upload image artifact
-        if: needs.metadata.outputs.push == 'false'
-        uses: actions/upload-artifact@v4
+      - name: Pull images
+        if: ${{ needs.metadata.outputs.push == 'true' }}
+        run: docker pull ${{ steps.tag.outputs.image_ref }}
+
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@0.35.0
         with:
-          name: zigflow-image-${{ steps.tag.outputs.platform_tag }}
-          path: /tmp/zigflow-image.tar
-          retention-days: 1
+          image-ref: ${{ steps.tag.outputs.image_ref }}
+          format: sarif
+          output: trivy-zigflow-${{ steps.tag.outputs.platform_tag }}.sarif
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-zigflow-${{ steps.tag.outputs.platform_tag }}.sarif
 
   # Combine architecture-specific images into a multi-arch manifest
   docker_zigflow_manifest:
@@ -309,6 +344,16 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Cosign
+        if: needs.metadata.outputs.push == 'true'
+        uses: sigstore/cosign-installer@v4.0.0
+
+      - name: Install Syft
+        if: needs.metadata.outputs.push == 'true'
+        uses: jaxxstorm/action-install-gh-release@v1.10.0
+        with:
+          repo: anchore/syft
 
       - name: Generate manifest tags and create manifest
         if: needs.metadata.outputs.push == 'true'
@@ -349,6 +394,10 @@ jobs:
           for TAG in ${TARGET_TAGS}; do
             echo "Creating manifest for ${TAG} from: ${SOURCE_IMAGES}"
             docker buildx imagetools create -t "${TAG}" ${SOURCE_IMAGES}
+            cosign sign --yes "${TAG}"
+            syft "${TAG}" -o cyclonedx-json > sbom.json
+            cosign attach sbom --sbom sbom.json "${TAG}"
+            cosign sign --yes --attachment sbom "${TAG}"
           done
 
   # Run GoReleaser in parallel

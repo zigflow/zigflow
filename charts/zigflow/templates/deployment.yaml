@@ -87,6 +87,8 @@ spec:
           {{- end }}
           {{- if or .Values.workflow.enabled .Values.volumes }}
           volumeMounts:
+            - mountPath: /tmp
+              name: tmp
           {{- if .Values.workflow.enabled }}
             - mountPath: {{ .Values.workflow.file | quote }}
               subPath: workflow.yaml
@@ -99,6 +101,11 @@ spec:
           {{- end }}
       {{- if or .Values.workflow.enabled .Values.volumes }}
       volumes:
+        # Zigflow can create small temporary files
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 32Mi
       {{- if .Values.workflow.enabled }}
         - name: workflow
           secret:

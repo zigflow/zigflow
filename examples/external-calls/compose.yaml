@@ -13,7 +13,7 @@ services:
   grpc:
     build:
       context: ../../
-      target: builder
+      target: dev
     volumes:
       - ../../:/go/app
     working_dir: /go/app/examples/external-calls/grpc/basic
@@ -28,7 +28,7 @@ services:
   starter:
     build:
       context: ../../
-      target: builder
+      target: dev
     environment:
       LOG_LEVEL: "${LOG_LEVEL:-debug}"
       TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
@@ -52,7 +52,7 @@ services:
   workflow:
     build:
       context: ../../
-      target: builder
+      target: dev
     environment:
       ZIGGY_GRPC_INPUT: some-input
       LOG_LEVEL: "${LOG_LEVEL:-debug}"

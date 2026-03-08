@@ -27,7 +27,7 @@ services:
   workflow: &trigger
     build:
       context: ../../
-      target: builder
+      target: dev
     environment:
       CODEC_ENDPOINT: http://codec:3000
       CODEC_HEADERS: '{"Authorization": "Basic dXNlcjpwYXNzd29yZA=="}'

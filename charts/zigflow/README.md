@@ -203,7 +203,13 @@ null
 			<td>podSecurityContext</td>
 			<td>object</td>
 			<td><pre lang="json">
-{}
+{
+  "fsGroup": 1000,
+  "runAsNonRoot": true,
+  "seccompProfile": {
+    "type": "RuntimeDefault"
+  }
+}
 </pre>
 </td>
 			<td>Pod's <a href="https://kubernetes.io/docs/tasks/configure-pod-container/security-context" target="_blank">security context</a></td>
@@ -248,7 +254,19 @@ null
 			<td>securityContext</td>
 			<td>object</td>
 			<td><pre lang="json">
-{}
+{
+  "allowPrivilegeEscalation": false,
+  "capabilities": {
+    "drop": [
+      "ALL"
+    ]
+  },
+  "readOnlyRootFilesystem": true,
+  "runAsNonRoot": true,
+  "seccompProfile": {
+    "type": "RuntimeDefault"
+  }
+}
 </pre>
 </td>
 			<td>Container's security context</td>

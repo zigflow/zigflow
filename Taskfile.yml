@@ -89,6 +89,12 @@ tasks:
         minikube profile list | grep minikube | grep OK || minikube start
       - kubectl apply -f ./dev/k8s/
 
+  scan:
+    desc: Scan for vulnerabilities
+    cmds:
+      - trivy config --severity HIGH,CRITICAL --format table --exit-code 1 charts/zigflow
+      - trivy image --severity HIGH,CRITICAL --format table --exit-code 1 --pkg-types os,library --ignore-unfixed ghcr.io/mrsimonemms/zigflow
+
   start:
     desc: Run example by name (NAME required)
     requires:

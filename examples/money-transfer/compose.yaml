@@ -21,7 +21,7 @@ services:
   workflow:
     build:
       context: ../../
-      target: builder
+      target: dev
     environment:
       LOG_LEVEL: "${LOG_LEVEL:-debug}"
       TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}

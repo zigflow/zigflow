@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang AS builder
+FROM golang:1.26 AS dev
 ARG GIT_COMMIT
 ARG GIT_REPO="github.com/mrsimonemms/zigflow"
-ARG PROJECT_NAME="zigflow"
 ARG VERSION
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 ENV GOCACHE=/go/.cache
-ENV PROJECT_NAME="${PROJECT_NAME}"
 ENV WORKFLOW_FILE=/go/app/workflow.example.yaml
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
   && apt update \
@@ -33,15 +31,29 @@ WORKDIR /go/app
 COPY --chown=1000:1000 go.mod go.sum ./
 RUN go mod download
 COPY --chown=1000:1000 . .
-RUN go generate ./... \
-  && go build \
-    -ldflags \
-    "-w -s -X $GIT_REPO/cmd.Version=$VERSION -X $GIT_REPO/cmd.GitCommit=$GIT_COMMIT" \
-    -o /go/bin/app
+RUN go generate ./...
 COPY --from=cosmtrek/air /go/bin/air /go/bin/air
 ENTRYPOINT [ "air" ]
 
-FROM node:lts-alpine
+FROM golang:1.26 AS builder
+ARG GIT_COMMIT
+ARG GIT_REPO="github.com/mrsimonemms/zigflow"
+ARG VERSION
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+ENV GOCACHE=/go/.cache
+USER 1000
+WORKDIR /go/app
+COPY --chown=1000:1000 go.mod go.sum ./
+RUN go mod download
+COPY --chown=1000:1000 . .
+RUN go generate ./... \
+  && go build \
+  -ldflags \
+  "-w -s -X $GIT_REPO/cmd.Version=$VERSION -X $GIT_REPO/cmd.GitCommit=$GIT_COMMIT" \
+  -o /go/bin/app
+
+FROM cgr.dev/chainguard/wolfi-base:latest
 ARG GIT_COMMIT
 ARG VERSION
 ENV DISABLE_TELEMETRY=false
@@ -49,10 +61,10 @@ ENV GIT_COMMIT="${GIT_COMMIT}"
 ENV VERSION="${VERSION}"
 ENV WORKFLOW_FILE=/app/workflow.yaml
 WORKDIR /app
-RUN apk add --no-cache python3 \
+RUN apk add --no-cache nodejs python3 \
   && node --version \
   && python --version
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /go/bin/app /app
-USER node
+RUN addgroup -S -g 1000 zigflow && adduser -S -u 1000 zigflow -G zigflow
+USER 1000
 ENTRYPOINT [ "/app/app" ]

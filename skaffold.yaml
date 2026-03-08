@@ -8,7 +8,7 @@ build:
     - image: zigflow
       docker:
         dockerfile: Dockerfile
-        target: builder
+        target: dev
       sync:
         manual:
           - src: "**/*.go"
@@ -39,6 +39,8 @@ deploy:
             temporal-address: temporal.temporal.svc.cluster.local:7233
           workflow:
             enabled: false
+          securityContext:
+            readOnlyRootFilesystem: false
 
 portForward:
   - resourceType: Service
