@@ -8,8 +8,8 @@
 <link rel="preconnect" href="https://www.google-analytics.com">
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
-<script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/preview/sje-zigflow-ui/assets/css/styles.23e179dd.css">
-<script src="/preview/sje-zigflow-ui/assets/js/runtime~main.b0ab5ae4.js" defer="defer"></script>
+<script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/preview/sje-zigflow-ui/assets/css/styles.ea8d7f43.css">
+<script src="/preview/sje-zigflow-ui/assets/js/runtime~main.45ba32e2.js" defer="defer"></script>
 <script src="/preview/sje-zigflow-ui/assets/js/main.e91d60f8.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -97,10 +97,36 @@ workflow. Change the prefix with <code>--env-prefix</code>.</p>
 expressions as <code>${ $env.API_BASE_URL }</code>.</p>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="telemetry">Telemetry<a href="#telemetry" class="hash-link" aria-label="Direct link to Telemetry" title="Direct link to Telemetry" translate="no">​</a></h2>
-<p>Zigflow sends anonymous usage data (a UUID and version number) to help
-the project understand adoption. No workflow data is included.</p>
-<p>Disable it:</p>
-<div class="language-sh codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-sh codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain"># Environment variable</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">DISABLE_TELEMETRY=true zigflow run -f workflow.yaml</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"># CLI flag</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">zigflow run -f workflow.yaml --disable-telemetry</span><br></span></code></pre></div></div>
+<p>Telemetry helps the maintainers understand whether Zigflow is being used in
+real production environments. No personal data is collected.</p>
+<p>When a worker starts, Zigflow sends:</p>
+<ul>
+<li class="">an anonymous installation ID (generated locally on first run, or derived from
+the container hostname)</li>
+<li class="">the Zigflow version</li>
+<li class="">basic runtime information (OS, architecture, container detection)</li>
+</ul>
+<p>When workflows are executed, Zigflow sends a periodic heartbeat (once per minute)
+containing:</p>
+<ul>
+<li class="">the total number of workflow runs since the worker started</li>
+<li class="">the worker uptime in seconds</li>
+</ul>
+<p>Heartbeats are only sent when the run count changes. Idle workers do not
+emit repeated telemetry.</p>
+<p>Zigflow does <strong>not</strong> collect:</p>
+<ul>
+<li class="">workflow definitions</li>
+<li class="">workflow inputs or outputs</li>
+<li class="">execution IDs</li>
+<li class="">task names</li>
+<li class="">hostnames</li>
+<li class="">environment variable values</li>
+<li class="">organisation identifiers</li>
+</ul>
+<p>Telemetry exists solely to understand real-world adoption and usage.</p>
+<p><strong>Opting out</strong> is straightforward:</p>
+<div class="language-sh codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-sh codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain"># Environment variable</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">DISABLE_TELEMETRY=true</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"># CLI flag</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">--disable-telemetry</span><br></span></code></pre></div></div>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="next-steps">Next steps<a href="#next-steps" class="hash-link" aria-label="Direct link to Next steps" title="Direct link to Next steps" translate="no">​</a></h2>
 <ul>
