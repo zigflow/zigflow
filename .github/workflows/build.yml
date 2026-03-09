@@ -416,7 +416,7 @@ jobs:
         with:
           name: zigflow
           registry: ghcr.io
-          repository: ${{ github.actor }}/charts
+          repository: ${{ github.repository_owner }}/charts
           tag: ${{ needs.metadata.outputs.tag }}
           registry_username: ${{ github.actor }}
           registry_password: ${{ secrets.GITHUB_TOKEN }}
