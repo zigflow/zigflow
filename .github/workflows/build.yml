@@ -307,6 +307,9 @@ jobs:
           # Save as artifact for non-main branches
           outputs: ${{ needs.metadata.outputs.push == 'false' && 'type=docker,dest=/tmp/zigflow-image.tar' || '' }}
 
+      - name: Check images
+        run: docker images
+
       - name: Pull images
         if: ${{ needs.metadata.outputs.push == 'true' }}
         run: docker pull ${{ steps.tag.outputs.image_ref }}
