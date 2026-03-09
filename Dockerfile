@@ -41,7 +41,7 @@ RUN go generate ./... \
 COPY --from=cosmtrek/air /go/bin/air /go/bin/air
 ENTRYPOINT [ "air" ]
 
-FROM node:lts-alpine
+FROM cgr.dev/chainguard/wolfi-base:latest
 ARG GIT_COMMIT
 ARG VERSION
 ENV DISABLE_TELEMETRY=false
@@ -49,10 +49,11 @@ ENV GIT_COMMIT="${GIT_COMMIT}"
 ENV VERSION="${VERSION}"
 ENV WORKFLOW_FILE=/app/workflow.yaml
 WORKDIR /app
-RUN apk add --no-cache python3 \
+RUN apk add --no-cache nodejs python3 \
   && node --version \
   && python --version
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /go/bin/app /app
-USER node
+RUN addgroup -S -g 1000 zigflow && adduser -S -u 1000 zigflow -G zigflow
+USER 1000
 ENTRYPOINT [ "/app/app" ]

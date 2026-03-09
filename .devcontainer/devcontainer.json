@@ -2,6 +2,7 @@
   "name": "devcontainer",
   "image": "ghcr.io/mrsimonemms/devcontainers/full",
   "features": {
+    "ghcr.io/dhoeric/features/trivy:1": {},
     "ghcr.io/mrsimonemms/devcontainers/cobra-cli:1": {},
     "ghcr.io/guiyomh/features/goreleaser:0": {},
     "ghcr.io/devcontainers-extra/features/temporal-cli:1": {},
