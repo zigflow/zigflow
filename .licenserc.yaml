@@ -1,7 +1,7 @@
 header:
   license:
     spdx-id: Apache-2.0
-    copyright-owner: Zigflow authors <https://github.com/mrsimonemms/zigflow/graphs/contributors>
+    copyright-owner: Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>
     copyright-year: 2025 - 2026
   paths-ignore:
     - "**/dist"

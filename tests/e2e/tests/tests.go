@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 - 2026 Zigflow authors <https://github.com/mrsimonemms/zigflow/graphs/contributors>
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
 package tests
 
 import (
-	_ "github.com/mrsimonemms/zigflow/tests/e2e/tests/callHTTP"
-	_ "github.com/mrsimonemms/zigflow/tests/e2e/tests/complete"
-	_ "github.com/mrsimonemms/zigflow/tests/e2e/tests/fork"
-	_ "github.com/mrsimonemms/zigflow/tests/e2e/tests/fork-compete"
-	_ "github.com/mrsimonemms/zigflow/tests/e2e/tests/set"
+	_ "github.com/zigflow/zigflow/tests/e2e/tests/callHTTP"
+	_ "github.com/zigflow/zigflow/tests/e2e/tests/complete"
+	_ "github.com/zigflow/zigflow/tests/e2e/tests/fork"
+	_ "github.com/zigflow/zigflow/tests/e2e/tests/fork-compete"
+	_ "github.com/zigflow/zigflow/tests/e2e/tests/set"
 )

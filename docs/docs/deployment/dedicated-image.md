@@ -40,7 +40,7 @@ Copying your workflow file into the image at that path is sufficient.
 ## Dockerfile
 
 ```dockerfile title="Dockerfile"
-FROM ghcr.io/mrsimonemms/zigflow
+FROM ghcr.io/zigflow/zigflow
 COPY ./workflow.yaml /app/workflow.yaml
 ```
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 - 2026 Zigflow authors <https://github.com/mrsimonemms/zigflow/graphs/contributors>
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,10 +25,10 @@ import (
 	"time"
 
 	sdk "github.com/cloudevents/sdk-go/v2"
-	"github.com/mrsimonemms/zigflow/pkg/observability"
-	"github.com/mrsimonemms/zigflow/pkg/utils"
 	"github.com/rs/zerolog/log"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/zigflow/zigflow/pkg/observability"
+	"github.com/zigflow/zigflow/pkg/utils"
 	"sigs.k8s.io/yaml"
 )
 

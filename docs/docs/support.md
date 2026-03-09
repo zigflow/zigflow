@@ -47,7 +47,7 @@ maintenance, not a roadmap.
 ## Corporate Support
 
 Organisations using Zigflow in production are welcome to reach out via the
-[GitHub repository](https://github.com/mrsimonemms/zigflow) to discuss
+[GitHub repository](https://github.com/zigflow/zigflow) to discuss
 consulting arrangements or dedicated support agreements.
 
 No formal commercial offering currently exists. Enquiries will be considered
@@ -61,18 +61,18 @@ If financial contribution is not appropriate, the following are equally
 valuable:
 
 - **Bug reports**: detailed, reproducible reports in the
-  [issue tracker](https://github.com/mrsimonemms/zigflow/issues)
+  [issue tracker](https://github.com/zigflow/zigflow/issues)
 - **Pull requests**: fixes, documentation improvements and example additions
 - **GitHub stars**: starring the
-  [repository](https://github.com/mrsimonemms/zigflow) increases discoverability
+  [repository](https://github.com/zigflow/zigflow) increases discoverability
   and signals active use to the broader community
 - **Visibility**: sharing Zigflow with teams who may benefit
 - **Feedback**: opening
-  [GitHub Discussions](https://github.com/mrsimonemms/zigflow/discussions)
+  [GitHub Discussions](https://github.com/zigflow/zigflow/discussions)
   to report real-world usage patterns
 
 All contributions are made under the
-[Apache 2.0 licence](https://github.com/mrsimonemms/zigflow/blob/main/LICENSE).
+[Apache 2.0 licence](https://github.com/zigflow/zigflow/blob/main/LICENSE).
 
 ---
 
@@ -80,7 +80,7 @@ All contributions are made under the
 
 ### Technical issues and feature requests
 
-Open a [GitHub issue](https://github.com/mrsimonemms/zigflow/issues). This is
+Open a [GitHub issue](https://github.com/zigflow/zigflow/issues). This is
 the primary channel for bug reports, feature requests and technical questions.
 Direct messages and email are not monitored for technical support.
 

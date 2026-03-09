@@ -10,7 +10,7 @@
     "start": "node ./",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Zigflow authors <https://github.com/mrsimonemms/zigflow/graphs/contributors>",
+  "author": "Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>",
   "license": "Apache-2.0",
   "devDependencies": {
     "prettier": "^3.6.2",

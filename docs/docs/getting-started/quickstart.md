@@ -23,7 +23,7 @@ Get Zigflow installed and run your first workflow in under five minutes.
 ## Step 1: Install Zigflow
 
 Download the binary for your platform from the
-[releases page](https://github.com/mrsimonemms/zigflow/releases).
+[releases page](https://github.com/zigflow/zigflow/releases).
 
 ```sh
 # Make it executable

@@ -1,4 +1,4 @@
-module github.com/mrsimonemms/zigflow/examples/debugging/http
+module github.com/zigflow/zigflow/examples/debugging/http
 
 go 1.25.6
 

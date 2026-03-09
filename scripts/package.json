@@ -8,7 +8,7 @@
   "bin": {
     "scripts": "./bin/cli.mjs"
   },
-  "author": "Zigflow authors <https://github.com/mrsimonemms/zigflow/graphs/contributors>",
+  "author": "Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>",
   "license": "Apache-2.0",
   "dependencies": {
     "yaml": "^2.8.1",

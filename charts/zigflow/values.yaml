@@ -61,7 +61,7 @@ workflow:
 
 image:
   # -- Image repositiory
-  repository: ghcr.io/mrsimonemms/zigflow
+  repository: ghcr.io/zigflow/zigflow
   # -- Image pull policy
   pullPolicy: IfNotPresent
   # -- Image tag - defaults to the chart's <code>Version</code> if not set

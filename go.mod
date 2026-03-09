@@ -1,4 +1,4 @@
-module github.com/mrsimonemms/zigflow
+module github.com/zigflow/zigflow
 
 go 1.25.0
 

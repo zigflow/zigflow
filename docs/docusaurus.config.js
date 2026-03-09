@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 - 2026 Zigflow authors <https://github.com/mrsimonemms/zigflow/graphs/contributors>
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import { themes as prismThemes } from 'prism-react-renderer';
 
 import loadExamplesPlugin from './plugins/load-examples.mjs';
 
-const organizationName = 'mrsimonemms';
+const organizationName = 'zigflow';
 const projectName = 'zigflow';
 const githubDomain = `${organizationName}/${projectName}`;
 const githubURL = `https://github.com/${githubDomain}`;

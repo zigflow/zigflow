@@ -136,7 +136,7 @@ and include:
 ## Protocols
 
 :::info
-Please raise a [feature request](https://github.com/mrsimonemms/zigflow/issues/new?template=feature_request.md)
+Please raise a [feature request](https://github.com/zigflow/zigflow/issues/new?template=feature_request.md)
 for additional protocols.
 :::
 
@@ -259,7 +259,7 @@ clients:
 
 A complete example demonstrating CloudEvents debugging is available in the
 repository at
-[`examples/cloudevents`](https://github.com/mrsimonemms/zigflow/tree/main/examples/cloudevents).
+[`examples/cloudevents`](https://github.com/zigflow/zigflow/tree/main/examples/cloudevents).
 
 The example includes:
 - A sample workflow with multiple tasks

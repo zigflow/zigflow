@@ -20,10 +20,10 @@ The chart is published to the GitHub Container Registry as an OCI artifact.
 ### Install
 
 Replace `${ZIGFLOW_VERSION}` with a
-[published version](https://github.com/mrsimonemms/zigflow/pkgs/container/charts%2Fzigflow):
+[published version](https://github.com/zigflow/zigflow/pkgs/container/charts%2Fzigflow):
 
 ```sh
-helm install my-workflow oci://ghcr.io/mrsimonemms/charts/zigflow@${ZIGFLOW_VERSION}
+helm install my-workflow oci://ghcr.io/zigflow/charts/zigflow@${ZIGFLOW_VERSION}
 ```
 
 ---
@@ -57,7 +57,7 @@ workflow:
 Install with custom values:
 
 ```sh
-helm install my-workflow oci://ghcr.io/mrsimonemms/charts/zigflow@${ZIGFLOW_VERSION} \
+helm install my-workflow oci://ghcr.io/zigflow/charts/zigflow@${ZIGFLOW_VERSION} \
   -f values.yaml
 ```
 
@@ -250,7 +250,7 @@ autoscaling:
 
 ```yaml title="values.yaml"
 image:
-  repository: ghcr.io/mrsimonemms/zigflow
+  repository: ghcr.io/zigflow/zigflow
   pullPolicy: IfNotPresent
   tag: "0.1.0"  # Defaults to chart version if not set
 ```
@@ -259,7 +259,7 @@ image:
 
 ## Full values reference
 
-See the [Helm chart README](https://github.com/mrsimonemms/zigflow/tree/main/charts/zigflow)
+See the [Helm chart README](https://github.com/zigflow/zigflow/tree/main/charts/zigflow)
 for the complete values reference.
 
 ---
@@ -273,7 +273,7 @@ namespace.
 
 **ImagePullBackOff for the chart image.**
 Verify the version tag exists in
-[ghcr.io/mrsimonemms/charts/zigflow](https://github.com/mrsimonemms/zigflow/pkgs/container/charts%2Fzigflow).
+[ghcr.io/zigflow/charts/zigflow](https://github.com/zigflow/zigflow/pkgs/container/charts%2Fzigflow).
 
 **Workflow not updating after a values change.**
 The chart renders the inline workflow into a ConfigMap. After a `helm

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2025 - 2026 Zigflow authors <https://github.com/mrsimonemms/zigflow/graphs/contributors>
+# Copyright 2025 - 2026 Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ BIN_PATH="${CACHE_DIR}/${BIN_NAME}-${VERSION}"
 if [ ! -f "$BIN_PATH" ]; then
   mkdir -p "$CACHE_DIR"
 
-  URL="https://github.com/mrsimonemms/zigflow/releases/download/v${VERSION}/${BIN_NAME}"
+  URL="https://github.com/zigflow/zigflow/releases/download/v${VERSION}/${BIN_NAME}"
 
   echo "Downloading Zigflow ${VERSION} (${OS}/${ARCH})..."
   curl -sSL -o "$BIN_PATH" "$URL"

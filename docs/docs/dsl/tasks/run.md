@@ -23,7 +23,7 @@ a JavaScript or Python script or another Zigflow workflow.
 :::info
 Currently, this only supports Docker containers run via the `docker` binary on
 your local machine. Additional container runtimes are planned - please upvote
-[#181](https://github.com/mrsimonemms/zigflow/issues/181) to influence prioritsation.
+[#181](https://github.com/zigflow/zigflow/issues/181) to influence prioritsation.
 :::
 
 Enables the execution of external processes encapsulated within a containerised
@@ -90,7 +90,7 @@ executing user-defined scripts written in various programming languages.
 #### Supported languages
 
 :::warning
-The [Docker image](https://github.com/mrsimonemms/zigflow/blob/main/Dockerfile)
+The [Docker image](https://github.com/zigflow/zigflow/blob/main/Dockerfile)
 is built on the [`node:lts-alpine` image](https://hub.docker.com/_/node/) and
 installs the [`python3` Alpine package](https://pkgs.alpinelinux.org/package/edge/main/x86/python3).
 For specific versions of these languages, build your own image.

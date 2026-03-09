@@ -111,7 +111,7 @@ The following resources are available for deeper exploration but can be skipped 
 - [Homepage](https://zigflow.dev): Official Zigflow website
 - [Documentation](https://zigflow.dev/docs): Complete documentation
 - [Slack Community](https://slack.zigflow.dev): Join the Zigflow Slack channel
-- [GitHub Repository](https://github.com/mrsimonemms/zigflow): Source code and issue tracker
+- [GitHub Repository](https://github.com/zigflow/zigflow): Source code and issue tracker
 - [Contributing Guide](./README.md#-contributing): How to contribute to Zigflow
 - [Code of Conduct](./CODE_OF_CONDUCT.md): Community guidelines
 - [License](./LICENSE): Apache-2.0 license

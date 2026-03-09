@@ -17,7 +17,7 @@ release.
 ## Image
 
 ```text
-ghcr.io/mrsimonemms/zigflow
+ghcr.io/zigflow/zigflow
 ```
 
 Tags:
@@ -34,7 +34,7 @@ the command.
 
 To run Zigflow without Docker, download the binary for your
 platform from the
-[releases page](https://github.com/mrsimonemms/zigflow/releases)
+[releases page](https://github.com/zigflow/zigflow/releases)
 and run it directly:
 
 ```sh
@@ -54,7 +54,7 @@ Mount your workflow file into the container and pass its path with `-f`:
 ```sh
 docker run --rm \
   -v /path/to/workflow.yaml:/app/workflow.yaml \
-  ghcr.io/mrsimonemms/zigflow \
+  ghcr.io/zigflow/zigflow \
   run -f /app/workflow.yaml \
   --temporal-address host.docker.internal:7233
 ```
@@ -84,7 +84,7 @@ services:
       retries: 3
 
   worker:
-    image: ghcr.io/mrsimonemms/zigflow
+    image: ghcr.io/zigflow/zigflow
     command:
       - run
       - -f

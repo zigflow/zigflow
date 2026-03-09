@@ -1,7 +1,7 @@
 //go:build e2e
 
 /*
- * Copyright 2025 - 2026 Zigflow authors <https://github.com/mrsimonemms/zigflow/graphs/contributors>
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,12 +28,12 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/mrsimonemms/zigflow/pkg/zigflow"
-	"github.com/mrsimonemms/zigflow/tests/e2e/utils"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/zigflow/zigflow/pkg/zigflow"
+	"github.com/zigflow/zigflow/tests/e2e/utils"
 
-	_ "github.com/mrsimonemms/zigflow/tests/e2e/tests"
+	_ "github.com/zigflow/zigflow/tests/e2e/tests"
 )
 
 type harness struct {

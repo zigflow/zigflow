@@ -13,17 +13,17 @@ Zigflow is a single Go binary with prebuilt options.
 
 ## Binary Releases
 
-Every [release](https://github.com/mrsimonemms/zigflow/releases) of Zigflow provides
+Every [release](https://github.com/zigflow/zigflow/releases) of Zigflow provides
 binary releases for a variety of OSes. These binary versions can be manually
 downloaded and installed.
 
-1. Download your [desired version](https://github.com/mrsimonemms/zigflow/releases)
+1. Download your [desired version](https://github.com/zigflow/zigflow/releases)
 2. Make it executable `chmod +x ./path/to/binary`
 3. (Optional) Move to your `$PATH` directory
 
 ## Docker Image
 
-Every [release](https://github.com/mrsimonemms/zigflow/pkgs/container/zigflow) of
+Every [release](https://github.com/zigflow/zigflow/pkgs/container/zigflow) of
 Zigflow provides a Docker image. The binary is set as the
 [entrypoint](https://docs.docker.com/reference/dockerfile/#entrypoint), so you
 can use the image as a replacement for the binary.
@@ -34,7 +34,7 @@ as the tag (eg, `0.1.0`).
 ```sh
 docker run -it --rm \
   -v /path/to/workflow.yaml:/app/workflow.yaml \
-  ghcr.io/mrsimonemms/zigflow \
+  ghcr.io/zigflow/zigflow \
   run
 ```
 
@@ -45,7 +45,7 @@ Go package manager to install the binary. This will be installed under your
 `$GOPATH`.
 
 ```sh
-go install github.com/mrsimonemms/zigflow@latest
+go install github.com/zigflow/zigflow@latest
 ```
 
 You can specify a version by changing `@latest` to the desired version.
@@ -59,7 +59,7 @@ You will need to install [Go](https://go.dev/doc/install)
 Building from source is useful for testing unreleased versions.
 
 ```sh
-git clone https://github.com/mrsimonemms/zigflow.git
+git clone https://github.com/zigflow/zigflow.git
 cd zigflow
 go build .
 ```

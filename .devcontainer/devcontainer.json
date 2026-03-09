@@ -34,7 +34,7 @@
   "containerEnv": {
     "CLOUDEVENTS_CONFIG": "/workspaces/zigflow/cloudevents.example.yaml",
     "CONVERTER_KEY_PATH": "/workspaces/zigflow/keys.example.yaml",
-    "GIT_REPO": "github.com/mrsimonemms/zigflow",
+    "GIT_REPO": "github.com/zigflow/zigflow",
     "LOG_LEVEL": "trace",
     "ZIGGY_EXAMPLE_ENVVAR": "some-example-envvar",
     "WORKFLOW_FILE": "./workflow.example.yaml"

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 - 2026 Zigflow authors <https://github.com/mrsimonemms/zigflow/graphs/contributors>
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,12 @@ package zigflow
 import (
 	"fmt"
 
-	"github.com/mrsimonemms/zigflow/pkg/cloudevents"
-	"github.com/mrsimonemms/zigflow/pkg/telemetry"
-	"github.com/mrsimonemms/zigflow/pkg/zigflow/metadata"
-	"github.com/mrsimonemms/zigflow/pkg/zigflow/tasks"
 	"github.com/rs/zerolog/log"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/zigflow/zigflow/pkg/cloudevents"
+	"github.com/zigflow/zigflow/pkg/telemetry"
+	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
+	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
 	"go.temporal.io/sdk/worker"
 )
 

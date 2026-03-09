@@ -1,4 +1,4 @@
-# Copyright 2025 - 2026 Zigflow authors <https://github.com/mrsimonemms/zigflow/graphs/contributors>
+# Copyright 2025 - 2026 Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 FROM golang AS builder
 ARG GIT_COMMIT
-ARG GIT_REPO="github.com/mrsimonemms/zigflow"
+ARG GIT_REPO="github.com/zigflow/zigflow"
 ARG PROJECT_NAME="zigflow"
 ARG VERSION
 ENV CGO_ENABLED=0
@@ -35,9 +35,9 @@ RUN go mod download
 COPY --chown=1000:1000 . .
 RUN go generate ./... \
   && go build \
-    -ldflags \
-    "-w -s -X $GIT_REPO/cmd.Version=$VERSION -X $GIT_REPO/cmd.GitCommit=$GIT_COMMIT" \
-    -o /go/bin/app
+  -ldflags \
+  "-w -s -X $GIT_REPO/cmd.Version=$VERSION -X $GIT_REPO/cmd.GitCommit=$GIT_COMMIT" \
+  -o /go/bin/app
 COPY --from=cosmtrek/air /go/bin/air /go/bin/air
 ENTRYPOINT [ "air" ]
 

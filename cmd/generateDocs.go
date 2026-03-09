@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 - 2026 Zigflow authors <https://github.com/mrsimonemms/zigflow/graphs/contributors>
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,9 +23,9 @@ import (
 	"strings"
 
 	gh "github.com/mrsimonemms/golang-helpers"
-	"github.com/mrsimonemms/zigflow/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
+	"github.com/zigflow/zigflow/pkg/utils"
 )
 
 func newGenerateDocsCmd(root *cobra.Command) *cobra.Command {

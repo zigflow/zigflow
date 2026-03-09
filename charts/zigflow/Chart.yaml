@@ -3,14 +3,14 @@ name: zigflow
 description: A Temporal DSL for turning declarative YAML into production-ready workflows
 type: application
 version: 0.0.0
-icon: https://raw.githubusercontent.com/mrsimonemms/zigflow/refs/heads/main/designs/z-logo.png
+icon: https://raw.githubusercontent.com/zigflow/zigflow/refs/heads/main/designs/z-logo.png
 home: https://zigflow.dev
 maintainers:
   - name: Simon Emms
     email: simon@simonemms.com
     url: https://simonemms.com
 sources:
-  - https://github.com/mrsimonemms/zigflow
+  - https://github.com/zigflow/zigflow
 keywords:
   - DSL
   - Durable Execution
@@ -20,4 +20,4 @@ keywords:
   - Workflows
   - YAML
 annotations:
-  org.opencontainers.image.documentation: https://github.com/mrsimonemms/zigflow/tree/main/charts/zigflow
+  org.opencontainers.image.documentation: https://github.com/zigflow/zigflow/tree/main/charts/zigflow

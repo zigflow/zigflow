@@ -396,7 +396,7 @@ jobs:
           go install github.com/norwoodj/helm-docs/cmd/helm-docs@latest
           helm-docs
           yq -i '.version = "${{ needs.metadata.outputs.tag }}"' charts/zigflow/Chart.yaml
-          yq -i '.annotations."org.opencontainers.image.documentation" = "https://github.com/mrsimonemms/zigflow/blob/${{ needs.metadata.outputs.tag }}/charts/zigflow/README.md"' charts/zigflow/Chart.yaml
+          yq -i '.annotations."org.opencontainers.image.documentation" = "https://github.com/zigflow/zigflow/blob/${{ needs.metadata.outputs.tag }}/charts/zigflow/README.md"' charts/zigflow/Chart.yaml
 
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6

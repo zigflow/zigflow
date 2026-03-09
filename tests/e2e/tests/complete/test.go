@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 - 2026 Zigflow authors <https://github.com/mrsimonemms/zigflow/graphs/contributors>
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,9 +26,9 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
 	"github.com/mrsimonemms/golang-helpers/temporal"
-	"github.com/mrsimonemms/zigflow/tests/e2e/utils"
 	zlog "github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
+	"github.com/zigflow/zigflow/tests/e2e/utils"
 	"go.temporal.io/sdk/client"
 )
 

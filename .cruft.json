@@ -6,8 +6,8 @@
     "cookiecutter": {
       "project_name": "zigflow",
       "description": "A Temporal DSL for turning declarative YAML into production-ready workflows",
-      "author": "Zigflow authors <https://github.com/mrsimonemms/zigflow/graphs/contributors>",
-      "repo": "github.com/mrsimonemms/zigflow",
+      "author": "Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>",
+      "repo": "github.com/zigflow/zigflow",
       "use_viper": false,
       "_template": "https://github.com/mrsimonemms/new",
       "_commit": "575419a2c0d81d09e68c8a42d027c32b138f1b71"

@@ -24,7 +24,7 @@ registers it as a Temporal worker.
 
 ### Install Zigflow
 
-1. Find the binary for your computer from the [releases](https://github.com/mrsimonemms/zigflow/releases)
+1. Find the binary for your computer from the [releases](https://github.com/zigflow/zigflow/releases)
    page
 2. Make it executable `chmod +x ./path/to/binary`
 

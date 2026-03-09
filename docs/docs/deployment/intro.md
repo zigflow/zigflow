@@ -49,11 +49,11 @@ baked in at build time rather than mounted at runtime.
 **Provided by Zigflow:**
 
 - A compiled binary for Linux, macOS and Windows via the
-  [releases page](https://github.com/mrsimonemms/zigflow/releases)
+  [releases page](https://github.com/zigflow/zigflow/releases)
 - A Docker image published on every release to
-  `ghcr.io/mrsimonemms/zigflow`
+  `ghcr.io/zigflow/zigflow`
 - A Helm chart published as an OCI artifact to
-  `oci://ghcr.io/mrsimonemms/charts/zigflow`
+  `oci://ghcr.io/zigflow/charts/zigflow`
 
 **You must provide:**
 

@@ -2,10 +2,10 @@
 
 [![Zigflow](./designs/zigflow.png "Zigflow")](https://zigflow.dev?utm_source=github&utm_medium=readme&utm_campaign=header)
 
-[![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-green.svg?style=flat)](https://github.com/mrsimonemms/zigflow/issues)
-[![Licence](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/mrsimonemms/zigflow/blob/master/LICENSE)
-[![GitHub Release](https://img.shields.io/github/v/release/mrsimonemms/zigflow?label=Release)](https://github.com/mrsimonemms/zigflow/releases/latest)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mrsimonemms/zigflow)](https://goreportcard.com/report/github.com/mrsimonemms/zigflow)
+[![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-green.svg?style=flat)](https://github.com/zigflow/zigflow/issues)
+[![Licence](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/zigflow/zigflow/blob/master/LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/zigflow/zigflow?label=Release)](https://github.com/zigflow/zigflow/releases/latest)
+[![Go Report Card](https://goreportcard.com/badge/github.com/zigflow/zigflow)](https://goreportcard.com/report/github.com/zigflow/zigflow)
 
 **Declarative YAML workflows on Temporal. No SDK boilerplate.**
 
@@ -36,12 +36,12 @@ boilerplate.
 ## Quick start
 
 1. **Download Zigflow**
-   - [Download the latest release](https://github.com/mrsimonemms/zigflow/releases/latest)
-   - or [pull the Docker image](https://github.com/mrsimonemms/zigflow/pkgs/container/zigflow)
+   - [Download the latest release](https://github.com/zigflow/zigflow/releases/latest)
+   - or [pull the Docker image](https://github.com/zigflow/zigflow/pkgs/container/zigflow)
 
 2. **Download the hello world workflow**
 
-   Save this [file](https://raw.githubusercontent.com/mrsimonemms/zigflow/main/examples/hello-world/workflow.yaml)
+   Save this [file](https://raw.githubusercontent.com/zigflow/zigflow/main/examples/hello-world/workflow.yaml)
    as `workflow.yaml`.
 
 3. **Run it**
@@ -359,14 +359,14 @@ guidelines on naming conventions, dev setup and commit style.
 
 ## Contributors
 
-<a href="https://github.com/mrsimonemms/zigflow/graphs/contributors">
+<a href="https://github.com/zigflow/zigflow/graphs/contributors">
   <img alt="Contributors"
-    src="https://contrib.rocks/image?repo=mrsimonemms/zigflow&v=1769433596" />
+    src="https://contrib.rocks/image?repo=zigflow/zigflow&v=1769433596" />
 </a>
 
-Made with [contrib.rocks](https://contrib.rocks/preview?repo=mrsimonemms%2Fzigflow).
+Made with [contrib.rocks](https://contrib.rocks/preview?repo=zigflow%2Fzigflow).
 
-[![Star History Chart](https://api.star-history.com/svg?repos=mrsimonemms/zigflow&type=date&legend=top-left)](https://www.star-history.com/#mrsimonemms/zigflow&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=zigflow/zigflow&type=date&legend=top-left)](https://www.star-history.com/#zigflow/zigflow&type=date&legend=top-left)
 
 ---
 
@@ -374,4 +374,4 @@ Made with [contrib.rocks](https://contrib.rocks/preview?repo=mrsimonemms%2Fzigfl
 
 Distributed under the [Apache-2.0](./LICENSE) licence.
 
-© 2025 - 2026 [Zigflow authors](https://github.com/mrsimonemms/zigflow/graphs/contributors)
+© 2025 - 2026 [Zigflow authors](https://github.com/zigflow/zigflow/graphs/contributors)

@@ -26,7 +26,7 @@ A curated set of examples that demonstrate common Zigflow patterns.
 ## Repository examples
 
 The
-[examples directory](https://github.com/mrsimonemms/zigflow/tree/main/examples)
+[examples directory](https://github.com/zigflow/zigflow/tree/main/examples)
 in the repository contains additional patterns:
 
 - `basic`: combined set, wait, fork and HTTP in one workflow
