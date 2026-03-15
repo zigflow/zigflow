@@ -167,6 +167,12 @@ const config = {
             label: 'Deploying',
           },
           {
+            type: 'docSidebar',
+            sidebarId: 'guidesSidebar',
+            position: 'left',
+            label: 'Guides',
+          },
+          {
             type: 'custom-githubStars',
             position: 'right',
           },
