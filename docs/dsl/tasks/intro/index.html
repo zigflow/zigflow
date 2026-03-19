@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/assets/css/styles.8bdca31a.css">
-<script src="/assets/js/runtime~main.4f47f220.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.36ed0421.js" defer="defer"></script>
 <script src="/assets/js/main.40a00f1b.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -32,11 +32,13 @@ within the broader context of the workflow.</p>
 <p>By breaking down the workflow into manageable tasks, organizations can effectively
 coordinate and track progress, enabling efficient collaboration and ensuring that
 work is completed in a structured and organized manner.</p>
-<p>In Temporal, a task may add logic to:
--<strong>the workflow</strong>: this is a deterministic piece of logic which helps progress
-the flow of data.
--<strong>an <a href="https://docs.temporal.io/activities" target="_blank" rel="noopener noreferrer" class="">activity</a></strong>: this executes a single,
-well-defined action, such as making an HTTP call, and may be non-deterministic.</p>
+<p>In Temporal, a task may add logic to:</p>
+<ul>
+<li class=""><strong>the workflow</strong>: this is a deterministic piece of logic which helps progress
+the flow of data.</li>
+<li class=""><strong>an <a href="https://docs.temporal.io/activities" target="_blank" rel="noopener noreferrer" class="">activity</a></strong>: this executes a single,
+well-defined action, such as making an HTTP call, and may be non-deterministic.</li>
+</ul>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="available-tasks">Available Tasks<a href="#available-tasks" class="hash-link" aria-label="Direct link to Available Tasks" title="Direct link to Available Tasks" translate="no">​</a></h2>
 <table><thead><tr><th style="text-align:left">Name</th><th style="text-align:left">Description</th></tr></thead><tbody><tr><td style="text-align:left"><a class="" href="/docs/dsl/tasks/call">Call</a></td><td style="text-align:left">Enables the execution of a specified function within a workflow, allowing seamless integration with custom business logic or external services.</td></tr><tr><td style="text-align:left"><a class="" href="/docs/dsl/tasks/do">Do</a></td><td style="text-align:left">Serves as a fundamental building block within workflows, enabling the sequential execution of multiple subtasks. By defining a series of subtasks to perform in sequence, the Do task facilitates the efficient execution of complex operations, ensuring that each subtask is completed before the next one begins.</td></tr><tr><td style="text-align:left"><a class="" href="/docs/dsl/tasks/for">For</a></td><td style="text-align:left">Allows workflows to iterate over a collection of items, executing a defined set of subtasks for each item in the collection. This task type is instrumental in handling scenarios such as batch processing, data transformation, and repetitive operations across datasets.</td></tr><tr><td style="text-align:left"><a class="" href="/docs/dsl/tasks/fork">Fork</a></td><td style="text-align:left">Allows workflows to execute multiple subtasks concurrently, enabling parallel processing and improving the overall efficiency of the workflow. By defining a set of subtasks to perform concurrently, the Fork task facilitates the execution of complex operations in parallel, ensuring that multiple tasks can be executed simultaneously.</td></tr><tr><td style="text-align:left"><a class="" href="/docs/dsl/tasks/listen">Listen</a></td><td style="text-align:left">Provides a mechanism for workflows to await and react to external events, enabling event-driven behavior within workflow systems.</td></tr><tr><td style="text-align:left"><a class="" href="/docs/dsl/tasks/raise">Raise</a></td><td style="text-align:left">Intentionally triggers and propagates errors. By employing the &quot;Raise&quot; task, workflows can deliberately generate error conditions, allowing for explicit error handling and fault management strategies to be implemented.</td></tr><tr><td style="text-align:left"><a class="" href="/docs/dsl/tasks/run">Run</a></td><td style="text-align:left">Provides the capability to execute external containers, shell commands, scripts, or workflows.</td></tr><tr><td style="text-align:left"><a class="" href="/docs/dsl/tasks/set">Set</a></td><td style="text-align:left">A task used to set data.</td></tr><tr><td style="text-align:left"><a class="" href="/docs/dsl/tasks/switch">Switch</a></td><td style="text-align:left">Enables conditional branching within workflows, allowing them to dynamically select different paths based on specified conditions or criteria</td></tr><tr><td style="text-align:left"><a class="" href="/docs/dsl/tasks/try">Try</a></td><td style="text-align:left">Serves as a mechanism within workflows to handle errors gracefully, potentially retrying failed tasks before proceeding with alternate ones.</td></tr><tr><td style="text-align:left"><a class="" href="/docs/dsl/tasks/wait">Wait</a></td><td style="text-align:left">Allows workflows to pause or delay their execution for a specified period of time.</td></tr></tbody></table>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="runtime-expressions">Runtime Expressions<a href="#runtime-expressions" class="hash-link" aria-label="Direct link to Runtime Expressions" title="Direct link to Runtime Expressions" translate="no">​</a></h2>
@@ -58,45 +60,82 @@ For example, <code>${timestamp | strftime(&quot;%Y-%m-%d %H:%M:%S&quot;)}</code>
 <p>The <code>$data</code> object also receives the workflow and activity info.</p>
 <h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="workflow">Workflow<a href="#workflow" class="hash-link" aria-label="Direct link to Workflow" title="Direct link to Workflow" translate="no">​</a></h4>
 <p>This can be accessed from <code>${ $data.workflow }</code>.</p>
-<p>-attempt
--binary_checksum
--continued_execution_run_id
--cron_schedule
--first_run_id
--namespace
--original_run_id
--parent_workflow_namespace
--priority_key
--task_queue_name
--workflow_execution_id
--workflow_execution_run_id
--workflow_execution_timeout
--workflow_start_time
--workflow_type_name</p>
+<ul>
+<li class="">attempt</li>
+<li class="">binary_checksum</li>
+<li class="">continued_execution_run_id</li>
+<li class="">cron_schedule</li>
+<li class="">first_run_id</li>
+<li class="">namespace</li>
+<li class="">original_run_id</li>
+<li class="">parent_workflow_namespace</li>
+<li class="">priority_key</li>
+<li class="">task_queue_name</li>
+<li class="">workflow_execution_id</li>
+<li class="">workflow_execution_run_id</li>
+<li class="">workflow_execution_timeout</li>
+<li class="">workflow_start_time</li>
+<li class="">workflow_type_name</li>
+</ul>
 <h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="activity">Activity<a href="#activity" class="hash-link" aria-label="Direct link to Activity" title="Direct link to Activity" translate="no">​</a></h4>
-<p>This can be accessed from <code>${ $data.activity }</code>. Ideally, this should be avoided
-as Zigflow does not allow specific targeting of an activity.</p>
-<p>-activity_id
--activity_type_name
--attempt
--deadline
--heartbeat_token
--is_local_activity
--priority_key
--schedule_to_close_timeout
--scheduled_time
--start_to_close_timeout
--started_time
--task_queue
--task_token
--workflow_namespace
--workflow_execution_id
--workflow_execution_run_id</p>
+<div class="theme-admonition theme-admonition-warning admonition_xJq3 alert alert--warning"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.893 1.5c-.183-.31-.52-.5-.887-.5s-.703.19-.886.5L.138 13.499a.98.98 0 0 0 0 1.001c.193.31.53.501.886.501h13.964c.367 0 .704-.19.877-.5a1.03 1.03 0 0 0 .01-1.002L8.893 1.5zm.133 11.497H6.987v-2.003h2.039v2.003zm0-3.004H6.987V5.987h2.039v4.006z"></path></svg></span>warning</div><div class="admonitionContent_BuS1"><p>Ideally, this should be avoided as Zigflow does not allow specific targeting of
+an activity.</p></div></div>
+<p>This can be accessed from <code>${ $data.activity }</code>.</p>
+<ul>
+<li class="">activity_id</li>
+<li class="">activity_type_name</li>
+<li class="">attempt</li>
+<li class="">deadline</li>
+<li class="">heartbeat_token</li>
+<li class="">is_local_activity</li>
+<li class="">priority_key</li>
+<li class="">schedule_to_close_timeout</li>
+<li class="">scheduled_time</li>
+<li class="">start_to_close_timeout</li>
+<li class="">started_time</li>
+<li class="">task_queue</li>
+<li class="">task_token</li>
+<li class="">workflow_namespace</li>
+<li class="">workflow_execution_id</li>
+<li class="">workflow_execution_run_id</li>
+</ul>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="flow-directive">Flow Directive<a href="#flow-directive" class="hash-link" aria-label="Direct link to Flow Directive" title="Direct link to Flow Directive" translate="no">​</a></h2>
 <p>Flow Directives are commands within a workflow that dictate its progression.</p>
-<table><thead><tr><th>Directive</th><th>Description</th></tr></thead><tbody><tr><td><code>&quot;continue&quot;</code></td><td>Instructs the workflow to proceed with the next task in line. This action may conclude the execution of a particular workflow or branch if there are not task defined after the continue one.</td></tr><tr><td><code>&quot;exit&quot;</code></td><td>Completes the current scope&#x27;s execution, potentially terminating the entire workflow if the current task resides within the main <code>do</code> scope.</td></tr><tr><td><code>&quot;end&quot;</code></td><td>Provides a graceful conclusion to the workflow execution, signaling its completion explicitly.</td></tr><tr><td><code>string</code></td><td>Continues the workflow at the task with the specified name.</td></tr></tbody></table>
+<table><thead><tr><th>Directive</th><th>Description</th></tr></thead><tbody><tr><td><code>&quot;continue&quot;</code></td><td>Instructs the workflow to proceed with the next task in line. This action may conclude the execution of a particular workflow or branch if there are not tasks defined after the continue one.</td></tr><tr><td><code>&quot;exit&quot;</code></td><td>Completes the current scope&#x27;s execution, potentially terminating the entire workflow if the current task resides within the main <code>do</code> scope.</td></tr><tr><td><code>&quot;end&quot;</code></td><td>Provides a graceful conclusion to the workflow execution, signaling its completion explicitly.</td></tr><tr><td><code>string</code></td><td>Continues the workflow at the task with the specified name.</td></tr></tbody></table>
 <div class="theme-admonition theme-admonition-warning admonition_xJq3 alert alert--warning"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.893 1.5c-.183-.31-.52-.5-.887-.5s-.703.19-.886.5L.138 13.499a.98.98 0 0 0 0 1.001c.193.31.53.501.886.501h13.964c.367 0 .704-.19.877-.5a1.03 1.03 0 0 0 .01-1.002L8.893 1.5zm.133 11.497H6.987v-2.003h2.039v2.003zm0-3.004H6.987V5.987h2.039v4.006z"></path></svg></span>warning</div><div class="admonitionContent_BuS1"><p>Flow directives may only redirect to tasks declared within their own scope. In
-other words, they cannot target tasks at a different depth.</p></div></div></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col noPrint_WFHX"><a href="https://github.com/zigflow/zigflow/tree/main/docs/docs/dsl/tasks/intro.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_Z9Sw" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_JAkA"></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/docs/dsl/intro"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">The DSL</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/docs/dsl/tasks/call"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">Call</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#what-you-will-learn" class="table-of-contents__link toc-highlight">What you will learn</a></li><li><a href="#available-tasks" class="table-of-contents__link toc-highlight">Available Tasks</a></li><li><a href="#runtime-expressions" class="table-of-contents__link toc-highlight">Runtime Expressions</a><ul><li><a href="#variables" class="table-of-contents__link toc-highlight">Variables</a></li><li><a href="#functions" class="table-of-contents__link toc-highlight">Functions</a></li><li><a href="#data" class="table-of-contents__link toc-highlight">Data</a></li></ul></li><li><a href="#flow-directive" class="table-of-contents__link toc-highlight">Flow Directive</a></li></ul></div></div></div></div></main></div></div></div><footer class="theme-layout-footer footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="theme-layout-footer-column col footer__col"><div class="footer__title">Community</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://slack.zigflow.dev" target="_blank" rel="noopener noreferrer" class="footer__link-item">Slack<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://github.com/zigflow/zigflow/discussions" target="_blank" rel="noopener noreferrer" class="footer__link-item">GitHub Discussions<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div><div class="theme-layout-footer-column col footer__col"><div class="footer__title">More</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://temporal.io" target="_blank" rel="noopener noreferrer" class="footer__link-item">Temporal<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://serverlessworkflow.io" target="_blank" rel="noopener noreferrer" class="footer__link-item">Serverless Workflow<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://github.com/zigflow/zigflow" target="_blank" rel="noopener noreferrer" class="footer__link-item">GitHub<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div></div><div class="footer__bottom text--center"><div class="footer__copyright">Licenced under <a href="https://github.com/zigflow/zigflow/blob/main/LICENSE" target="_blank">Apache-2.0</a>
+other words, they cannot target tasks at a different depth.</p></div></div>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="idempotency-keys">Idempotency Keys<a href="#idempotency-keys" class="hash-link" aria-label="Direct link to Idempotency Keys" title="Direct link to Idempotency Keys" translate="no">​</a></h2>
+<p>Temporal provides <strong>at-least-once execution guarantees</strong>. This means that
+activities may be retried automatically due to failures, timeouts or
+worker restarts.</p>
+<p>As a result, any operation with side effects (such as HTTP POST requests)
+may run more than once.</p>
+<p>To prevent duplicate side effects, you should use an <strong>idempotency key</strong>
+so that external systems can recognise and ignore repeated requests.</p>
+<div class="theme-admonition theme-admonition-note admonition_xJq3 alert alert--secondary"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 14 16"><path fill-rule="evenodd" d="M6.3 5.69a.942.942 0 0 1-.28-.7c0-.28.09-.52.28-.7.19-.18.42-.28.7-.28.28 0 .52.09.7.28.18.19.28.42.28.7 0 .28-.09.52-.28.7a1 1 0 0 1-.7.3c-.28 0-.52-.11-.7-.3zM8 7.99c-.02-.25-.11-.48-.31-.69-.2-.19-.42-.3-.69-.31H6c-.27.02-.48.13-.69.31-.2.2-.3.44-.31.69h1v3c.02.27.11.5.31.69.2.2.42.31.69.31h1c.27 0 .48-.11.69-.31.2-.19.3-.42.31-.69H8V7.98v.01zM7 2.3c-3.14 0-5.7 2.54-5.7 5.68 0 3.14 2.56 5.7 5.7 5.7s5.7-2.55 5.7-5.7c0-3.15-2.56-5.69-5.7-5.69v.01zM7 .98c3.86 0 7 3.14 7 7s-3.14 7-7 7-7-3.12-7-7 3.14-7 7-7z"></path></svg></span>note</div><div class="admonitionContent_BuS1"><p>An idempotency key must be handled by the receiving system. Zigflow does
+not enforce idempotency behaviour.</p></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="what-is-an-idempotency-key">What is an idempotency key?<a href="#what-is-an-idempotency-key" class="hash-link" aria-label="Direct link to What is an idempotency key?" title="Direct link to What is an idempotency key?" translate="no">​</a></h3>
+<p>An idempotency key is a value that uniquely identifies a request. If the
+same request is received multiple times, the target system can recognise
+it and avoid processing it again.</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="defining-an-idempotency-key">Defining an idempotency key<a href="#defining-an-idempotency-key" class="hash-link" aria-label="Direct link to Defining an idempotency key" title="Direct link to Defining an idempotency key" translate="no">​</a></h3>
+<p>Zigflow does not generate idempotency keys automatically. You define them
+explicitly based on your workflow’s needs.</p>
+<p>A simple approach is to create a unique key at runtime (for example,
+scoped to a single workflow execution to handle retries):</p>
+<div class="language-yaml codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-yaml codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token key atrule" style="color:#00a4db">do</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">-</span><span class="token plain"> </span><span class="token key atrule" style="color:#00a4db">createIdempotencyKey</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token key atrule" style="color:#00a4db">set</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">        </span><span class="token key atrule" style="color:#00a4db">idempotencyKey</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> $</span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> uuid </span><span class="token punctuation" style="color:#393A34">}</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="using-the-idempotency-key">Using the idempotency key<a href="#using-the-idempotency-key" class="hash-link" aria-label="Direct link to Using the idempotency key" title="Direct link to Using the idempotency key" translate="no">​</a></h3>
+<p>Once defined, the key can be passed to external systems. For example:</p>
+<div class="language-yaml codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-yaml codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token key atrule" style="color:#00a4db">do</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">-</span><span class="token plain"> </span><span class="token key atrule" style="color:#00a4db">callApi</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token key atrule" style="color:#00a4db">call</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> http</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token key atrule" style="color:#00a4db">with</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">        </span><span class="token key atrule" style="color:#00a4db">method</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> POST</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">        </span><span class="token key atrule" style="color:#00a4db">url</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> https</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain">//api.example.com/orders</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">        </span><span class="token key atrule" style="color:#00a4db">headers</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">          </span><span class="token key atrule" style="color:#00a4db">x-idempotency-key</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> $</span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> $data.idempotencyKey </span><span class="token punctuation" style="color:#393A34">}</span><br></span></code></pre></div></div>
+<p>The receiving service is responsible for ensuring the request is only processed
+once.</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="choosing-the-right-key">Choosing the right key<a href="#choosing-the-right-key" class="hash-link" aria-label="Direct link to Choosing the right key" title="Direct link to Choosing the right key" translate="no">​</a></h3>
+<p>The effectiveness of an idempotency key depends on how it is scoped.</p>
+<ul>
+<li class=""><code>${ uuid }</code>: Unique per workflow execution</li>
+<li class=""><code>${ $data.workflow.workflow_execution_id }</code>: Stable for the workflow run</li>
+<li class=""><code>${ input.orderId }</code>: Stable across multiple workflow executions</li>
+</ul></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col noPrint_WFHX"><a href="https://github.com/zigflow/zigflow/tree/main/docs/docs/dsl/tasks/intro.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_Z9Sw" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_JAkA"></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/docs/dsl/intro"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">The DSL</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/docs/dsl/tasks/call"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">Call</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#what-you-will-learn" class="table-of-contents__link toc-highlight">What you will learn</a></li><li><a href="#available-tasks" class="table-of-contents__link toc-highlight">Available Tasks</a></li><li><a href="#runtime-expressions" class="table-of-contents__link toc-highlight">Runtime Expressions</a><ul><li><a href="#variables" class="table-of-contents__link toc-highlight">Variables</a></li><li><a href="#functions" class="table-of-contents__link toc-highlight">Functions</a></li><li><a href="#data" class="table-of-contents__link toc-highlight">Data</a></li></ul></li><li><a href="#flow-directive" class="table-of-contents__link toc-highlight">Flow Directive</a></li><li><a href="#idempotency-keys" class="table-of-contents__link toc-highlight">Idempotency Keys</a><ul><li><a href="#what-is-an-idempotency-key" class="table-of-contents__link toc-highlight">What is an idempotency key?</a></li><li><a href="#defining-an-idempotency-key" class="table-of-contents__link toc-highlight">Defining an idempotency key</a></li><li><a href="#using-the-idempotency-key" class="table-of-contents__link toc-highlight">Using the idempotency key</a></li><li><a href="#choosing-the-right-key" class="table-of-contents__link toc-highlight">Choosing the right key</a></li></ul></li></ul></div></div></div></div></main></div></div></div><footer class="theme-layout-footer footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="theme-layout-footer-column col footer__col"><div class="footer__title">Community</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://slack.zigflow.dev" target="_blank" rel="noopener noreferrer" class="footer__link-item">Slack<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://github.com/zigflow/zigflow/discussions" target="_blank" rel="noopener noreferrer" class="footer__link-item">GitHub Discussions<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div><div class="theme-layout-footer-column col footer__col"><div class="footer__title">More</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://temporal.io" target="_blank" rel="noopener noreferrer" class="footer__link-item">Temporal<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://serverlessworkflow.io" target="_blank" rel="noopener noreferrer" class="footer__link-item">Serverless Workflow<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://github.com/zigflow/zigflow" target="_blank" rel="noopener noreferrer" class="footer__link-item">GitHub<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div></div><div class="footer__bottom text--center"><div class="footer__copyright">Licenced under <a href="https://github.com/zigflow/zigflow/blob/main/LICENSE" target="_blank">Apache-2.0</a>
         <br>
         Copyright &copy; 2025 - 2026 <a href="https://github.com/zigflow/zigflow/graphs/contributors" target="_blank">Zigflow authors</a>.
         Built with Docusaurus.</div></div></div></footer></div>
