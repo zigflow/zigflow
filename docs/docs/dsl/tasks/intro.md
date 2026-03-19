@@ -24,9 +24,9 @@ coordinate and track progress, enabling efficient collaboration and ensuring tha
 work is completed in a structured and organized manner.
 
 In Temporal, a task may add logic to:
--**the workflow**: this is a deterministic piece of logic which helps progress
+- **the workflow**: this is a deterministic piece of logic which helps progress
   the flow of data.
--**an [activity](https://docs.temporal.io/activities)**: this executes a single,
+- **an [activity](https://docs.temporal.io/activities)**: this executes a single,
   well-defined action, such as making an HTTP call, and may be non-deterministic.
 
 ## Available Tasks
@@ -139,7 +139,7 @@ Flow Directives are commands within a workflow that dictate its progression.
 
 | Directive | Description |
 | --------- | ----------- |
-| `"continue"` | Instructs the workflow to proceed with the next task in line. This action may conclude the execution of a particular workflow or branch if there are not task defined after the continue one. |
+| `"continue"` | Instructs the workflow to proceed with the next task in line. This action may conclude the execution of a particular workflow or branch if there are not tasks defined after the continue one. |
 | `"exit"` | Completes the current scope's execution, potentially terminating the entire workflow if the current task resides within the main `do` scope. |
 | `"end"` | Provides a graceful conclusion to the workflow execution, signaling its completion explicitly. |
 | `string` | Continues the workflow at the task with the specified name. |
@@ -148,3 +148,67 @@ Flow Directives are commands within a workflow that dictate its progression.
 Flow directives may only redirect to tasks declared within their own scope. In
 other words, they cannot target tasks at a different depth.
 :::
+
+## Idempotency Keys
+
+Temporal provides **at-least-once execution guarantees**. This means that
+activities may be retried automatically due to failures, timeouts or
+worker restarts.
+
+As a result, any operation with side effects (such as HTTP POST requests)
+may run more than once.
+
+To prevent duplicate side effects, you should use an **idempotency key**
+so that external systems can recognise and ignore repeated requests.
+
+:::note
+An idempotency key must be handled by the receiving system. Zigflow does
+not enforce idempotency behaviour.
+:::
+
+### What is an idempotency key?
+
+An idempotency key is a value that uniquely identifies a request. If the
+same request is received multiple times, the target system can recognise
+it and avoid processing it again.
+
+### Defining an idempotency key
+
+Zigflow does not generate idempotency keys automatically. You define them
+explicitly based on your workflow’s needs.
+
+A simple approach is to create a unique key at runtime (for example,
+scoped to a single workflow execution to handle retries):
+
+```yaml
+do:
+  - createIdempotencyKey:
+      set:
+        idempotencyKey: ${ uuid }
+```
+
+### Using the idempotency key
+
+Once defined, the key can be passed to external systems. For example:
+
+```yaml
+do:
+  - callApi:
+      call: http
+      with:
+        method: POST
+        url: https://api.example.com/orders
+        headers:
+          x-idempotency-key: ${ $data.idempotencyKey }
+```
+
+The receiving service is responsible for ensuring the request is only processed
+once.
+
+### Choosing the right key
+
+The effectiveness of an idempotency key depends on how it is scoped.
+
+- `${ uuid }`: Unique per workflow execution
+- `${ $data.workflow.workflow_execution_id }`: Stable for the workflow run
+- `${ input.orderId }`: Stable across multiple workflow executions
