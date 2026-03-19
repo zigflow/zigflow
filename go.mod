@@ -21,7 +21,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	go.temporal.io/sdk v1.40.0
-	google.golang.org/grpc v1.79.2
+	google.golang.org/grpc v1.79.3
 	sigs.k8s.io/yaml v1.6.0
 )
 
