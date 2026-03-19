@@ -91,43 +91,47 @@ The `$data` object also receives the workflow and activity info.
 
 This can be accessed from `${ $data.workflow }`.
 
--attempt
--binary_checksum
--continued_execution_run_id
--cron_schedule
--first_run_id
--namespace
--original_run_id
--parent_workflow_namespace
--priority_key
--task_queue_name
--workflow_execution_id
--workflow_execution_run_id
--workflow_execution_timeout
--workflow_start_time
--workflow_type_name
+- attempt
+- binary_checksum
+- continued_execution_run_id
+- cron_schedule
+- first_run_id
+- namespace
+- original_run_id
+- parent_workflow_namespace
+- priority_key
+- task_queue_name
+- workflow_execution_id
+- workflow_execution_run_id
+- workflow_execution_timeout
+- workflow_start_time
+- workflow_type_name
 
 #### Activity
 
-This can be accessed from `${ $data.activity }`. Ideally, this should be avoided
-as Zigflow does not allow specific targeting of an activity.
+:::warning
+Ideally, this should be avoided as Zigflow does not allow specific targeting of
+an activity.
+:::
 
--activity_id
--activity_type_name
--attempt
--deadline
--heartbeat_token
--is_local_activity
--priority_key
--schedule_to_close_timeout
--scheduled_time
--start_to_close_timeout
--started_time
--task_queue
--task_token
--workflow_namespace
--workflow_execution_id
--workflow_execution_run_id
+This can be accessed from `${ $data.activity }`.
+
+- activity_id
+- activity_type_name
+- attempt
+- deadline
+- heartbeat_token
+- is_local_activity
+- priority_key
+- schedule_to_close_timeout
+- scheduled_time
+- start_to_close_timeout
+- started_time
+- task_queue
+- task_token
+- workflow_namespace
+- workflow_execution_id
+- workflow_execution_run_id
 
 ## Flow Directive
 
