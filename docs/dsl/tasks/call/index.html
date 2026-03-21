@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/assets/css/styles.8bdca31a.css">
-<script src="/assets/js/runtime~main.36ed0421.js" defer="defer"></script>
-<script src="/assets/js/main.40a00f1b.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.974646d3.js" defer="defer"></script>
+<script src="/assets/js/main.af639321.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -51,9 +51,20 @@ the same namespace.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="http-example">Example<a href="#http-example" class="hash-link" aria-label="Direct link to Example" title="Direct link to Example" translate="no">​</a></h3>
 <div class="language-yaml codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-yaml codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token key atrule" style="color:#00a4db">document</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token key atrule" style="color:#00a4db">dsl</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> 1.0.0</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token key atrule" style="color:#00a4db">namespace</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> zigflow</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token key atrule" style="color:#00a4db">name</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> call</span><span class="token punctuation" style="color:#393A34">-</span><span class="token plain">http</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token key atrule" style="color:#00a4db">version</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> 0.0.1</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token key atrule" style="color:#00a4db">do</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">-</span><span class="token plain"> </span><span class="token key atrule" style="color:#00a4db">getUser</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token key atrule" style="color:#00a4db">call</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> http</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">      </span><span class="token key atrule" style="color:#00a4db">with</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">        </span><span class="token key atrule" style="color:#00a4db">method</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> get</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">        </span><span class="token key atrule" style="color:#00a4db">endpoint</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> https</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain">//jsonplaceholder.typicode.com/users/2</span><br></span></code></pre></div></div>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="gotchas">Gotchas<a href="#gotchas" class="hash-link" aria-label="Direct link to Gotchas" title="Direct link to Gotchas" translate="no">​</a></h2>
-<p><strong>HTTP errors raise by default.</strong> Any response with a status outside <code>200–299</code>
-raises an error and triggers the retry policy. Wrap the call in a <code>try</code> task
-to handle specific HTTP error codes.</p>
+<p><strong>HTTP errors raise by default.</strong> Responses outside the success range raise an error.</p>
+<p>By default, Zigflow classifies HTTP response codes as follows:</p>
+<ul>
+<li class=""><code>200–299</code>: success</li>
+<li class=""><code>300–399</code>: non-retryable error when <code>redirect: false</code></li>
+<li class=""><code>408</code> and <code>429</code>: retryable error</li>
+<li class=""><code>400–499</code>: non-retryable error by default</li>
+<li class=""><code>500–599</code>: retryable error by default</li>
+<li class=""><code>501</code>: non-retryable error</li>
+</ul>
+<p>When <code>redirect: true</code>, redirects are followed by the HTTP client, so <code>3xx</code>
+responses are typically not returned to the workflow.</p>
+<p>Retryable errors use the task&#x27;s Temporal retry policy. Non-retryable errors fail
+immediately unless handled in a <code>try</code> task.</p>
 <p><strong>Activity names are case-sensitive.</strong> The <code>name</code> field in an activity call
 must exactly match the name the activity was registered with on the remote
 worker.</p>
