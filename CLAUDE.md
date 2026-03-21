@@ -16,7 +16,6 @@ Claude should treat Zigflow as **infrastructure**, not an application UI.
 ## Naming convention
 
 The project name is **Zigflow**, capitalised as shown, with a lowercase 'f'.
-
 Do not write:
 - `ZigFlow` (incorrect capitalisation)
 - `zigflow` (only acceptable in lowercase-only contexts such as CLI commands,
@@ -84,6 +83,22 @@ Claude should not:
 - Add support for new Serverless Workflow task types without discussion
 - Infer semantics not present in the spec or implementation
 - Relax validation to “make things work”
+
+---
+
+## State Management Rules
+
+- State (`$context`, `$data`, `$output`) must have explicit and predictable
+  lifecycle boundaries
+- Task implementations must not leak internal state into parent workflow state
+  unless explicitly defined
+- Loop constructs (e.g. `for`) must clearly separate:
+  - intra-iteration state
+  - inter-iteration state
+  - parent workflow state
+- Implicit state propagation is not allowed
+- State promotion to parent workflow state must be explicit and occur only
+  through defined task-level mechanisms (e.g. output, export)
 
 ---
 
