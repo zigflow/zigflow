@@ -105,13 +105,9 @@ func (c *CallHTTP) CallHTTPActivity(ctx context.Context, task *model.CallHTTP, i
 
 	// Try converting the body as JSON, returning as string if not possible
 	var content any
-	var bodyJSON map[string]any
-	if err := json.Unmarshal(bodyRes, &bodyJSON); err != nil {
-		// Log error
+	if err := json.Unmarshal(bodyRes, &content); err != nil {
 		logger.Debug("Error converting body to JSON", "error", err)
 		content = string(bodyRes)
-	} else {
-		content = bodyJSON
 	}
 
 	switch c.classifyHTTPStatus(resp.StatusCode) {
