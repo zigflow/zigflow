@@ -195,7 +195,7 @@ func (c *CallHTTP) callHTTPAction(ctx context.Context, task *model.CallHTTP, tim
 	// Add in query strings
 	q := req.URL.Query()
 	for k, v := range args.Query {
-		q.Add(k, v.(string))
+		q.Add(k, fmt.Sprint(v))
 	}
 	req.URL.RawQuery = q.Encode()
 
