@@ -578,11 +578,11 @@ func TestForExecLoopVarsDoNotLeakToParent(t *testing.T) {
 	assert.Equal(t, []any{"a", "b"}, state.Data["items"])
 }
 
-// TestForExecContextPropagatesAndDoesNotLeakData verifies that $context updated
-// by an export inside the loop is visible to the parent after the loop, while
-// loop-internal Data changes (e.g. the accumulated task result in workingState)
-// do not appear in the parent state's Data.
-func TestForExecContextPropagatesAndDoesNotLeakData(t *testing.T) {
+// TestForExecContextDoesNotLeakToParent verifies that $context updated by an
+// export inside the loop does NOT propagate to the parent state after exec().
+// workingState.Context is loop-private and must not overwrite the surrounding
+// workflow context. Loop-internal Data changes must also not appear in parent Data.
+func TestForExecContextDoesNotLeakToParent(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "ctx-leak")
 
 	b := &ForTaskBuilder{
@@ -628,19 +628,18 @@ func TestForExecContextPropagatesAndDoesNotLeakData(t *testing.T) {
 	env.ExecuteWorkflow("ctx-leak-outer")
 	assert.NoError(t, env.GetWorkflowError())
 
-	// $context from the last export propagates to the parent.
-	assert.Equal(t, map[string]any{"last": "y"}, state.Context)
+	// workingState.Context is loop-private and must NOT be copied to state.Context.
+	assert.Nil(t, state.Context, "loop-private context must not leak to parent state")
 	// Loop-internal Data (e.g. taskName -> lastResult set by addIterationResult
 	// on workingState) must not appear in the parent state's Data.
 	assert.Nil(t, state.Data["ctx-leak"], "accumulated iteration result must not leak to parent Data")
 }
 
-// TestForExecOutputIsNotPropagatedToParent verifies Option A semantics: the for
-// task's return value is the aggregated per-iteration result. The last iteration's
-// $output is NOT written back to the parent state because exec() only propagates
-// Context. The parent DoTask sets state.Output from exec()'s return value via
-// processTaskOutput, which happens outside exec().
-func TestForExecOutputIsNotPropagatedToParent(t *testing.T) {
+// TestForExecOutputIsAggregatedResult verifies that exec() sets state.Output to
+// the aggregated per-iteration result (array or object), not to the last
+// iteration's internal $output. The per-iteration $output lives only in
+// workingState and is used solely for while evaluation between iterations.
+func TestForExecOutputIsAggregatedResult(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "no-out-leak")
 
 	b := &ForTaskBuilder{
@@ -672,8 +671,6 @@ func TestForExecOutputIsNotPropagatedToParent(t *testing.T) {
 
 	state := utils.NewState()
 	state.AddData(map[string]any{"items": []any{"a"}})
-	// Set a sentinel value on state.Output to verify exec() does not overwrite it.
-	state.Output = "pre-loop-sentinel"
 
 	execFn, err := b.exec()
 	assert.NoError(t, err)
@@ -685,10 +682,11 @@ func TestForExecOutputIsNotPropagatedToParent(t *testing.T) {
 	env.ExecuteWorkflow("no-out-leak-outer")
 	assert.NoError(t, env.GetWorkflowError())
 
-	// exec() must not write workingState.Output back to state.Output.
-	// The sentinel value must be unchanged.
-	assert.Equal(t, "pre-loop-sentinel", state.Output,
-		"exec() must not propagate the last iteration $output to the parent state")
+	// exec() sets state.Output to the aggregated loop result, not the last
+	// iteration's internal $output. The per-iteration $output lives only in
+	// workingState and is used solely for while evaluation between iterations.
+	assert.Equal(t, []any{"iteration-output"}, state.Output,
+		"exec() must set state.Output to the aggregated loop result")
 }
 
 // TestForExecErrorLeavesParentStateUnchanged verifies that when an iteration

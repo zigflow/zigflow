@@ -79,7 +79,7 @@ do:
             wait:
               seconds: 1
   - forTaskNumber:
-      output:
+      export:
         as: '${ $context + { forTaskNumber: . } }'
       for:
         in: ${ 5 }
@@ -94,15 +94,6 @@ do:
               as: ${ $context }
             wait:
               seconds: 1
-  # Demonstrates state being carried from one iteration to the next.
-  # Each iteration increments $context.pageNumber and returns it as $output.
-  # The while condition reads the previous iteration's $output, so once pageNumber
-  # reaches 4 the next iteration will not run.
-  - setupStateCarryOver:
-      export:
-        as: '${ $context + { pageNumber: 1 } }'
-      set:
-        message: "Initialise loop state"
   - forTaskStateCarryOver:
       output:
         as: '${ $context + { forTaskStateCarryOver: . } }'

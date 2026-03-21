@@ -50,17 +50,19 @@ func NewForTaskBuilder(
 
 var errForkIterationStop = fmt.Errorf("fork iteration stop")
 
-// forChildResult is returned by the for-loop's child workflow so the parent loop
-// can propagate inter-iteration state across iterations.
+// forChildResult is returned by the for-loop's child workflow and carries
+// intra-loop state only. Neither field is promoted to the parent workflow state.
 //
-// Output carries the iteration's result. It is written into workingState.Output
-// so that the next iteration's while condition can read $output. It is NOT
-// propagated to the parent state: the for task's return value is the aggregated
-// per-iteration result (array or object), not the last iteration's output.
+// Output is the per-iteration result. It is stored in workingState.Output so
+// that the next iteration's while condition can read $output. The loop's final
+// aggregated result is returned from exec() and handled by the surrounding task
+// pipeline, not taken from this field.
 //
 // Context carries any value written by an export directive inside the iteration.
-// It IS propagated to the parent state after the loop completes so that
-// subsequent tasks can read $context.
+// It is stored in workingState.Context so that the next iteration can read
+// $context. It is NOT copied to the parent state after the loop completes:
+// workingState.Context is loop-private, and copying it would cause inner-loop
+// exports to leak into the surrounding workflow context.
 type forChildResult struct {
 	Output  any `json:"output"`
 	Context any `json:"context"`
@@ -102,7 +104,7 @@ func (t *ForTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	}
 
 	// Register a wrapper child workflow that returns the iteration output and
-	// exported context so the parent loop can propagate inter-iteration state.
+	// exported context so the loop can propagate inter-iteration state.
 	t.temporalWorker.RegisterWorkflowWithOptions(
 		func(ctx workflow.Context, input any, state *utils.State) (forChildResult, error) {
 			output, err := innerFn(ctx, input, state)
@@ -200,19 +202,22 @@ func (t *ForTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 
 		output, err := t.iterate(ctx, workingState, data)
 		if err != nil {
-			// Parent state is not modified on error: context propagation only
-			// happens after a clean exit so retries and catch handlers see the
-			// original state.
+			// Parent state is not modified on error: state.Output is only set
+			// after a clean exit so retries and catch handlers see the original state.
 			return nil, err
 		}
 
-		// Only $context is propagated from workingState to the parent after the
-		// loop completes successfully. $output is deliberately not propagated:
-		// the for task's return value is the aggregated per-iteration result
-		// (array or object). The parent DoTask sets state.Output from that
-		// return value via processTaskOutput, so setting it here would be
-		// redundant and misleading.
-		state.Context = workingState.Context
+		// state.Output is set to the aggregated result (array or object) so that
+		// output: expressions on the for task behave consistently with other tasks.
+		//
+		// workingState.Context is intentionally NOT copied to state.Context.
+		// It is loop-private state used only to carry exported values from one
+		// iteration to the next. Copying it to the parent would cause inner-loop
+		// export values to leak into the surrounding workflow context and would
+		// overwrite any context already established by earlier tasks.
+		// If the caller needs to surface a value from inside the loop, they should
+		// use an output: expression on the for task itself.
+		state.Output = output
 		return output, nil
 	}, nil
 }
