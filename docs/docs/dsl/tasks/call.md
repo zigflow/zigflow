@@ -130,9 +130,22 @@ do:
 
 ## Gotchas
 
-**HTTP errors raise by default.** Any response with a status outside `200–299`
-raises an error and triggers the retry policy. Wrap the call in a `try` task
-to handle specific HTTP error codes.
+**HTTP errors raise by default.** Responses outside the success range raise an error.
+
+By default, Zigflow classifies HTTP response codes as follows:
+
+- `200–299`: success
+- `300–399`: non-retryable error when `redirect: false`
+- `408` and `429`: retryable error
+- `400–499`: non-retryable error by default
+- `500–599`: retryable error by default
+- `501`: non-retryable error
+
+When `redirect: true`, redirects are followed by the HTTP client, so `3xx`
+responses are typically not returned to the workflow.
+
+Retryable errors use the task's Temporal retry policy. Non-retryable errors fail
+immediately unless handled in a `try` task.
 
 **Activity names are case-sensitive.** The `name` field in an activity call
 must exactly match the name the activity was registered with on the remote

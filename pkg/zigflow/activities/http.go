@@ -40,6 +40,14 @@ func init() {
 	Registry = append(Registry, &CallHTTP{})
 }
 
+type httpRetryability int
+
+const (
+	httpSuccess httpRetryability = iota
+	httpRetryable
+	httpNonRetryable
+)
+
 // @link: https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md#http-response
 type HTTPResponse struct {
 	Request    HTTPRequest       `json:"request"`
@@ -53,6 +61,15 @@ type HTTPRequest struct {
 	Method  string            `json:"method"`
 	URI     string            `json:"uri"`
 	Headers map[string]string `json:"headers,omitempty"`
+}
+
+var retryableHTTPStatusCodes = map[int]struct{}{
+	408: {}, // Server timeout
+	429: {}, // Rate-limited
+}
+
+var nonRetryableHTTPStatusCodes = map[int]struct{}{
+	501: {}, // Not implemented - no point retrying
 }
 
 type CallHTTP struct{}
@@ -97,34 +114,23 @@ func (c *CallHTTP) CallHTTPActivity(ctx context.Context, task *model.CallHTTP, i
 		content = bodyJSON
 	}
 
-	// Treat redirects as an error - if you have "redirect = true", this will be ignored
-	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
-		logger.Error("CallHTTP returned 3xx status", "statusCode", resp.StatusCode, "responseBody", content)
-		return nil, temporal.NewNonRetryableApplicationError(
-			"CallHTTP returned 3xx status code",
-			"CallHTTP error",
-			errors.New(resp.Status),
-			content,
-		)
-	}
-
-	if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-		// Client error - treat as non-retryable error as we need to fix it
-		logger.Error("CallHTTP returned 4xx error", "statusCode", resp.StatusCode, "responseBody", content)
-		return nil, temporal.NewNonRetryableApplicationError(
-			"CallHTTP returned 4xx status code",
-			"CallHTTP error",
-			errors.New(resp.Status),
-			content,
-		)
-	}
-
-	if resp.StatusCode >= 500 && resp.StatusCode < 600 {
-		// Server error - treat as retryable error as we can't fix it
-		logger.Error("CallHTTP returned 5xx error", "statusCode", resp.StatusCode, "responseBody", content)
+	switch c.classifyHTTPStatus(resp.StatusCode) {
+	case httpRetryable:
+		logger.Debug("CallHTTP returned retryable error", "statusCode", resp.StatusCode, "responseBody", content)
 		return nil, temporal.NewApplicationError(
-			"CallHTTP returned 5xx error",
-			"CallHTTP error",
+			"CallHTTP returned retryable error",
+			"CallHTTP retryable error",
+			errors.New(resp.Status),
+			map[string]any{
+				"statusCode": resp.StatusCode,
+				"content":    content,
+			},
+		)
+	case httpNonRetryable:
+		logger.Error("CallHTTP returned non-retryable error", "statusCode", resp.StatusCode, "responseBody", content)
+		return nil, temporal.NewNonRetryableApplicationError(
+			"CallHTTP returned non-retryable error",
+			"CallHTTP non-retryable error",
 			errors.New(resp.Status),
 			map[string]any{
 				"statusCode": resp.StatusCode,
@@ -210,6 +216,25 @@ func (c *CallHTTP) callHTTPAction(ctx context.Context, task *model.CallHTTP, tim
 	}
 
 	return resp, method, url, reqHeaders, err
+}
+
+func (c *CallHTTP) classifyHTTPStatus(code int) httpRetryability {
+	if _, ok := retryableHTTPStatusCodes[code]; ok {
+		return httpRetryable
+	}
+
+	if _, ok := nonRetryableHTTPStatusCodes[code]; ok {
+		return httpNonRetryable
+	}
+
+	switch {
+	case code >= 300 && code < 500:
+		return httpNonRetryable
+	case code >= 500 && code < 600:
+		return httpRetryable
+	default:
+		return httpSuccess
+	}
 }
 
 // ParseHTTPArguments note that I looked at the github.com/go-viper/mapstructure/v2.Decode
