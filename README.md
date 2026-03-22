@@ -130,7 +130,7 @@ Zigflow handles orchestration. Your services handle the work.
 Zigflow is an opinionated, declarative layer on top of Temporal. It trades some
 SDK-level flexibility for faster development and structural guardrails.
 
-| Capability | <img src="./designs/temporal.png#gh-light-mode-only" alt="Temporal SDKs" height="50px" /><img src="./designs/temporal-dark.png#gh-dark-mode-only" alt="Temporal SDKs" height="50px" /> | Custom DSL | <img src="./designs/zigflow.png " alt="Zigflow" height="50px" /> |
+| Capability | <a href="https://temporal.io"><img src="./designs/temporal.png#gh-light-mode-only" alt="Temporal SDKs" height="50px" /></a><a href="https://temporal.io"><img src="./designs/temporal-dark.png#gh-dark-mode-only" alt="Temporal SDKs" height="50px" /></a> | Custom DSL | <a href="https://zigflow.dev"><img src="./designs/zigflow.png" alt="Zigflow" height="50px" /></a> |
 | --- | :--: | :--: | :--: |
 | **Workflow definition model** | Imperative code | Declarative | Declarative |
 | **Control and flexibility** | Maximum | Depends on implementation | Opinionated and constrained |
