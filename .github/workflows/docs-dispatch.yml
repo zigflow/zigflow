@@ -1,0 +1,132 @@
+# Docs dispatch workflow
+#
+# This workflow dispatches documentation builds to the zigflow/docs repository.
+# It does NOT build docs itself -- it sends a repository_dispatch event so that
+# the receiving workflow in zigflow/docs can build and publish accordingly.
+#
+# Publishing rules:
+#   - Tag push (v*.*.*): triggers a production build at zigflow.dev
+#   - Pull request to main: triggers a preview build at zigflow.dev/preview/<branch>
+#   - Push to main: does NOT trigger any docs build
+#
+# Required secret: DOCS_REPO_TOKEN
+#   A fine-grained personal access token (or classic token) with write access to
+#   zigflow/docs, scoped to the "contents" permission so it can send
+#   repository_dispatch events.
+
+name: Docs Dispatch
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  # Dispatches a preview build for pull requests from the same repository.
+  # Fork PRs are skipped because secrets are not available to them.
+  dispatch-preview:
+    name: Dispatch docs preview
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Compute safe preview destination
+        id: preview
+        run: |
+          # Replace / and _ with - to produce a URL-safe path segment.
+          BRANCH="${{ github.head_ref }}"
+          SAFE_BRANCH="${BRANCH//\//-}"
+          SAFE_BRANCH="${SAFE_BRANCH//_/-}"
+          DESTINATION="preview/${SAFE_BRANCH}"
+          SITE_URL="https://zigflow.dev/${DESTINATION}"
+
+          echo "safe_branch=${SAFE_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "destination=${DESTINATION}"  >> "$GITHUB_OUTPUT"
+          echo "site_url=${SITE_URL}"        >> "$GITHUB_OUTPUT"
+
+      - name: Send repository_dispatch to zigflow/docs
+        run: |
+          HTTP_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+            --request POST \
+            --url "https://api.github.com/repos/zigflow/docs/dispatches" \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${{ secrets.DOCS_REPO_TOKEN }}" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --data @- <<EOF
+          {
+            "event_type": "zigflow-docs-preview",
+            "client_payload": {
+              "source_repo":    "zigflow/zigflow",
+              "source_event":   "pull_request",
+              "zigflow_ref":    "${{ github.event.pull_request.head.sha }}",
+              "zigflow_branch": "${{ github.head_ref }}",
+              "zigflow_sha":    "${{ github.event.pull_request.head.sha }}",
+              "destination":    "${{ steps.preview.outputs.destination }}",
+              "site_url":       "${{ steps.preview.outputs.site_url }}",
+              "publish_mode":   "preview",
+              "pr_number":      ${{ github.event.pull_request.number }}
+            }
+          }
+          EOF
+          )
+
+          echo "GitHub API response status: ${HTTP_STATUS}"
+
+          if [ "${HTTP_STATUS}" -lt 200 ] || [ "${HTTP_STATUS}" -ge 300 ]; then
+            echo "Dispatch request failed with HTTP status ${HTTP_STATUS}."
+            exit 1
+          fi
+
+          echo "Preview dispatch sent for PR #${{ github.event.pull_request.number }}."
+          echo "Destination: ${{ steps.preview.outputs.site_url }}"
+
+  # Dispatches a production release build when a version tag is pushed.
+  dispatch-release:
+    name: Dispatch docs release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Send repository_dispatch to zigflow/docs
+        run: |
+          HTTP_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+            --request POST \
+            --url "https://api.github.com/repos/zigflow/docs/dispatches" \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${{ secrets.DOCS_REPO_TOKEN }}" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --data @- <<EOF
+          {
+            "event_type": "zigflow-docs-release",
+            "client_payload": {
+              "source_repo":  "zigflow/zigflow",
+              "source_event": "tag",
+              "zigflow_ref":  "${{ github.ref_name }}",
+              "zigflow_tag":  "${{ github.ref_name }}",
+              "zigflow_sha":  "${{ github.sha }}",
+              "destination":  "",
+              "site_url":     "https://zigflow.dev",
+              "publish_mode": "release"
+            }
+          }
+          EOF
+          )
+
+          echo "GitHub API response status: ${HTTP_STATUS}"
+
+          if [ "${HTTP_STATUS}" -lt 200 ] || [ "${HTTP_STATUS}" -ge 300 ]; then
+            echo "Dispatch request failed with HTTP status ${HTTP_STATUS}."
+            exit 1
+          fi
+
+          echo "Release dispatch sent for tag ${{ github.ref_name }} (SHA: ${{ github.sha }})."
