@@ -1,0 +1,19 @@
+document:
+  dsl: 1.0.0
+  namespace: try-catch
+  name: workflow
+  version: 0.0.1
+do:
+  - attempt:
+      try:
+        - fail:
+            raise:
+              error:
+                title: intentional failure
+                status: 500
+                type: https://serverlessworkflow.io/spec/1.0.0/errors/runtime
+      catch:
+        do:
+          - recover:
+              set:
+                caught: true

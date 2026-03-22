@@ -1,0 +1,17 @@
+document:
+  dsl: 1.0.0
+  namespace: for
+  name: workflow
+  version: 0.0.1
+do:
+  - loop:
+      output:
+        as:
+          items: ${ . }
+      for:
+        in: ${ [1, 2, 3] }
+        each: item
+      do:
+        - body:
+            set:
+              value: ${ $data.item }

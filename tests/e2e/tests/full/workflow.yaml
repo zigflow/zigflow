@@ -1,0 +1,63 @@
+# Chains set, callHTTP, for, switch, and try across the full task matrix.
+# Each stage exports into $context so the next stage can read it.
+# The final try task surfaces the accumulated context as the workflow output.
+document:
+  dsl: 1.0.0
+  namespace: full
+  name: workflow
+  version: 0.0.1
+do:
+  # 1. set: initialise context with known values
+  - init:
+      export:
+        as: ${ . }
+      set:
+        stage: init
+        count: 3
+
+  # 2. callHTTP: fetch a post and export its id into context
+  - fetch:
+      export:
+        as: '${ $context + { postId: .id } }'
+      call: http
+      with:
+        method: get
+        endpoint: ${ "http://" + $env.HTTP_MOCK + "/posts/1" }
+
+  # 3. for: iterate twice, exporting a flag when done
+  - iterate:
+      export:
+        as: '${ $context + { looped: true } }'
+      for:
+        in: ${ [1, 2] }
+        each: item
+      do:
+        - step:
+            set:
+              iteration: ${ $data.item }
+
+  # 4. switch: verify routing based on exported context; mark as routed
+  - route:
+      export:
+        as: '${ $context + { routed: true } }'
+      switch:
+        - valid:
+            when: ${ $context.count == 3 }
+            then: end
+        - default:
+            then: end
+
+  # 5. try: run a simple task and surface the accumulated context as output
+  - done:
+      output:
+        as:
+          result: ${ $context }
+      try:
+        - work:
+            set:
+              ok: true
+      catch:
+        do:
+          - recover:
+              set:
+                ok: false

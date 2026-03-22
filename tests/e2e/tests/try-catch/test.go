@@ -14,18 +14,21 @@
  * limitations under the License.
  */
 
-package tests
+package trycatch
 
 import (
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/callHTTP"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/complete"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/for"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/for-while"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/fork"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/fork-compete"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/full"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/set"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/switch"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/try-catch"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/wait"
+	"github.com/zigflow/zigflow/tests/e2e/utils"
 )
+
+var testCase = utils.TestCase{
+	Name:         "try-catch",
+	WorkflowPath: "workflow.yaml",
+	ExpectedOutput: map[string]any{
+		"caught": true,
+	},
+	Test: utils.RunToCompletion[map[string]any],
+}
+
+func init() {
+	utils.AddTestCase(testCase)
+}

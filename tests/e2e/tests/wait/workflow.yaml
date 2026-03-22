@@ -1,0 +1,12 @@
+document:
+  dsl: 1.0.0
+  namespace: wait
+  name: workflow
+  version: 0.0.1
+do:
+  - pause:
+      output:
+        as:
+          waited: true
+      wait:
+        seconds: 1

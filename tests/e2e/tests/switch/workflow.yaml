@@ -1,0 +1,20 @@
+document:
+  dsl: 1.0.0
+  namespace: switch
+  name: workflow
+  version: 0.0.1
+do:
+  - init:
+      set:
+        score: 10
+  - classify:
+      output:
+        as:
+          classified: true
+          value: ${ $data.score }
+      switch:
+        - isPositive:
+            when: ${ $data.score > 0 }
+            then: end
+        - default:
+            then: end
