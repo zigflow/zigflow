@@ -158,6 +158,9 @@ Go-specific guidance:
 - Prefer standard library solutions
 - Be explicit about error handling
 
+Git:
+- Do not create git commits. Committing is the user's responsibility.
+
 Linting & Testing:
 - Always run pre-commit tests after making changes: `pre-commit run`
 - Always run unit tests after making changes: `go test ./...`
