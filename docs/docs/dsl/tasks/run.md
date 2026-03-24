@@ -16,7 +16,7 @@ a JavaScript or Python script or another Zigflow workflow.
 | run.script | [`script`](#script) | `no` | The definition of the script to run.<br />*Required if `container`, `shell` and `workflow` have not been set.* |
 | run.shell | [`shell`](#shell) | `no` | The definition of the shell command to run.<br />*Required if `container`, `script` and `workflow` have not been set.* |
 | run.workflow | [`workflow`](#workflow) | `no` | The definition of the workflow to run.<br />*Required if `container`, `script` and `shell` have not been set.* |
-| await | `boolean` | `no` | Determines whether or not the process to run should be awaited for.<br />*When set to `false`, the task cannot wait for the process to complete and thus cannot output the process’s result.* Only available for workflows.<br />*Defaults to `true`.* |
+| await | `boolean` | `no` | Determines whether or not the process to run should be awaited for.<br />*When set to `false`, the task cannot wait for the process to complete and thus cannot output the process's result.* Only available for workflows.<br />*Defaults to `true`.* |
 
 ## Container
 

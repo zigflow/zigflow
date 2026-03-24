@@ -29,7 +29,7 @@ If you discover a security vulnerability, please report it privately.
 
 Instead, use one of the following:
 
-- GitHub Security Advisories via the repository’s Security tab
+- GitHub Security Advisories via the repository's Security tab
 - Email: <hello@zigflow.dev>
 
 Please include:
