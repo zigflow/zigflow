@@ -1,6 +1,6 @@
 apiVersion: v2
 name: zigflow
-description: A Temporal DSL for turning declarative YAML into production-ready workflows
+description: Define durable workflows in YAML, powered by Temporal
 type: application
 version: 0.0.0
 icon: https://raw.githubusercontent.com/zigflow/zigflow/refs/heads/main/designs/z-logo.png

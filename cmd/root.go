@@ -46,7 +46,7 @@ func newRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "zigflow",
 		Version: Version,
-		Short:   "A Temporal DSL for turning declarative YAML into production-ready workflows",
+		Short:   "Define durable workflows in YAML, powered by Temporal",
 		Long: `Zigflow is a command-line tool for building and running Temporal workflows
 defined in declarative YAML. It uses the CNCF Serverless Workflow specification
 to let you describe durable business processes in a structured, human-readable

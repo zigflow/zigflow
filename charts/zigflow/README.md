@@ -3,7 +3,7 @@
 [![Version](https://img.shields.io/github/v/release/zigflow/zigflow?label=Version&color=007ec6)](https://github.com/zigflow/zigflow/tree/main/charts/zigflow)
 ![Type: Application](https://img.shields.io/badge/Type-Application-informational)
 
-A Temporal DSL for turning declarative YAML into production-ready workflows
+Define durable workflows in YAML, powered by Temporal
 
 **Homepage:** <https://zigflow.dev>
 
