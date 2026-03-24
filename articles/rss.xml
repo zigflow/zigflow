@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
     <channel>
-        <title>Zigflow: A Temporal DSL Blog</title>
+        <title>Zigflow Blog</title>
         <link>https://zigflow.dev/articles</link>
-        <description>Zigflow: A Temporal DSL Blog</description>
+        <description>Zigflow Blog</description>
         <lastBuildDate>Tue, 24 Mar 2026 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>

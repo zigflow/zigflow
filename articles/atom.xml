@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://zigflow.dev/articles</id>
-    <title>Zigflow: A Temporal DSL Blog</title>
+    <title>Zigflow Blog</title>
     <updated>2026-03-24T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://zigflow.dev/articles"/>
-    <subtitle>Zigflow: A Temporal DSL Blog</subtitle>
+    <subtitle>Zigflow Blog</subtitle>
     <icon>https://zigflow.dev/img/favicon.ico</icon>
     <entry>
         <title type="html"><![CDATA[Why I built a YAML DSL for Temporal workflows]]></title>
