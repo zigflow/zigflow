@@ -175,7 +175,7 @@ it and avoid processing it again.
 ### Defining an idempotency key
 
 Zigflow does not generate idempotency keys automatically. You define them
-explicitly based on your workflow’s needs.
+explicitly based on your workflow's needs.
 
 A simple approach is to create a unique key at runtime (for example,
 scoped to a single workflow execution to handle retries):

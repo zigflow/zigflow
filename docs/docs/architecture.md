@@ -92,7 +92,7 @@ Temporal workflows must be deterministic. Zigflow enforces this by:
 - Ensuring state transitions are derived from declarative definitions
 - Avoiding hidden side effects
 
-Where the Serverless Workflow specification does not map cleanly to Temporal’s
+Where the Serverless Workflow specification does not map cleanly to Temporal's
 execution model, Zigflow may diverge to preserve correctness and determinism.
 
 Correctness and determinism take priority over strict spec compatibility.
@@ -171,7 +171,7 @@ specification.
 
 New features should:
 
-- Respect Temporal’s execution model
+- Respect Temporal's execution model
 - Maintain determinism
 - Avoid unnecessary abstraction
 - Fit naturally within the existing DSL structure

@@ -96,6 +96,13 @@ const config = {
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
         },
+        blog: {
+          showLastUpdateAuthor: true,
+          showLastUpdateTime: true,
+          showReadingTime: true,
+          routeBasePath: 'articles',
+          path: './articles',
+        },
       }),
     ],
   ],
@@ -171,6 +178,11 @@ const config = {
             sidebarId: 'guidesSidebar',
             position: 'left',
             label: 'Guides',
+          },
+          {
+            to: 'articles',
+            label: 'Articles',
+            position: 'left',
           },
           {
             type: 'custom-githubStars',
