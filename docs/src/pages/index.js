@@ -25,7 +25,7 @@ import React from 'react';
 
 import styles from './index.module.css';
 
-const EXAMPLE_WORKFLOW = `document:
+export const EXAMPLE_WORKFLOW = `document:
   dsl: 1.0.0
   namespace: acme
   name: onboard-user
