@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkzigflow=globalThis.webpackChunkzigflow||[]).push([[6293],{42349(e){e.exports=JSON.parse('{"metadata":{"permalink":"/preview/sje-articles/articles","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
