@@ -30,13 +30,13 @@ export default function Examples() {
     <section className={styles.features}>
       <div className="container">
         <div className="row title">
-          <h3>User-Friendly DSL: Temporal Made Simple</h3>
+          <h3>Example workflows</h3>
         </div>
 
         <div className="row title">
           <p>
-            A collection of examples of how to use Zigflow&apos;s Temporal DSL
-            to create Temporal workflows. These can be found in the{' '}
+            A selection of real workflow patterns, each defined in YAML and
+            ready to run. Full examples are also available in the{' '}
             <a
               href={siteConfig.customFields.githubURL}
               target="_blank"

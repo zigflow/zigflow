@@ -44,9 +44,8 @@ if (process.env.GA_TRACKING_ID) {
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'Zigflow: A Temporal DSL',
-  tagline:
-    'A Temporal DSL for turning declarative YAML into production-ready workflows',
+  title: 'Zigflow',
+  tagline: 'Define durable workflows in YAML',
   favicon: 'img/favicon.ico',
 
   customFields: {
@@ -135,12 +134,12 @@ const config = {
         {
           name: 'description',
           content:
-            'Zigflow — a Temporal DSL that turns declarative YAML into production-ready workflows on Temporal. Learn how Temporal DSL simplifies workflow definitions.',
+            'Zigflow lets you define durable, production-ready workflows in YAML, powered by Temporal. Write the steps. Zigflow handles retries, failures and state.',
         },
         {
           name: 'keywords',
           content:
-            'Temporal, DSL, YAML, workflows, workflow management system, serverless workflow, durable execution',
+            'Temporal, YAML workflows, durable execution, workflow engine, orchestration, serverless workflow, Zigflow',
         },
       ],
       navbar: {

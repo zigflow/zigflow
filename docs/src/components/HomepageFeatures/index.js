@@ -22,38 +22,35 @@ import styles from './styles.module.css';
 
 const FeatureList = [
   {
-    title: 'Simplified Workflow Authoring',
+    title: 'Write steps, not plumbing',
     description: (
       <>
-        Focus on the business logic of what you want to achieve rather than
-        focusing on how to use Temporal.
+        Define your workflow as a sequence of named tasks in YAML. No SDK, no
+        orchestration scaffolding, no boilerplate. Your workflow file is the
+        entire implementation.
       </>
     ),
   },
   {
-    title: 'Consistency and Reusability',
+    title: 'Durability out of the box',
     description: (
       <>
-        Zigflow enforces consistent patterns across your Temporal estate,
-        allowing you to reuse definitions, share components and make your entry
-        to the world of Temporal easier.
-      </>
-    ),
-  },
-  {
-    title: 'Low Code',
-    description: (
-      <>
-        Get all the benefits of{' '}
-        <a
-          href="https://docs.temporal.io/evaluate/why-temporal"
-          target="_blank"
-          rel="noreferrer"
-        >
+        Every workflow runs on{' '}
+        <a href="https://temporal.io" target="_blank" rel="noreferrer">
           Temporal
-        </a>{' '}
-        - reliability, speed and consistency - without having to learn the
-        nuances of writing code
+        </a>
+        . Retries, crash recovery and execution history are handled for you,
+        without any extra configuration.
+      </>
+    ),
+  },
+  {
+    title: 'Catch errors early',
+    description: (
+      <>
+        Zigflow validates your workflow file before execution starts. Invalid
+        constructs and unsupported fields are rejected with clear, actionable
+        error messages.
       </>
     ),
   },

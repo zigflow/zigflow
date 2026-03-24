@@ -17,6 +17,7 @@ import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Examples from '@site/src/components/Examples';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
+import CodeBlock from '@theme/CodeBlock';
 import Heading from '@theme/Heading';
 import Layout from '@theme/Layout';
 import clsx from 'clsx';
@@ -24,28 +25,64 @@ import React from 'react';
 
 import styles from './index.module.css';
 
+const EXAMPLE_WORKFLOW = `document:
+  dsl: 1.0.0
+  namespace: acme
+  name: onboard-user
+  version: 1.0.0
+do:
+  - fetchProfile:
+      call: http
+      with:
+        method: get
+        endpoint: \${ "https://api.acme.com/users/" + ($input.userId | tostring) }
+      output:
+        as:
+          profile: \${ . }
+  - sendWelcome:
+      call: http
+      metadata:
+        activityOptions:
+          retryPolicy:
+            maximumAttempts: 3
+      with:
+        method: post
+        endpoint: https://api.acme.com/emails
+        body:
+          to: \${ .profile.email }
+          template: welcome`;
+
 function HomepageHeader() {
   const { siteConfig } = useDocusaurusContext();
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
         <Heading as="h1" className={clsx('hero__title', styles.textWhite)}>
-          {siteConfig.title}
+          Define durable workflows in YAML
         </Heading>
         <p className={clsx('hero__subtitle', styles.textWhite)}>
-          {siteConfig.tagline}
+          Run workflows with built-in retries, failure handling and long-running
+          execution, powered by Temporal.
         </p>
-        <div
-          className={styles.buttons}
-          style={{ display: 'flex', gap: '1rem' }}
-        >
-          <Link className="button button--primary button--lg" to="/docs/intro">
-            Getting Started - 5min ⏱️
+        <div className={styles.buttons}>
+          <Link
+            className="button button--primary button--lg"
+            to="/docs/getting-started/quickstart"
+          >
+            Start in 5 minutes
           </Link>
+          <a
+            className={clsx('button button--lg', styles.buttonSecondary)}
+            href={siteConfig.customFields.githubURL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            ⭐ Star on GitHub
+          </a>
         </div>
       </div>
 
-      <div className={clsx(styles.credit, 'hidden-xs hidden-sm')}>
+      <div className={styles.credit}>
         <a
           href="https://unsplash.com/@hamburgmeinefreundin?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
           target="_blank"
@@ -58,25 +95,64 @@ function HomepageHeader() {
   );
 }
 
+function WorkflowExample() {
+  return (
+    <section className={styles.workflowExample}>
+      <div className="container">
+        <div className={styles.workflowExampleGrid}>
+          <div className={styles.workflowExampleText}>
+            <Heading as="h2">See how it works</Heading>
+            <p>
+              Two steps. Fetch a user profile, then send a welcome email. If
+              either step fails, Temporal retries it automatically using the
+              retry policy defined in the YAML.
+            </p>
+            <p>
+              Your workflow is a single file. Validate it, run it and share it.
+            </p>
+            <Link
+              className="button button--outline button--primary"
+              to="/docs/getting-started/quickstart"
+            >
+              Try your first workflow
+            </Link>
+          </div>
+          <div className={styles.workflowExampleCode}>
+            <CodeBlock language="yaml" title="workflow.yaml">
+              {EXAMPLE_WORKFLOW}
+            </CodeBlock>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const { siteConfig } = useDocusaurusContext();
 
   return (
-    <Layout title={siteConfig.tagline} description={siteConfig.tagline}>
+    <Layout
+      title={siteConfig.tagline}
+      description="Zigflow lets you define durable, production-ready workflows in YAML, powered by Temporal."
+    >
       <HomepageHeader />
       <main>
         <HomepageFeatures />
+        <WorkflowExample />
 
         <section className={styles.info_box}>
           <div className="container">
             <div className="row">
               <p>
-                Zigflow is a Temporal DSL — a domain-specific language for
-                defining and running Temporal workflows declaratively.
+                Every Zigflow workflow runs on Temporal, a battle-tested engine
+                for durable execution. You get automatic retries, crash recovery
+                and full execution history without writing SDK code.
               </p>
             </div>
           </div>
         </section>
+
         <Examples />
       </main>
     </Layout>
