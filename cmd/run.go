@@ -19,6 +19,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"time"
 
 	gh "github.com/mrsimonemms/golang-helpers"
 	"github.com/mrsimonemms/golang-helpers/temporal"
@@ -37,23 +38,24 @@ import (
 )
 
 type runOptions struct {
-	CloudEventsConfig    string
-	CodecEndpoint        string
-	CodecHeaders         map[string]string
-	ConvertData          string
-	ConvertKeyPath       string
-	EnvPrefix            string
-	FilePath             string
-	HealthListenAddress  string
-	MetricsListenAddress string
-	MetricsPrefix        string
-	TemporalAddress      string
-	TemporalAPIKey       string
-	TemporalMTLSCertPath string
-	TemporalMTLSKeyPath  string
-	TemporalTLSEnabled   bool
-	TemporalNamespace    string
-	Validate             bool
+	CloudEventsConfig       string
+	CodecEndpoint           string
+	CodecHeaders            map[string]string
+	ConvertData             string
+	ConvertKeyPath          string
+	EnvPrefix               string
+	FilePath                string
+	GracefulShutdownTimeout time.Duration
+	HealthListenAddress     string
+	MetricsListenAddress    string
+	MetricsPrefix           string
+	TemporalAddress         string
+	TemporalAPIKey          string
+	TemporalMTLSCertPath    string
+	TemporalMTLSKeyPath     string
+	TemporalTLSEnabled      bool
+	TemporalNamespace       string
+	Validate                bool
 
 	Telemetry *telemetry.Telemetry
 }
@@ -109,25 +111,26 @@ func startWorker(
 	workflowDefinition *model.Workflow,
 	envvars map[string]any,
 	events *cloudevents.Events,
-	telem *telemetry.Telemetry,
+	opts *runOptions,
 ) error {
 	pollerAutoscaler := worker.NewPollerBehaviorAutoscaling(worker.PollerBehaviorAutoscalingOptions{})
 	temporalWorker := worker.New(temporalClient, taskQueue, worker.Options{
 		WorkflowTaskPollerBehavior: pollerAutoscaler,
 		ActivityTaskPollerBehavior: pollerAutoscaler,
 		NexusTaskPollerBehavior:    pollerAutoscaler,
+		WorkerStopTimeout:          opts.GracefulShutdownTimeout,
 	})
 
-	if err := zigflow.NewWorkflow(temporalWorker, workflowDefinition, envvars, events, telem); err != nil {
+	if err := zigflow.NewWorkflow(temporalWorker, workflowDefinition, envvars, events, opts.Telemetry); err != nil {
 		return gh.FatalError{
 			Cause: err,
 			Msg:   "Unable to build workflow from DSL",
 		}
 	}
 
-	if telem != nil {
-		telem.StartWorker()
-		defer telem.Shutdown()
+	if opts.Telemetry != nil {
+		opts.Telemetry.StartWorker()
+		defer opts.Telemetry.Shutdown()
 	}
 
 	if err := temporalWorker.Run(worker.InterruptCh()); err != nil {
@@ -227,7 +230,7 @@ func runRunCmd(ctx context.Context, opts *runOptions) error {
 
 	log.Info().Str("task-queue", taskQueue).Msg("Starting workflow")
 
-	return startWorker(temporalClient, taskQueue, workflowDefinition, envvars, events, opts.Telemetry)
+	return startWorker(temporalClient, taskQueue, workflowDefinition, envvars, events, opts)
 }
 
 func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
@@ -258,15 +261,21 @@ func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
 		viper.GetString("converter_key_path"), "Path to conversion keys to encrypt Temporal data with AES",
 	)
 
+	viper.SetDefault("env_prefix", "ZIGGY")
+	cmd.Flags().StringVar(
+		&opts.EnvPrefix, "env-prefix",
+		viper.GetString("env_prefix"), "Load envvars with this prefix to the workflow",
+	)
+
 	cmd.Flags().StringVarP(
 		&opts.FilePath, "file", "f",
 		viper.GetString("workflow_file"), "Path to workflow file",
 	)
 
-	viper.SetDefault("env_prefix", "ZIGGY")
-	cmd.Flags().StringVar(
-		&opts.EnvPrefix, "env-prefix",
-		viper.GetString("env_prefix"), "Load envvars with this prefix to the workflow",
+	viper.SetDefault("graceful_shutdown_timeout", time.Second*10)
+	cmd.Flags().DurationVar(
+		&opts.GracefulShutdownTimeout, "graceful-shutdown-timeout",
+		viper.GetDuration("graceful_shutdown_timeout"), "Maximum time to wait for in-flight work to complete on shutdown. Set to 0 to disable",
 	)
 
 	viper.SetDefault("health_listen_address", "0.0.0.0:3000")
