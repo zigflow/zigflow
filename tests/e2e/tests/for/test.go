@@ -14,18 +14,25 @@
  * limitations under the License.
  */
 
-package tests
+package fortask
 
 import (
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/callHTTP"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/complete"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/for"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/for-while"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/fork"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/fork-compete"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/full"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/set"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/switch"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/try-catch"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/wait"
+	"github.com/zigflow/zigflow/tests/e2e/utils"
 )
+
+var testCase = utils.TestCase{
+	Name:         "for",
+	WorkflowPath: "workflow.yaml",
+	ExpectedOutput: map[string]any{
+		"items": []any{
+			map[string]any{"value": float64(1)},
+			map[string]any{"value": float64(2)},
+			map[string]any{"value": float64(3)},
+		},
+	},
+	Test: utils.RunToCompletion[map[string]any],
+}
+
+func init() {
+	utils.AddTestCase(testCase)
+}

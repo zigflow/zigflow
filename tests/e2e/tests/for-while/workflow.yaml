@@ -1,0 +1,18 @@
+document:
+  dsl: 1.0.0
+  namespace: for-while
+  name: workflow
+  version: 0.0.1
+do:
+  - loop:
+      output:
+        as:
+          items: ${ . }
+      for:
+        in: ${ [1, 2, 3, 4, 5] }
+        each: item
+      while: ${ $data.item < 3 }
+      do:
+        - body:
+            set:
+              value: ${ $data.item }
