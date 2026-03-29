@@ -14,25 +14,32 @@
  * limitations under the License.
  */
 
-package set
+package multifilediffqueues
 
 import (
-	_ "embed"
+	"testing"
 
 	"github.com/zigflow/zigflow/tests/e2e/utils"
 )
 
+// Both files define a workflow named "workflow" but under different namespaces
+// (mf-ns1, mf-ns2), so they land on separate task queues and separate workers.
+// This test verifies that a single Zigflow process starts multiple workers and
+// each executes correctly.
 var testCase = utils.TestCase{
-	Name:         "set",
-	WorkflowPath: "workflow.yaml",
-	ExpectedOutput: map[string]any{
-		"data": map[string]any{
-			"hello":  "world",
-			"second": "value",
-			"number": float64(2345),
-		},
+	Name:         "multi-file-diff-queues",
+	WorkflowPath: "workflow-ns1.yaml",
+	ExtraFiles:   []string{"workflow-ns2.yaml"},
+	Test: func(t *testing.T, test *utils.TestCase) {
+		utils.RunToCompletionNamed[map[string]any](t,
+			"mf-ns1", "workflow", nil,
+			map[string]any{"data": map[string]any{"source": "ns1"}},
+		)
+		utils.RunToCompletionNamed[map[string]any](t,
+			"mf-ns2", "workflow", nil,
+			map[string]any{"data": map[string]any{"source": "ns2"}},
+		)
 	},
-	Test: utils.RunToCompletion[map[string]any],
 }
 
 func init() {

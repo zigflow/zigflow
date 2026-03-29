@@ -18,8 +18,8 @@ package utils
 
 var registry []TestCase = []TestCase{}
 
-func AddTestCase(t TestCase) {
-	registry = append(registry, t)
+func AddTestCase(t *TestCase) {
+	registry = append(registry, *t)
 }
 
 func GetTestCases() []TestCase {

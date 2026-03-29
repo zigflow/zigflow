@@ -1,0 +1,12 @@
+document:
+  dsl: 1.0.0
+  namespace: mf-same
+  name: workflow-b
+  version: 0.0.1
+do:
+  - set:
+      output:
+        as:
+          data: ${ . }
+      set:
+        source: workflow-b

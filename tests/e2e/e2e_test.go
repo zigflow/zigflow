@@ -19,17 +19,21 @@
 package e2e
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/zigflow"
 	"github.com/zigflow/zigflow/tests/e2e/utils"
 
@@ -66,6 +70,10 @@ func setup() (*harness, error) {
 
 	for _, c := range utils.GetTestCases() {
 		c.WorkflowPath = path.Join(cwd, "tests", c.Name, c.WorkflowPath)
+
+		for i, f := range c.ExtraFiles {
+			c.ExtraFiles[i] = path.Join(cwd, "tests", c.Name, f)
+		}
 
 		workflowDefinition, err := zigflow.LoadFromFile(c.WorkflowPath)
 		if err != nil {
@@ -132,9 +140,14 @@ func TestE2E(t *testing.T) {
 				".",
 				"run",
 				"--file", test.WorkflowPath,
+			}
+			for _, f := range test.ExtraFiles {
+				args = append(args, "--file", f)
+			}
+			args = append(args,
 				"--health-listen-address", fmt.Sprintf("localhost:%d", healthPort),
 				"--metrics-listen-address", fmt.Sprintf("localhost:%d", metricsPort),
-			}
+			)
 
 			// Start the Zigflow binary with the loaded workflow
 			go (func() {
@@ -152,7 +165,57 @@ func TestE2E(t *testing.T) {
 				})
 			})()
 
-			test.Test(t, test)
+			test.Test(t, &test)
 		})
+	}
+}
+
+// TestE2EMultiFileDuplicateRejected asserts that Zigflow exits with a non-zero
+// status and emits a clear error when two workflow files define the same
+// workflow name on the same task queue. This must be caught at startup, before
+// any worker is started.
+func TestE2EMultiFileDuplicateRejected(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+
+	fixtureDir := path.Join(cwd, "tests", "multi-file-duplicate")
+
+	healthPort, err := getFreePort()
+	require.NoError(t, err)
+
+	metricsPort, err := getFreePort()
+	require.NoError(t, err)
+
+	var stderr bytes.Buffer
+	cmd := exec.Command("go", //nolint
+		"run", ".",
+		"run",
+		"--file", path.Join(fixtureDir, "workflow-a.yaml"),
+		"--file", path.Join(fixtureDir, "workflow-b.yaml"),
+		"--health-listen-address", fmt.Sprintf("localhost:%d", healthPort),
+		"--metrics-listen-address", fmt.Sprintf("localhost:%d", metricsPort),
+	)
+	cmd.Env = os.Environ()
+	cmd.Dir = path.Join(cwd, "..", "..")
+	cmd.Stderr = &stderr
+
+	// The process must exit on its own - give it enough time to compile and
+	// run startup validation, but not so long that a hanging process blocks CI.
+	done := make(chan error, 1)
+	require.NoError(t, cmd.Start())
+	go func() { done <- cmd.Wait() }()
+
+	select {
+	case runErr := <-done:
+		assert.Error(t, runErr, "expected Zigflow to exit with a non-zero status")
+		output := stderr.String()
+		assert.True(t,
+			strings.Contains(output, "Duplicate workflow name") ||
+				strings.Contains(output, "duplicate"),
+			"expected duplicate-name error in stderr, got: %s", output,
+		)
+	case <-time.After(2 * time.Minute):
+		_ = cmd.Process.Kill()
+		t.Fatal("Zigflow did not exit within the timeout - duplicate detection may not be working")
 	}
 }

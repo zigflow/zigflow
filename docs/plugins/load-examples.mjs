@@ -36,22 +36,29 @@ export default function loadExamplesPlugin() {
             })
             .filter((item) => item)
             .map(async (item) => {
-              const content = await fs.readFile(
-                path.join(item.parentPath, item.name, 'workflow.yaml'),
-                'utf8',
-              );
+              try {
+                const content = await fs.readFile(
+                  path.join(item.parentPath, item.name, 'workflow.yaml'),
+                  'utf8',
+                );
 
-              const workflow = yaml.load(content);
+                const workflow = yaml.load(content);
 
-              if (!(workflow.document.metadata?.display ?? true)) {
-                return;
+                if (!(workflow.document.metadata?.display ?? true)) {
+                  return;
+                }
+
+                return {
+                  name: item,
+                  content,
+                  workflow,
+                };
+              } catch (err) {
+                if (err.code === 'ENOENT') {
+                  return;
+                }
+                throw err;
               }
-
-              return {
-                name: item,
-                content,
-                workflow,
-              };
             }),
         )
       )

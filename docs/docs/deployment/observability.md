@@ -6,34 +6,37 @@ sidebar_position: 5
 
 ## What you will learn
 
-- How to use the health endpoint for liveness and readiness probes
+- How to use the health endpoints for liveness and readiness probes
 - How to scrape Prometheus metrics from a running worker
 - How to emit CloudEvents during workflow execution
 - How to control log verbosity
 
 ## Health checks
 
-Zigflow exposes an HTTP health endpoint while the worker is running:
+Zigflow exposes two dedicated health endpoints while the worker is running:
 
-```text
-GET http://localhost:3000/health
-```
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /livez` | Liveness: returns `200 OK` when the process is running |
+| `GET /readyz` | Readiness: returns `200 OK` when the worker is connected and polling |
+| `GET /health` | Backwards-compatible alias for `/readyz` |
 
-Returns `200 OK` when the worker is healthy. Use this for liveness and
-readiness probes in any orchestration system.
+Change the listen address with `--health-listen-address` (default `0.0.0.0:3000`).
 
-Change the address with `--health-listen-address` (default `0.0.0.0:3000`).
+Use `/livez` for liveness probes and `/readyz` for readiness probes.
+Use `/health` if you have an existing integration that cannot be updated.
 
 ### Kubernetes
 
-The Helm chart configures liveness and readiness probes automatically. No
-additional configuration is needed for standard deployments.
+The Helm chart configures liveness and readiness probes automatically using
+`/livez` and `/readyz`. No additional configuration is needed for standard
+deployments.
 
 ### Docker Compose
 
 ```yaml
 healthcheck:
-  test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+  test: ["CMD-SHELL", "curl -f http://localhost:3000/readyz || exit 1"]
   interval: 10s
   timeout: 5s
   retries: 3

@@ -4,7 +4,7 @@ document:
   name: workflow1 # Workflow name - not registered if every top-level task is a "do"
   version: 0.0.1
   title: Multiple Workflows
-  summary: Configure multiple Temporal workflows from a single Zigflow definition
+  summary: Define and run multiple workflows within a single YAML file
   metadata:
     display: false
 timeout:

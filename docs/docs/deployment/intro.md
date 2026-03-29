@@ -13,12 +13,17 @@ sidebar_position: 1
 
 ## What Zigflow deploys
 
-Zigflow is a single Go binary. When you run `zigflow run`, it starts a
-**Temporal worker** that:
+Zigflow is a single Go binary. When you run `zigflow run`, it starts one or
+more **Temporal workers** that:
 
-- Connects to a Temporal server
-- Registers the compiled workflow
-- Polls the task queue for executions
+- Connect to a Temporal server
+- Register one or more workflow definitions
+- Poll task queues for executions
+
+A single Zigflow process can load multiple workflow definitions from separate
+files or a directory. Workflows that share a task queue (defined by
+`document.namespace`) run on the same worker. Each distinct task queue gets
+its own worker.
 
 There is no separate API server, no database and no persistent storage.
 All workflow state is held by Temporal.
@@ -26,7 +31,7 @@ All workflow state is held by Temporal.
 Your infrastructure requirements are:
 
 1. A running Temporal server (Cloud or self-hosted)
-2. A Zigflow worker process for each workflow definition
+2. One or more Zigflow worker processes
 
 ---
 
@@ -72,9 +77,9 @@ baked in at build time rather than mounted at runtime.
 
 A running Zigflow worker exposes two ports:
 
-| Port | Default | Purpose |
+| Port | Default | Endpoints |
 | --- | --- | --- |
-| Health | `3000` | HTTP `/health`: liveness and readiness |
+| Health | `3000` | `/livez` (liveness), `/readyz` (readiness), `/health` (alias for `/readyz`) |
 | Metrics | `9090` | Prometheus metrics |
 
 Override with `--health-listen-address` and `--metrics-listen-address`.

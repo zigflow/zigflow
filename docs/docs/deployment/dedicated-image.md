@@ -26,18 +26,45 @@ ConfigMaps and no inline workflow configuration at runtime.
 
 ## How it works
 
-The official Zigflow image sets the following environment variable:
+The official Zigflow image sets one environment variable by default:
 
 ```text
 WORKFLOW_FILE=/app/workflow.yaml
 ```
 
-When Zigflow starts, it reads the workflow file from the path specified by
-`WORKFLOW_FILE`. Because this variable is already set in the base image, a
-container that provides a file at `/app/workflow.yaml` will start the worker
-immediately. No `-f` flag is required and no `WORKFLOW_FILE` override is needed.
+When Zigflow starts, it loads the file at the path specified by `WORKFLOW_FILE`.
+Because this is already set in the base image, a container that copies a workflow
+file to `/app/workflow.yaml` will start the worker immediately. No `-f` flag is
+required and no override is needed.
 
-Copying your workflow file into the image at that path is sufficient.
+**Single-file mode (default):** copy one workflow file to `/app/workflow.yaml`.
+Zigflow loads it via `WORKFLOW_FILE`.
+
+**Multi-file mode:** to load multiple workflow files from a directory, set
+`WORKFLOW_DIRECTORY` in your Dockerfile. If you do not want to load the default
+single file, also set `WORKFLOW_FILE=`:
+
+```dockerfile title="Dockerfile"
+FROM ghcr.io/zigflow/zigflow
+ENV WORKFLOW_FILE=
+ENV WORKFLOW_DIRECTORY=/app/workflows
+COPY ./workflows /app/workflows
+```
+
+Each distinct `document.namespace` in those files gets its own Temporal worker
+and task queue.
+
+You can also combine both: set `WORKFLOW_FILE` and `WORKFLOW_DIRECTORY` together.
+All discovered files are merged and deduplicated before startup.
+
+:::warning
+When using directory mode, the directory should contain workflow definitions
+only. Non-workflow YAML/JSON files will be treated as workflows and may cause
+startup errors.
+:::
+
+If a configured file does not exist, Zigflow will fail at startup. There is no
+implicit fallback or silent skip.
 
 ---
 

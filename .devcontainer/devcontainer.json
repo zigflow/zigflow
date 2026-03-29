@@ -37,8 +37,8 @@
     "CONVERTER_KEY_PATH": "/workspaces/zigflow/keys.example.yaml",
     "GIT_REPO": "github.com/zigflow/zigflow",
     "LOG_LEVEL": "trace",
-    "ZIGGY_EXAMPLE_ENVVAR": "some-example-envvar",
-    "WORKFLOW_FILE": "./workflow.example.yaml"
+    "WORKFLOW_DIRECTORY_GLOB": "workflow.example.yaml",
+    "ZIGGY_EXAMPLE_ENVVAR": "some-example-envvar"
   },
   "forwardPorts": [
     3000,

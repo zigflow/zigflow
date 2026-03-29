@@ -33,7 +33,8 @@ A collection of examples
 | [Hello World AES Encrypted](./hello-world-encrypted-aes) | Hello world with Zigflow, but [encrypted](https://github.com/mrsimonemms/temporal-codec-server) |
 | [Hello World Encrypted Remote](./hello-world-encrypted-remote) | Hello world with Zigflow, but remotely encrypted |
 | [Money Transfer Demo](./money-transfer) | Temporal's world-famous Money Transfer Demo, in Zigflow form |
-| [Multiple Workflows](./multiple-workflows) | Configure multiple Temporal workflows from a single Zigflow definition |
+| [Multiple Workflow Files](./multiple-workflow-files) | Run multiple workflow definitions from separate YAML files in a single Zigflow worker |
+| [Multiple Workflows](./multiple-workflows) | Define and run multiple workflows within a single YAML file |
 | [Python](./python) | The basic example, but in Python |
 | [Query Listeners](./query) | Listen for Temporal query events |
 | [Throw an error](./raise) | Throw an error from a Temporal workflow |

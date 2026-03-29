@@ -19,10 +19,14 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/codec"
+	"github.com/zigflow/zigflow/pkg/utils"
 )
 
 func TestPanicMessage(t *testing.T) {
@@ -128,4 +132,225 @@ func TestNewRunCmd_Flags(t *testing.T) {
 	assert.NotNil(t, cmd.Flags().Lookup("env-prefix"))
 	assert.NotNil(t, cmd.Flags().Lookup("health-listen-address"))
 	assert.NotNil(t, cmd.Flags().Lookup("metrics-listen-address"))
+	assert.NotNil(t, cmd.Flags().Lookup("dir"))
+	assert.NotNil(t, cmd.Flags().Lookup("glob"))
+}
+
+// minimalWorkflowYAML returns the smallest valid workflow YAML for the given
+// namespace and name. The document version and DSL are fixed to keep fixtures
+// short.
+func minimalWorkflowYAML(namespace, name string) string {
+	return `document:
+  dsl: 1.0.0
+  namespace: ` + namespace + `
+  name: ` + name + `
+  version: 0.0.1
+do:
+  - noop:
+      set:
+        set: {}
+`
+}
+
+// writeTempWorkflow writes a minimal workflow YAML file into dir and returns
+// the absolute path. It fails the test immediately on any write error.
+func writeTempWorkflow(t *testing.T, dir, namespace, name string) string {
+	t.Helper()
+	p := filepath.Join(dir, namespace+"."+name+".yaml")
+	require.NoError(t, os.WriteFile(p, []byte(minimalWorkflowYAML(namespace, name)), 0o600))
+	return p
+}
+
+// ---- discoverWorkflowFiles ----
+
+func TestDiscoverWorkflowFiles_NoFilesError(t *testing.T) {
+	_, err := discoverWorkflowFiles(&runOptions{
+		DirectoryGlob: "*.yaml",
+	})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "No workflow files found")
+}
+
+func TestDiscoverWorkflowFiles_ExplicitFiles(t *testing.T) {
+	dir := t.TempDir()
+	p := writeTempWorkflow(t, dir, "ns", "wf")
+
+	files, err := discoverWorkflowFiles(&runOptions{
+		Files:         []string{p},
+		DirectoryGlob: "*.yaml",
+	})
+	require.NoError(t, err)
+	assert.Len(t, files, 1)
+	assert.Equal(t, p, files[0])
+}
+
+func TestDiscoverWorkflowFiles_DirectoryGlob(t *testing.T) {
+	dir := t.TempDir()
+	writeTempWorkflow(t, dir, "ns", "wf1")
+	writeTempWorkflow(t, dir, "ns", "wf2")
+
+	files, err := discoverWorkflowFiles(&runOptions{
+		DirectoryPath: dir,
+		DirectoryGlob: "*.yaml",
+	})
+	require.NoError(t, err)
+	assert.Len(t, files, 2)
+}
+
+func TestDiscoverWorkflowFiles_MergesFilesAndDirectory(t *testing.T) {
+	dir := t.TempDir()
+	p1 := writeTempWorkflow(t, dir, "ns", "wf1")
+	p2 := writeTempWorkflow(t, dir, "ns", "wf2")
+
+	files, err := discoverWorkflowFiles(&runOptions{
+		Files:         []string{p1},
+		DirectoryPath: dir,
+		DirectoryGlob: "*.yaml",
+	})
+	require.NoError(t, err)
+	// p1 discovered by both sources; must appear exactly once.
+	assert.Len(t, files, 2)
+	assert.Contains(t, files, p1)
+	assert.Contains(t, files, p2)
+}
+
+func TestDiscoverWorkflowFiles_DeduplicatesRelativeAndAbsolute(t *testing.T) {
+	dir := t.TempDir()
+	p := writeTempWorkflow(t, dir, "ns", "wf")
+
+	// Pass both the absolute path and a path that resolves to the same file.
+	files, err := discoverWorkflowFiles(&runOptions{
+		Files:         []string{p, p},
+		DirectoryGlob: "*.yaml",
+	})
+	require.NoError(t, err)
+	assert.Len(t, files, 1)
+}
+
+func TestDiscoverWorkflowFiles_InvalidGlobError(t *testing.T) {
+	// An invalid directory causes the glob to fail.
+	_, err := discoverWorkflowFiles(&runOptions{
+		DirectoryPath: string([]byte{0}), // NUL in path is rejected by the OS
+		DirectoryGlob: "*.yaml",
+	})
+	assert.Error(t, err)
+}
+
+// ---- loadWorkflows ----
+
+func newTestValidator(t *testing.T) *utils.Validator {
+	t.Helper()
+	v, err := utils.NewValidator()
+	require.NoError(t, err)
+	return v
+}
+
+func TestLoadWorkflows_SingleValidFile(t *testing.T) {
+	dir := t.TempDir()
+	p := writeTempWorkflow(t, dir, "myns", "mywf")
+
+	validator := newTestValidator(t)
+	regs, err := loadWorkflows([]string{p}, "", validator, false)
+	require.NoError(t, err)
+	require.Len(t, regs, 1)
+	assert.Equal(t, "myns", regs[0].TaskQueue)
+	assert.Equal(t, "mywf", regs[0].WorkflowName)
+	assert.Equal(t, p, regs[0].SourceFile)
+}
+
+func TestLoadWorkflows_MultipleFiles(t *testing.T) {
+	dir := t.TempDir()
+	p1 := writeTempWorkflow(t, dir, "ns", "wf1")
+	p2 := writeTempWorkflow(t, dir, "ns", "wf2")
+
+	validator := newTestValidator(t)
+	regs, err := loadWorkflows([]string{p1, p2}, "", validator, false)
+	require.NoError(t, err)
+	assert.Len(t, regs, 2)
+}
+
+func TestLoadWorkflows_RejectsEmptyName(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "empty-name.yaml")
+	require.NoError(t, os.WriteFile(p, []byte(`document:
+  dsl: 1.0.0
+  namespace: ns
+  name: ""
+  version: 0.0.1
+do:
+  - noop:
+      set:
+        set: {}
+`), 0o600))
+
+	validator := newTestValidator(t)
+	_, err := loadWorkflows([]string{p}, "", validator, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "name must not be empty")
+}
+
+func TestLoadWorkflows_RejectsEmptyNamespace(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "empty-ns.yaml")
+	require.NoError(t, os.WriteFile(p, []byte(`document:
+  dsl: 1.0.0
+  namespace: ""
+  name: wf
+  version: 0.0.1
+do:
+  - noop:
+      set:
+        set: {}
+`), 0o600))
+
+	validator := newTestValidator(t)
+	_, err := loadWorkflows([]string{p}, "", validator, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "namespace must not be empty")
+}
+
+// ---- validateWorkflowConflicts ----
+
+func TestValidateWorkflowConflicts_DuplicateNameSameQueue(t *testing.T) {
+	regs := []*workflowRegistration{
+		{SourceFile: "a.yaml", TaskQueue: "q", WorkflowName: "wf"},
+		{SourceFile: "b.yaml", TaskQueue: "q", WorkflowName: "wf"},
+	}
+	err := validateWorkflowConflicts(regs)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Duplicate workflow name on the same task queue")
+}
+
+func TestValidateWorkflowConflicts_SameNameDifferentQueues(t *testing.T) {
+	regs := []*workflowRegistration{
+		{SourceFile: "a.yaml", TaskQueue: "q1", WorkflowName: "wf"},
+		{SourceFile: "b.yaml", TaskQueue: "q2", WorkflowName: "wf"},
+	}
+	assert.NoError(t, validateWorkflowConflicts(regs))
+}
+
+func TestValidateWorkflowConflicts_DifferentNamesSameQueue(t *testing.T) {
+	regs := []*workflowRegistration{
+		{SourceFile: "a.yaml", TaskQueue: "q", WorkflowName: "wf1"},
+		{SourceFile: "b.yaml", TaskQueue: "q", WorkflowName: "wf2"},
+	}
+	assert.NoError(t, validateWorkflowConflicts(regs))
+}
+
+// ---- prepareRegistrations ----
+
+func TestPrepareRegistrations_HappyPath(t *testing.T) {
+	dir := t.TempDir()
+	writeTempWorkflow(t, dir, "ns1", "wf1")
+	writeTempWorkflow(t, dir, "ns2", "wf2")
+
+	opts := &runOptions{
+		DirectoryPath: dir,
+		DirectoryGlob: "*.yaml",
+		Validate:      false,
+	}
+
+	regs, err := prepareRegistrations(opts)
+	require.NoError(t, err)
+	assert.Len(t, regs, 2)
 }

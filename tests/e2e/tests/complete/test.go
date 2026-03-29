@@ -62,7 +62,7 @@ var testCase = utils.TestCase{
 			},
 		},
 	},
-	Test: func(t *testing.T, test utils.TestCase) {
+	Test: func(t *testing.T, test *utils.TestCase) {
 		c, err := temporal.NewConnectionWithEnvvars(
 			temporal.WithZerolog(&zlog.Logger),
 		)
@@ -125,5 +125,5 @@ var testCase = utils.TestCase{
 }
 
 func init() {
-	utils.AddTestCase(testCase)
+	utils.AddTestCase(&testCase)
 }
