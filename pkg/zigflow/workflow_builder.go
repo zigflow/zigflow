@@ -70,11 +70,6 @@ func NewWorkflow(
 		return fmt.Errorf("error building workflow: %w", err)
 	}
 
-	for _, a := range tasks.ActivitiesList() {
-		l.Debug().Msg("Registering activity")
-		temporalWorker.RegisterActivity(a)
-	}
-
 	return nil
 }
 

@@ -28,16 +28,46 @@ import (
 )
 
 type TestCase struct {
-	Name           string
-	WorkflowPath   string
+	Name         string
+	WorkflowPath string
+	// ExtraFiles contains additional workflow file paths to pass to the worker
+	// alongside WorkflowPath. The setup harness loads only WorkflowPath into
+	// Workflow; test functions are responsible for connecting to the extra
+	// workflows by namespace and name.
+	ExtraFiles     []string
 	Workflow       *model.Workflow
 	Input          map[string]any
 	ExpectedOutput any
-	Test           func(t *testing.T, test TestCase)
+	Test           func(t *testing.T, test *TestCase)
+}
+
+// RunToCompletionNamed executes a single workflow identified by taskQueue and
+// workflowName, waits for it to finish, and asserts the result equals
+// expectedOutput. It is used by multi-file test cases where a single TestCase
+// drives more than one workflow and test.Workflow refers only to the primary.
+func RunToCompletionNamed[T any](t *testing.T, taskQueue, workflowName string, input, expectedOutput any) {
+	t.Helper()
+
+	c, err := temporal.NewConnectionWithEnvvars(
+		temporal.WithZerolog(&zlog.Logger),
+	)
+	assert.NoError(t, err)
+	defer c.Close()
+
+	wCtx := context.Background()
+
+	we, err := c.ExecuteWorkflow(wCtx, client.StartWorkflowOptions{
+		TaskQueue: taskQueue,
+	}, workflowName, input)
+	assert.NoError(t, err)
+
+	var result T
+	assert.NoError(t, we.Get(wCtx, &result))
+	assert.Equal(t, expectedOutput, result)
 }
 
 // RunToCompletion simplest version of the test where it runs to completion and matches the output
-func RunToCompletion[T any](t *testing.T, test TestCase) {
+func RunToCompletion[T any](t *testing.T, test *TestCase) {
 	c, err := temporal.NewConnectionWithEnvvars(
 		temporal.WithZerolog(&zlog.Logger),
 	)

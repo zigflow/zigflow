@@ -149,7 +149,7 @@ null
 			<td>livenessProbe.httpGet.path</td>
 			<td>string</td>
 			<td><pre lang="json">
-"/health"
+"/livez"
 </pre>
 </td>
 			<td>Path to demonstrate app liveness</td>
@@ -218,7 +218,7 @@ null
 			<td>readinessProbe.httpGet.path</td>
 			<td>string</td>
 			<td><pre lang="json">
-"/health"
+"/readyz"
 </pre>
 </td>
 			<td>Path to demonstrate app readiness</td>

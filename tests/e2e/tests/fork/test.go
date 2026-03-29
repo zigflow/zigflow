@@ -41,5 +41,5 @@ var testCase = utils.TestCase{
 }
 
 func init() {
-	utils.AddTestCase(testCase)
+	utils.AddTestCase(&testCase)
 }

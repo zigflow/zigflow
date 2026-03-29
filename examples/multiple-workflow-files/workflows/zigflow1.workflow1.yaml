@@ -1,0 +1,19 @@
+document:
+  dsl: 1.0.0
+  namespace: zigflow1
+  name: workflow1
+  version: 0.0.1
+  title: Workflow 2
+  summary: Another type of workflow
+  metadata:
+    display: false
+do:
+  - wait:
+      wait:
+        seconds: 3
+  - set:
+      output:
+        as:
+          data: ${ . }
+      set:
+        message: Hello, this is workflow 2

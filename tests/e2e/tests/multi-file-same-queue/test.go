@@ -14,25 +14,31 @@
  * limitations under the License.
  */
 
-package set
+package multifilesamequeue
 
 import (
-	_ "embed"
+	"testing"
 
 	"github.com/zigflow/zigflow/tests/e2e/utils"
 )
 
+// Both workflow-a and workflow-b share the "mf-same" task queue. This test
+// verifies that a single Zigflow process can host both on the same worker
+// and execute each independently.
 var testCase = utils.TestCase{
-	Name:         "set",
-	WorkflowPath: "workflow.yaml",
-	ExpectedOutput: map[string]any{
-		"data": map[string]any{
-			"hello":  "world",
-			"second": "value",
-			"number": float64(2345),
-		},
+	Name:         "multi-file-same-queue",
+	WorkflowPath: "workflow-a.yaml",
+	ExtraFiles:   []string{"workflow-b.yaml"},
+	Test: func(t *testing.T, test *utils.TestCase) {
+		utils.RunToCompletionNamed[map[string]any](t,
+			"mf-same", "workflow-a", nil,
+			map[string]any{"data": map[string]any{"source": "workflow-a"}},
+		)
+		utils.RunToCompletionNamed[map[string]any](t,
+			"mf-same", "workflow-b", nil,
+			map[string]any{"data": map[string]any{"source": "workflow-b"}},
+		)
 	},
-	Test: utils.RunToCompletion[map[string]any],
 }
 
 func init() {

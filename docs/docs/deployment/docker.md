@@ -116,7 +116,73 @@ flags. Key variables:
 | `LOG_LEVEL` | `--log-level` | `info` |
 | `CLOUDEVENTS_CONFIG` | `--cloudevents-config` | (none) |
 | `WORKFLOW_FILE` | `-f` | (none) |
+| `WORKFLOW_DIRECTORY` | `-d` / `--dir` | (none) |
+| `WORKFLOW_DIRECTORY_GLOB` | `--glob` | `*.{yaml,yml,json}` |
 | `DISABLE_TELEMETRY` | `--disable-telemetry` | (false) |
+
+:::info
+The official `ghcr.io/zigflow/zigflow` image overrides `WORKFLOW_FILE` to
+`/app/workflow.yaml`. This default is not part of the CLI; it is set by the
+image. If you do not want to load the default file, set `WORKFLOW_FILE=` to
+clear it.
+:::
+
+### Runtime modes
+
+Zigflow supports loading workflow definitions from explicit file paths, a
+directory, or both together. All discovered files are merged and deduplicated
+before any worker starts.
+
+**File mode** - load one or more explicit files using `WORKFLOW_FILE` (or `-f`):
+
+```sh
+docker run --rm \
+  -v /path/to/workflow.yaml:/app/workflow.yaml \
+  -e WORKFLOW_FILE=/app/workflow.yaml \
+  ghcr.io/zigflow/zigflow run
+```
+
+**Directory mode** - load all matching files from a directory using
+`WORKFLOW_DIRECTORY` (or `--dir`). The `WORKFLOW_DIRECTORY_GLOB` pattern
+controls which files are matched (default `*.{yaml,yml,json}`).
+
+If you do not want Zigflow to load the default file, set `WORKFLOW_FILE=` when
+using directory mode:
+
+```sh
+docker run --rm \
+  -v /path/to/workflows:/app/workflows \
+  -e WORKFLOW_FILE= \
+  -e WORKFLOW_DIRECTORY=/app/workflows \
+  ghcr.io/zigflow/zigflow run
+```
+
+:::warning
+When using directory mode, the directory should contain workflow definitions
+only. Non-workflow YAML/JSON files will be treated as workflows and may cause
+startup errors.
+:::
+
+**Combined mode** - use both file and directory sources together:
+
+```sh
+docker run --rm \
+  -v /path/to/workflow.yaml:/app/workflow.yaml \
+  -v /path/to/workflows:/app/workflows \
+  -e WORKFLOW_FILE=/app/workflow.yaml \
+  -e WORKFLOW_DIRECTORY=/app/workflows \
+  ghcr.io/zigflow/zigflow run
+```
+
+Zigflow loads both sources and deduplicates overlapping files.
+
+If you configure a workflow file, it must exist. To use directory-only mode,
+set `WORKFLOW_FILE=`. If a configured file does not exist, Zigflow will fail at
+startup. There is no implicit fallback or silent skip.
+
+Workflows that share a task queue (defined by `document.namespace`) are
+registered on the same Temporal worker. Each distinct task queue gets its
+own worker.
 
 Workflow environment variables (accessed via `$env` in expressions) can be
 passed with the `ZIGGY_` prefix by default:
@@ -138,9 +204,9 @@ endpoint: ${ $env.API_BASE_URL }
 
 The container exposes two ports:
 
-| Port | Purpose |
+| Port | Endpoints |
 | --- | --- |
-| `3000` | Health check (`/health`) |
+| `3000` | `/livez` (liveness), `/readyz` (readiness), `/health` (alias for `/readyz`) |
 | `9090` | Prometheus metrics |
 
 Map them in Compose if needed:

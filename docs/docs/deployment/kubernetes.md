@@ -217,10 +217,13 @@ endpoint: ${ $env.API_BASE_URL }
 
 ## Health and readiness probes
 
-The chart configures liveness and readiness probes automatically using the
-`/health` endpoint on port `3000`.
+The chart configures liveness and readiness probes automatically:
 
-No additional configuration is required for standard deployments.
+- Liveness probe: `GET /livez` on port `3000`
+- Readiness probe: `GET /readyz` on port `3000`
+
+No additional configuration is required for standard deployments. The `/health`
+endpoint remains available as a backwards-compatible alias for `/readyz`.
 
 ---
 

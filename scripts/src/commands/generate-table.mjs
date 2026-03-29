@@ -38,11 +38,23 @@ export const handler = async (argv) => {
       (await fs.readdir(argv.dir, { withFileTypes: true }))
         .filter((d) => d.isDirectory())
         .map(async (d) => {
-          const workflowFile = path.join(argv.dir, d.name, 'workflow.yaml');
+          const dir = path.join(argv.dir, d.name);
+          const workflowFile = path.join(dir, 'workflow.yaml');
+          const infoFile = path.join(dir, 'info.yaml');
 
-          const { document } = yaml.parse(
-            await fs.readFile(workflowFile, 'utf-8'),
-          );
+          let fileContents = '';
+
+          try {
+            fileContents = await fs.readFile(workflowFile, 'utf-8');
+          } catch (err) {
+            if (err.code !== 'ENOENT') {
+              throw err;
+            }
+
+            fileContents = await fs.readFile(infoFile, 'utf-8');
+          }
+
+          const { document } = yaml.parse(fileContents);
 
           return {
             name: `[${document.title ?? document.name}](./${d.name})`,

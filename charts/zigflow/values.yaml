@@ -123,13 +123,13 @@ resources: {}
 livenessProbe:
   httpGet:
     # -- Path to demonstrate app liveness
-    path: /health
+    path: /livez
     # -- Port to demonstrate app liveness
     port: health
 readinessProbe:
   httpGet:
     # -- Path to demonstrate app readiness
-    path: /health
+    path: /readyz
     # -- Port to demonstrate app readiness
     port: health
 

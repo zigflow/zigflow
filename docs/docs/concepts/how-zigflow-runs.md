@@ -103,11 +103,13 @@ flowchart TD
 
 ## What the worker exposes
 
-While running, the Zigflow worker exposes two HTTP endpoints:
+While running, the Zigflow worker exposes HTTP endpoints on two ports:
 
 | Endpoint | Port | Purpose |
 | --- | --- | --- |
-| `/health` | `3000` | Liveness and readiness probe |
+| `/livez` | `3000` | Liveness probe |
+| `/readyz` | `3000` | Readiness probe |
+| `/health` | `3000` | Backwards-compatible alias for `/readyz` |
 | (Prometheus metrics) | `9090` | Runtime metrics |
 
 These ports can be changed with `--health-listen-address` and
