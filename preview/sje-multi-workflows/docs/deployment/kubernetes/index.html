@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/preview/sje-multi-workflows/assets/css/styles.4d7e4f0c.css">
-<script src="/preview/sje-multi-workflows/assets/js/runtime~main.ba8a14a7.js" defer="defer"></script>
+<script src="/preview/sje-multi-workflows/assets/js/runtime~main.61bebd89.js" defer="defer"></script>
 <script src="/preview/sje-multi-workflows/assets/js/main.6bd58d05.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -84,9 +84,13 @@ Add them to the <code>envvars</code> list:</p>
 <div class="language-yaml codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-yaml codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token key atrule" style="color:#00a4db">endpoint</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"> $</span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> $env.API_BASE_URL </span><span class="token punctuation" style="color:#393A34">}</span><br></span></code></pre></div></div>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="health-and-readiness-probes">Health and readiness probes<a href="#health-and-readiness-probes" class="hash-link" aria-label="Direct link to Health and readiness probes" title="Direct link to Health and readiness probes" translate="no">​</a></h2>
-<p>The chart configures liveness and readiness probes automatically using the
-<code>/health</code> endpoint on port <code>3000</code>.</p>
-<p>No additional configuration is required for standard deployments.</p>
+<p>The chart configures liveness and readiness probes automatically:</p>
+<ul>
+<li class="">Liveness probe: <code>GET /livez</code> on port <code>3000</code></li>
+<li class="">Readiness probe: <code>GET /readyz</code> on port <code>3000</code></li>
+</ul>
+<p>No additional configuration is required for standard deployments. The <code>/health</code>
+endpoint remains available as a backwards-compatible alias for <code>/readyz</code>.</p>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="replicas-and-scaling">Replicas and scaling<a href="#replicas-and-scaling" class="hash-link" aria-label="Direct link to Replicas and scaling" title="Direct link to Replicas and scaling" translate="no">​</a></h2>
 <p>Workers are stateless. You can run multiple replicas of the same worker

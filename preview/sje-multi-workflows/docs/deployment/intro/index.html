@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/preview/sje-multi-workflows/assets/css/styles.4d7e4f0c.css">
-<script src="/preview/sje-multi-workflows/assets/js/runtime~main.ba8a14a7.js" defer="defer"></script>
+<script src="/preview/sje-multi-workflows/assets/js/runtime~main.61bebd89.js" defer="defer"></script>
 <script src="/preview/sje-multi-workflows/assets/js/main.6bd58d05.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -76,7 +76,7 @@ baked in at build time rather than mounted at runtime.</p>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="runtime-ports">Runtime ports<a href="#runtime-ports" class="hash-link" aria-label="Direct link to Runtime ports" title="Direct link to Runtime ports" translate="no">​</a></h2>
 <p>A running Zigflow worker exposes two ports:</p>
-<table><thead><tr><th>Port</th><th>Default</th><th>Purpose</th></tr></thead><tbody><tr><td>Health</td><td><code>3000</code></td><td>HTTP <code>/health</code>: liveness and readiness</td></tr><tr><td>Metrics</td><td><code>9090</code></td><td>Prometheus metrics</td></tr></tbody></table>
+<table><thead><tr><th>Port</th><th>Default</th><th>Endpoints</th></tr></thead><tbody><tr><td>Health</td><td><code>3000</code></td><td><code>/livez</code> (liveness), <code>/readyz</code> (readiness), <code>/health</code> (alias for <code>/readyz</code>)</td></tr><tr><td>Metrics</td><td><code>9090</code></td><td>Prometheus metrics</td></tr></tbody></table>
 <p>Override with <code>--health-listen-address</code> and <code>--metrics-listen-address</code>.</p>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="connecting-to-temporal">Connecting to Temporal<a href="#connecting-to-temporal" class="hash-link" aria-label="Direct link to Connecting to Temporal" title="Direct link to Connecting to Temporal" translate="no">​</a></h2>
