@@ -335,6 +335,36 @@ true
 			<td>The name of the service account to use. If not set and create is true, a name is generated using the fullname template</td>
 		</tr>
 		<tr>
+			<td>tmpVolume</td>
+			<td>object</td>
+			<td><pre lang="json">
+{
+  "medium": "Memory",
+  "sizeLimit": "32Mi"
+}
+</pre>
+</td>
+			<td>Configuration for the built-in tmp emptyDir volume required by the container. Set medium to an empty string to use node-disk storage instead of RAM.</td>
+		</tr>
+		<tr>
+			<td>tmpVolume.medium</td>
+			<td>string</td>
+			<td><pre lang="json">
+"Memory"
+</pre>
+</td>
+			<td>Storage medium. "Memory" uses a RAM-backed tmpfs. Set to "" to use node-disk storage.</td>
+		</tr>
+		<tr>
+			<td>tmpVolume.sizeLimit</td>
+			<td>string</td>
+			<td><pre lang="json">
+"32Mi"
+</pre>
+</td>
+			<td>Size limit for the tmp volume.</td>
+		</tr>
+		<tr>
 			<td>tolerations</td>
 			<td>list</td>
 			<td><pre lang="json">

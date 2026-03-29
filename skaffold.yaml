@@ -40,6 +40,8 @@ deploy:
             temporal-address: temporal.temporal.svc.cluster.local:7233
           securityContext:
             readOnlyRootFilesystem: false
+          tmpVolume:
+            medium: ""
 
 portForward:
   - resourceType: Service

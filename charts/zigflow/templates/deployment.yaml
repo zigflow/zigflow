@@ -99,13 +99,16 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- end }}
-      {{- if or .Values.workflow.enabled .Values.volumes }}
       volumes:
         # Zigflow can create small temporary files
         - name: tmp
           emptyDir:
-            medium: Memory
-            sizeLimit: 32Mi
+            {{- with (.Values.tmpVolume | default dict) }}
+            {{- if .medium | default "" }}
+            medium: {{ .medium }}
+            {{- end }}
+            sizeLimit: {{ .sizeLimit | default "32Mi" }}
+            {{- end }}
       {{- if .Values.workflow.enabled }}
         - name: workflow
           secret:
@@ -113,7 +116,6 @@ spec:
       {{- end }}
       {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

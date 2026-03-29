@@ -144,6 +144,14 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
+# -- Configuration for the built-in tmp emptyDir volume required by the container.
+# Set medium to an empty string to use node-disk storage instead of RAM.
+tmpVolume:
+  # -- Storage medium. "Memory" uses a RAM-backed tmpfs. Set to "" to use node-disk storage.
+  medium: Memory
+  # -- Size limit for the tmp volume.
+  sizeLimit: 32Mi
+
 # -- Additional volumes on the output Deployment definition.
 volumes: []
 
