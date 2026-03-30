@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/preview/sje-multi-workflows/assets/css/styles.4d7e4f0c.css">
-<script src="/preview/sje-multi-workflows/assets/js/runtime~main.300d17cd.js" defer="defer"></script>
+<script src="/preview/sje-multi-workflows/assets/js/runtime~main.317a55e5.js" defer="defer"></script>
 <script src="/preview/sje-multi-workflows/assets/js/main.6bd58d05.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -67,16 +67,31 @@ instead.</p>
 <p>The Zigflow Docker image reads the same environment variables as the CLI
 flags. Key variables:</p>
 <table><thead><tr><th>Variable</th><th>CLI flag</th><th>Default</th></tr></thead><tbody><tr><td><code>TEMPORAL_ADDRESS</code></td><td><code>--temporal-address</code></td><td><code>localhost:7233</code></td></tr><tr><td><code>TEMPORAL_NAMESPACE</code></td><td><code>--temporal-namespace</code></td><td><code>default</code></td></tr><tr><td><code>TEMPORAL_API_KEY</code></td><td><code>--temporal-api-key</code></td><td>(none)</td></tr><tr><td><code>TEMPORAL_TLS</code></td><td><code>--temporal-tls</code></td><td><code>false</code></td></tr><tr><td><code>LOG_LEVEL</code></td><td><code>--log-level</code></td><td><code>info</code></td></tr><tr><td><code>CLOUDEVENTS_CONFIG</code></td><td><code>--cloudevents-config</code></td><td>(none)</td></tr><tr><td><code>WORKFLOW_FILE</code></td><td><code>-f</code></td><td>(none)</td></tr><tr><td><code>WORKFLOW_DIRECTORY</code></td><td><code>-d</code> / <code>--dir</code></td><td>(none)</td></tr><tr><td><code>WORKFLOW_DIRECTORY_GLOB</code></td><td><code>--glob</code></td><td><code>*.{yaml,yml,json}</code></td></tr><tr><td><code>DISABLE_TELEMETRY</code></td><td><code>--disable-telemetry</code></td><td>(false)</td></tr></tbody></table>
+<div class="theme-admonition theme-admonition-info admonition_xJq3 alert alert--info"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 14 16"><path fill-rule="evenodd" d="M7 2.3c3.14 0 5.7 2.56 5.7 5.7s-2.56 5.7-5.7 5.7A5.71 5.71 0 0 1 1.3 8c0-3.14 2.56-5.7 5.7-5.7zM7 1C3.14 1 0 4.14 0 8s3.14 7 7 7 7-3.14 7-7-3.14-7-7-7zm1 3H6v5h2V4zm0 6H6v2h2v-2z"></path></svg></span>info</div><div class="admonitionContent_BuS1"><p>The official <code>ghcr.io/zigflow/zigflow</code> image overrides <code>WORKFLOW_FILE</code> to
+<code>/app/workflow.yaml</code>. This default is not part of the CLI; it is set by the
+image. If you do not want to load the default file, set <code>WORKFLOW_FILE=</code> to
+clear it.</p></div></div>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="runtime-modes">Runtime modes<a href="#runtime-modes" class="hash-link" aria-label="Direct link to Runtime modes" title="Direct link to Runtime modes" translate="no">​</a></h3>
-<p>Zigflow supports two ways to load workflow definitions at runtime.</p>
-<p><strong>Single-file mode</strong> - load one workflow file using <code>WORKFLOW_FILE</code> (or <code>-f</code>):</p>
+<p>Zigflow supports loading workflow definitions from explicit file paths, a
+directory, or both together. All discovered files are merged and deduplicated
+before any worker starts.</p>
+<p><strong>File mode</strong> - load one or more explicit files using <code>WORKFLOW_FILE</code> (or <code>-f</code>):</p>
 <div class="language-sh codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-sh codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">docker run --rm \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  -v /path/to/workflow.yaml:/app/workflow.yaml \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  -e WORKFLOW_FILE=/app/workflow.yaml \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  ghcr.io/zigflow/zigflow run</span><br></span></code></pre></div></div>
 <p><strong>Directory mode</strong> - load all matching files from a directory using
 <code>WORKFLOW_DIRECTORY</code> (or <code>--dir</code>). The <code>WORKFLOW_DIRECTORY_GLOB</code> pattern
-controls which files are matched (default <code>*.{yaml,yml,json}</code>):</p>
-<div class="language-sh codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-sh codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">docker run --rm \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  -v /path/to/workflows:/app/workflows \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  -e WORKFLOW_DIRECTORY=/app/workflows \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  ghcr.io/zigflow/zigflow run</span><br></span></code></pre></div></div>
-<p>Both sources can be used together. All files discovered from <code>--file</code> and
-<code>--dir</code> are merged before startup, with duplicate paths deduplicated.</p>
+controls which files are matched (default <code>*.{yaml,yml,json}</code>).</p>
+<p>If you do not want Zigflow to load the default file, set <code>WORKFLOW_FILE=</code> when
+using directory mode:</p>
+<div class="language-sh codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-sh codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">docker run --rm \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  -v /path/to/workflows:/app/workflows \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  -e WORKFLOW_FILE= \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  -e WORKFLOW_DIRECTORY=/app/workflows \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  ghcr.io/zigflow/zigflow run</span><br></span></code></pre></div></div>
+<div class="theme-admonition theme-admonition-warning admonition_xJq3 alert alert--warning"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.893 1.5c-.183-.31-.52-.5-.887-.5s-.703.19-.886.5L.138 13.499a.98.98 0 0 0 0 1.001c.193.31.53.501.886.501h13.964c.367 0 .704-.19.877-.5a1.03 1.03 0 0 0 .01-1.002L8.893 1.5zm.133 11.497H6.987v-2.003h2.039v2.003zm0-3.004H6.987V5.987h2.039v4.006z"></path></svg></span>warning</div><div class="admonitionContent_BuS1"><p>When using directory mode, the directory should contain workflow definitions
+only. Non-workflow YAML/JSON files will be treated as workflows and may cause
+startup errors.</p></div></div>
+<p><strong>Combined mode</strong> - use both file and directory sources together:</p>
+<div class="language-sh codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-sh codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">docker run --rm \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  -v /path/to/workflow.yaml:/app/workflow.yaml \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  -v /path/to/workflows:/app/workflows \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  -e WORKFLOW_FILE=/app/workflow.yaml \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  -e WORKFLOW_DIRECTORY=/app/workflows \</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  ghcr.io/zigflow/zigflow run</span><br></span></code></pre></div></div>
+<p>Zigflow loads both sources and deduplicates overlapping files.</p>
+<p>If you configure a workflow file, it must exist. To use directory-only mode,
+set <code>WORKFLOW_FILE=</code>. If a configured file does not exist, Zigflow will fail at
+startup. There is no implicit fallback or silent skip.</p>
 <p>Workflows that share a task queue (defined by <code>document.namespace</code>) are
 registered on the same Temporal worker. Each distinct task queue gets its
 own worker.</p>
