@@ -45,6 +45,11 @@ type TaskBuilder interface {
 	ShouldRun(*utils.State) (bool, error)
 }
 
+// Configure any task opts that come from the CLI
+type TaskOpts struct {
+	Run *RunTaskOpts
+}
+
 type TemporalWorkflowFunc func(ctx workflow.Context, input any, state *utils.State) (output any, err error)
 
 type builder[T model.Task] struct {
@@ -53,6 +58,7 @@ type builder[T model.Task] struct {
 	name           string
 	neverSkipCAN   bool
 	task           T
+	taskOpts       *TaskOpts
 	temporalWorker worker.Worker
 }
 
@@ -137,37 +143,38 @@ func NewTaskBuilder(
 	temporalWorker worker.Worker,
 	doc *model.Workflow,
 	emitter *cloudevents.Events,
+	taskOpts *TaskOpts,
 ) (TaskBuilder, error) {
 	switch t := task.(type) {
 	case *model.CallFunction:
 		if t.Call == customCallFunctionActivity {
-			return NewCallActivityTaskBuilder(temporalWorker, t, taskName, doc, emitter)
+			return NewCallActivityTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 		}
 		return nil, fmt.Errorf("unsupported call type '%s' for task '%s'", t.Call, taskName)
 	case *model.CallGRPC:
-		return NewCallGRPCTaskBuilder(temporalWorker, t, taskName, doc, emitter)
+		return NewCallGRPCTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.CallHTTP:
-		return NewCallHTTPTaskBuilder(temporalWorker, t, taskName, doc, emitter)
+		return NewCallHTTPTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.DoTask:
-		return NewDoTaskBuilder(temporalWorker, t, taskName, doc, emitter)
+		return NewDoTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.ForTask:
-		return NewForTaskBuilder(temporalWorker, t, taskName, doc, emitter)
+		return NewForTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.ForkTask:
-		return NewForkTaskBuilder(temporalWorker, t, taskName, doc, emitter)
+		return NewForkTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.ListenTask:
-		return NewListenTaskBuilder(temporalWorker, t, taskName, doc, emitter)
+		return NewListenTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.RaiseTask:
-		return NewRaiseTaskBuilder(temporalWorker, t, taskName, doc, emitter)
+		return NewRaiseTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.RunTask:
-		return NewRunTaskBuilder(temporalWorker, t, taskName, doc, emitter)
+		return NewRunTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.SetTask:
-		return NewSetTaskBuilder(temporalWorker, t, taskName, doc, emitter)
+		return NewSetTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.SwitchTask:
-		return NewSwitchTaskBuilder(temporalWorker, t, taskName, doc, emitter)
+		return NewSwitchTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.TryTask:
-		return NewTryTaskBuilder(temporalWorker, t, taskName, doc, emitter)
+		return NewTryTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.WaitTask:
-		return NewWaitTaskBuilder(temporalWorker, t, taskName, doc, emitter)
+		return NewWaitTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	default:
 		return nil, fmt.Errorf("unsupported task type '%T' for task '%s'", t, taskName)
 	}

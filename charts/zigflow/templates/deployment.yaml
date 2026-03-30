@@ -59,6 +59,18 @@ spec:
             - {{ printf "--%s=%v" $key $value | quote }}
           {{- end }}
           env:
+            - name: CONTAINER_RUNTIME_SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: CONTAINER_RUNTIME_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: CONTAINER_RUNTIME_CONTAINER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: HEALTH_LISTEN_ADDRESS
               value: {{ printf "0.0.0.0:%.0f" .Values.service.health.port | quote }}
             - name: METRICS_LISTEN_ADDRESS

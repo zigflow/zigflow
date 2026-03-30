@@ -25,6 +25,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	swUtil "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
@@ -33,24 +34,47 @@ import (
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/temporal"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 func init() {
 	Registry = append(Registry, &Run{})
 }
 
+const defaultTTLThreshold = 2 * time.Second
+
 type Run struct{}
 
-func (r *Run) CallContainerActivity(ctx context.Context, task *model.RunTask, input any, state *utils.State) (any, error) {
+func (r *Run) CallContainerActivity(
+	ctx context.Context,
+	task *model.RunTask,
+	input any,
+	state *utils.State,
+	namespace, runtime, serviceAccount string,
+) (any, error) {
 	logger := activity.GetLogger(ctx)
-	// @todo(sje): support Kubernetes (and other container runtimes) in addition to Docker #181
-	logger.Debug("Running call Docker container activity")
 
 	if task.Run.Container.Name == "" {
 		n := uuid.NewString()
 		logger.Debug("Container name not set", "name", n)
 		task.Run.Container.Name = n
 	}
+
+	if runtime == "kubernetes" {
+		// Use Kubernetes
+		logger.Debug("Running call Kubernetes job activity")
+
+		return r.runKubernetesJob(ctx, task, state, namespace, serviceAccount)
+	}
+
+	// Default to Docker
+	logger.Debug("Running call Docker container activity")
 
 	return r.runDockerCommand(ctx, task, state)
 }
@@ -120,6 +144,187 @@ func (r *Run) CallShellActivity(ctx context.Context, task *model.RunTask, input 
 		"",
 		task.GetBase(),
 	)
+}
+
+func (r *Run) authenticateKubernetes() (*kubernetes.Clientset, error) {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, temporal.NewNonRetryableApplicationError(
+			"Failed to build in-cluster config",
+			"In-cluster config error",
+			err,
+		)
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, temporal.NewNonRetryableApplicationError(
+			"Failed to create clientset",
+			"Clientset creation error",
+			err,
+		)
+	}
+
+	return clientset, nil
+}
+
+func (r *Run) deployKubernetesJob(
+	ctx context.Context,
+	clientset *kubernetes.Clientset,
+	task *model.RunTask,
+	namespace, serviceAccount string,
+	state *utils.State,
+) (*batchv1.Job, error) {
+	logger := activity.GetLogger(ctx)
+	info := activity.GetInfo(ctx)
+
+	args := make([]string, 0)
+	rawArgs := task.Run.Container.Arguments
+	rawEnv := task.Run.Container.Environment
+
+	state = state.Clone().AddActivityInfo(ctx)
+
+	logger.Debug("Interpolating command arguments and envvars")
+	d, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(map[string]any{
+		"args": swUtil.DeepCloneValue(rawArgs),
+		"env":  swUtil.DeepCloneValue(rawEnv),
+	}), nil, state)
+	if err != nil {
+		return nil, fmt.Errorf("error traversing task parameters: %w", err)
+	}
+	parsed := d.(map[string]any)
+	envvars := parsed["env"].(map[string]string)
+
+	for _, a := range parsed["args"].([]any) {
+		args = append(args, a.(string))
+	}
+
+	l := map[string]string{
+		"app.kubernetes.io/name":      "zigflow",
+		"app.kubernetes.io/component": "run-task",
+	}
+	for k, v := range map[string]string{
+		"workflowId": info.WorkflowExecution.ID,
+		"runId":      info.WorkflowExecution.RunID,
+		"activityId": info.ActivityID,
+		"name":       task.Run.Container.Name,
+	} {
+		l[fmt.Sprintf("zigflow.dev/%s", k)] = v
+	}
+
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "zigflow-run-task-",
+			Namespace:    namespace,
+			Labels:       l,
+		},
+		Spec: batchv1.JobSpec{
+			Completions:  utils.Ptr[int32](1),
+			Parallelism:  utils.Ptr[int32](1),
+			BackoffLimit: utils.Ptr[int32](0), // Let Temporal handle the retry
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: l,
+				},
+				Spec: corev1.PodSpec{
+					RestartPolicy:      corev1.RestartPolicyNever,
+					ServiceAccountName: serviceAccount,
+					Containers:         []corev1.Container{},
+				},
+			},
+		},
+	}
+
+	if task.Run.Container.Lifetime != nil && task.Run.Container.Lifetime.Cleanup == "eventually" {
+		// Destroy after a period of time
+		after := utils.ToDuration(task.Run.Container.Lifetime.After)
+		if after >= defaultTTLThreshold {
+			job.Spec.TTLSecondsAfterFinished = utils.Ptr(int32(after.Seconds()))
+		}
+	}
+
+	// Build the container object
+	container := corev1.Container{
+		Name:            task.Run.Container.Name,
+		Image:           task.Run.Container.Image,
+		ImagePullPolicy: corev1.PullAlways, // Keep consistent with Docker, but schema should support this
+		Command:         []string{},
+		Args:            []string{},
+		Env:             []corev1.EnvVar{},
+	}
+	if c := task.Run.Container.Command; c != "" {
+		container.Command = append(container.Command, c)
+	}
+	container.Args = append(container.Args, args...)
+
+	if envs := envvars; envs != nil {
+		for k, v := range envs {
+			container.Env = append(container.Env, corev1.EnvVar{
+				Name:  k,
+				Value: v,
+			})
+		}
+	}
+
+	job.Spec.Template.Spec.Containers = append(job.Spec.Template.Spec.Containers, container)
+
+	j, err := clientset.BatchV1().Jobs(namespace).Create(ctx, job, metav1.CreateOptions{})
+	if err != nil {
+		return nil, temporal.NewNonRetryableApplicationError(
+			"Failed to create job",
+			"Job creation error",
+			err,
+		)
+	}
+
+	// Return the actual job - properties may be trimmed/defaulted
+	return j, nil
+}
+
+func (r *Run) getJobLogs(
+	ctx context.Context,
+	clientset *kubernetes.Clientset,
+	task *model.RunTask,
+	namespace, runId, activityID string,
+) (*string, error) {
+	logger := activity.GetLogger(ctx)
+	labelSelector := labels.Set{
+		"zigflow.dev/runId":      runId,
+		"zigflow.dev/activityId": activityID,
+	}
+
+	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labelSelector.String(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pods for job: %w", err)
+	}
+	if len(pods.Items) == 0 {
+		return nil, fmt.Errorf("no pods found for job")
+	}
+
+	pod := pods.Items[0]
+
+	req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &corev1.PodLogOptions{
+		Container: task.Run.Container.Name,
+	})
+
+	stream, err := req.Stream(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stream logs from pod %q:  %w", pod.Name, err)
+	}
+	defer func() {
+		if err := stream.Close(); err != nil {
+			logger.Warn("Log streamer failed to close", "error", err)
+		}
+	}()
+
+	logs, err := io.ReadAll(stream)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read log stream: %w", err)
+	}
+
+	return utils.Ptr(string(logs)), nil
 }
 
 // runDockerCommand runs the script on a container using the Docker runtime
@@ -263,6 +468,123 @@ func (r *Run) runExecCommand(
 	return r.stdToString(stdout), nil
 }
 
+func (r *Run) deleteJob(ctx context.Context, clientset *kubernetes.Clientset, task *model.RunTask, job *batchv1.Job) error {
+	var shouldDelete bool
+	if task.Run.Container.Lifetime == nil {
+		shouldDelete = true
+	} else {
+		switch task.Run.Container.Lifetime.Cleanup {
+		case "always":
+			// Always delete
+			shouldDelete = true
+		case "eventually":
+			// Destroy after a period of time
+			after := utils.ToDuration(task.Run.Container.Lifetime.After)
+
+			// TTL not set in job config
+			shouldDelete = after < defaultTTLThreshold
+		}
+	}
+
+	if !shouldDelete {
+		return nil
+	}
+
+	if err := clientset.BatchV1().
+		Jobs(job.ObjectMeta.Namespace).
+		Delete(ctx, job.Name, metav1.DeleteOptions{
+			PropagationPolicy: utils.Ptr(metav1.DeletePropagationForeground),
+		}); err != nil {
+		return fmt.Errorf("failed to delete job %q: %w", job.Name, err)
+	}
+
+	return nil
+}
+
+func (r *Run) runKubernetesJob(
+	ctx context.Context,
+	task *model.RunTask,
+	state *utils.State,
+	namespace, serviceAccount string,
+) (any, error) {
+	logger := activity.GetLogger(ctx)
+	info := activity.GetInfo(ctx)
+
+	stopHeartbeat := metadata.StartActivityHeartbeat(ctx, task.GetBase())
+	defer stopHeartbeat()
+
+	clientset, err := r.authenticateKubernetes()
+	if err != nil {
+		logger.Error("Unable to authenticate to Kubernetes", "error", err)
+		return nil, err
+	}
+
+	logger.Debug("Creating Kubernetes Job", "name", task.Run.Container.Name)
+	job, err := r.deployKubernetesJob(ctx, clientset, task, namespace, serviceAccount, state)
+	if err != nil {
+		return nil, err
+	}
+
+	jobName := job.Name
+	runId := info.WorkflowExecution.RunID
+	activityID := info.ActivityID
+
+	// Update the job with the desired cleanup config
+	defer func() {
+		if err := r.deleteJob(context.WithoutCancel(ctx), clientset, task, job); err != nil {
+			logger.Error("error deleting kubernetes job", "error", err)
+		}
+	}()
+
+	logger.Debug("Waiting for Job completion", "name", jobName)
+	if err := r.waitForKubernetesJobCompletion(ctx, clientset, namespace, jobName, time.Second); err != nil {
+		logger.Error("Job did not complete successfully", "error", err)
+		return nil, fmt.Errorf("job did not complete successfully: %w", err)
+	}
+
+	logger.Debug("Retrieving Job logs", "name", jobName)
+	logs, err := r.getJobLogs(ctx, clientset, task, namespace, runId, activityID)
+	if err != nil {
+		logger.Error("Error retrieving Job logs", "name", jobName, "error", err)
+		return nil, fmt.Errorf("error retrieving job logs: %w", err)
+	}
+
+	return *logs, nil
+}
+
 func (r *Run) stdToString(std bytes.Buffer) string {
 	return strings.TrimSpace(std.String())
+}
+
+func (r *Run) waitForKubernetesJobCompletion(
+	ctx context.Context,
+	clientset *kubernetes.Clientset,
+	namespace, jobName string,
+	interval time.Duration,
+) error {
+	return wait.PollUntilContextCancel(
+		ctx,
+		interval,
+		true,
+		func(ctx context.Context) (bool, error) {
+			job, err := clientset.BatchV1().Jobs(namespace).Get(ctx, jobName, metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+
+			for _, condition := range job.Status.Conditions {
+				switch condition.Type {
+				case batchv1.JobComplete:
+					if condition.Status == corev1.ConditionTrue {
+						return true, nil
+					}
+				case batchv1.JobFailed:
+					if condition.Status == corev1.ConditionTrue {
+						return false, fmt.Errorf("job failed: %s", condition.Message)
+					}
+				}
+			}
+			return false, nil
+		},
+	)
 }

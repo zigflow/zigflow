@@ -485,7 +485,7 @@ func TestDoTaskBuilderBuildSkipsNestedDoAfterNonDoTask(t *testing.T) {
 		}).
 		Once()
 
-	builder, err := NewDoTaskBuilder(temporalWorker, task, "do-task", testWorkflow, testEvents)
+	builder, err := NewDoTaskBuilder(temporalWorker, task, "do-task", testWorkflow, testEvents, nil)
 	assert.NoError(t, err)
 
 	fn, err := builder.Build()

@@ -47,6 +47,7 @@ func NewDoTaskBuilder(
 	workflowName string,
 	doc *model.Workflow,
 	emitter *cloudevents.Events,
+	taskOpts *TaskOpts,
 	opts ...DoTaskOpts,
 ) (*DoTaskBuilder, error) {
 	var doOpts DoTaskOpts
@@ -64,6 +65,7 @@ func NewDoTaskBuilder(
 			name:           workflowName,
 			neverSkipCAN:   true,
 			task:           task,
+			taskOpts:       taskOpts,
 			temporalWorker: temporalWorker,
 		},
 		opts: doOpts,
@@ -100,7 +102,7 @@ func (t *DoTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 		// Build a task builder
 		l.Debug().Msg("Creating task builder")
-		builder, err := NewTaskBuilder(task.Key, task.Task, t.temporalWorker, t.doc, t.eventEmitter)
+		builder, err := NewTaskBuilder(task.Key, task.Task, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts)
 		if err != nil {
 			return nil, fmt.Errorf("error creating task builder: %w", err)
 		}
@@ -142,7 +144,7 @@ func (t *DoTaskBuilder) PostLoad() error {
 
 		// Build a task builder
 		l.Debug().Msg("Creating prep task builder")
-		builder, err := NewTaskBuilder(task.Key, task.Task, t.temporalWorker, t.doc, t.eventEmitter)
+		builder, err := NewTaskBuilder(task.Key, task.Task, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts)
 		if err != nil {
 			return fmt.Errorf("error creating task prep builder: %w", err)
 		}

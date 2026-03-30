@@ -33,6 +33,7 @@ func NewSetTaskBuilder(
 	taskName string,
 	doc *model.Workflow,
 	emitter *cloudevents.Events,
+	taskOpts *TaskOpts,
 ) (*SetTaskBuilder, error) {
 	return &SetTaskBuilder{
 		builder: builder[*model.SetTask]{
@@ -40,6 +41,7 @@ func NewSetTaskBuilder(
 			eventEmitter:   emitter,
 			name:           taskName,
 			task:           task,
+			taskOpts:       taskOpts,
 			temporalWorker: temporalWorker,
 		},
 	}, nil

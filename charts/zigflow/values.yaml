@@ -7,6 +7,7 @@ replicaCount: 1
 
 # -- Accepts any of the command line arguments
 config:
+  container-runtime: kubernetes
   log-level: info
   # temporal-address: temporal:7233
 

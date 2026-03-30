@@ -20,12 +20,6 @@ a JavaScript or Python script or another Zigflow workflow.
 
 ## Container
 
-:::info
-Currently, this only supports Docker containers run via the `docker` binary on
-your local machine. Additional container runtimes are planned - please upvote
-[#181](https://github.com/zigflow/zigflow/issues/181) to influence prioritsation.
-:::
-
 Enables the execution of external processes encapsulated within a containerised
 environment, allowing workflows to interact with and execute complex operations
 using containerised applications, scripts, or commands.
