@@ -64,8 +64,20 @@ jobs:
             Avoid nitpicks and stylistic suggestions unless they meaningfully
             impact maintainability or correctness.
 
+            When referencing files, do not use local runner paths such as
+            /home/runner/work/...
+
+            Always format file links as GitHub blob URLs using this base:
+            ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.event.pull_request.head.sha }}
+
+            Examples:
+            - [Dockerfile](${{ github.server_url }}/${{ github.repository }}/blob/${{ github.event.pull_request.head.sha }}/Dockerfile#L50)
+            - [cmd/run.go](${{ github.server_url }}/${{ github.repository }}/blob/${{ github.event.pull_request.head.sha }}/cmd/run.go#L159-L165)
+
             If there are no blocking or significant issues, explicitly say:
             "No blocking issues. Ship it."
+
+            Use British English spelling and punctuation.
 
             Be concise and specific.
           sandbox: workspace-write
