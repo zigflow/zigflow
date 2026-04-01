@@ -366,6 +366,7 @@ func buildWorkersByTaskQueue(
 		if !ok {
 			pollerAutoscaler := worker.NewPollerBehaviorAutoscaling(worker.PollerBehaviorAutoscalingOptions{})
 			w = worker.New(temporalClient, reg.TaskQueue, worker.Options{
+				Identity: "bumtitty",
 				WorkflowTaskPollerBehavior: pollerAutoscaler,
 				ActivityTaskPollerBehavior: pollerAutoscaler,
 				NexusTaskPollerBehavior:    pollerAutoscaler,

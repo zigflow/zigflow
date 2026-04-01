@@ -52,10 +52,32 @@ workflow:
       name: simple-workflow
       version: 1.0.0
     do:
+      - container:
+          metadata:
+            # # Trigger a heartbeat every 8 seconds - this MUST be less than your heartbeatTimeout
+            # heartbeat:
+            #   seconds: 8
+            # activityOptions:
+            #   # Set a heartbeat timeout of 10 seconds
+            #   heartbeatTimeout:
+            #     seconds: 10
+          export:
+            as: '${ $context + { container: . } }'
+          run:
+            container:
+              image: alpine
+              arguments:
+                - env
+              # cmd: sh
+              # arguments:
+              #   - -c
+              #   - "sleep 30"
+              environment:
+                hello: world
+                bum: ${ uuid }
       - set:
           output:
-            as:
-              data: ${ . }
+            as: '${ $context +  { data: . } }'
           set:
             message: Hello from Ziggy
 

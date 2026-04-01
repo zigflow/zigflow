@@ -178,16 +178,12 @@ func (r *Run) deployKubernetesJob(
 	logger := activity.GetLogger(ctx)
 	info := activity.GetInfo(ctx)
 
-	args := make([]string, 0)
-	rawArgs := task.Run.Container.Arguments
-	rawEnv := task.Run.Container.Environment
-
 	state = state.Clone().AddActivityInfo(ctx)
 
 	logger.Debug("Interpolating command arguments and envvars")
 	d, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(map[string]any{
-		"args": swUtil.DeepCloneValue(rawArgs),
-		"env":  swUtil.DeepCloneValue(rawEnv),
+		"args": task.Run.Container.Arguments,
+		"env":  task.Run.Container.Environment,
 	}), nil, state)
 	if err != nil {
 		return nil, fmt.Errorf("error traversing task parameters: %w", err)
@@ -195,6 +191,10 @@ func (r *Run) deployKubernetesJob(
 	parsed := d.(map[string]any)
 	envvars := parsed["env"].(map[string]string)
 
+	fmt.Printf("%+v\n", task.Run.Container.Environment)
+	fmt.Printf("%+v\n", parsed["env"])
+
+	args := make([]string, 0)
 	for _, a := range parsed["args"].([]any) {
 		args = append(args, a.(string))
 	}
@@ -249,13 +249,15 @@ func (r *Run) deployKubernetesJob(
 		Image:           task.Run.Container.Image,
 		ImagePullPolicy: corev1.PullAlways, // Keep consistent with Docker, but schema should support this
 		Command:         []string{},
-		Args:            []string{},
+		Args:            args,
 		Env:             []corev1.EnvVar{},
 	}
 	if c := task.Run.Container.Command; c != "" {
 		container.Command = append(container.Command, c)
 	}
-	container.Args = append(container.Args, args...)
+	fmt.Println("---")
+	fmt.Printf("%+v\n", envvars)
+	fmt.Println("---")
 
 	if envs := envvars; envs != nil {
 		for k, v := range envs {
