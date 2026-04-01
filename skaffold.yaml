@@ -47,6 +47,11 @@ portForward:
   - resourceType: Service
     resourceName: temporal
     namespace: temporal
+    port: 7233
+    localPort: 7080
+  - resourceType: Service
+    resourceName: temporal
+    namespace: temporal
     port: 8233
     localPort: 8080
 

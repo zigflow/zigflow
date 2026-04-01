@@ -36,6 +36,7 @@ func NewForkTaskBuilder(
 	taskName string,
 	doc *model.Workflow,
 	emitter *cloudevents.Events,
+	taskOpts *TaskOpts,
 ) (*ForkTaskBuilder, error) {
 	return &ForkTaskBuilder{
 		builder: builder[*model.ForkTask]{
@@ -44,6 +45,7 @@ func NewForkTaskBuilder(
 			name:           taskName,
 			task:           task,
 			temporalWorker: temporalWorker,
+			taskOpts:       taskOpts,
 		},
 	}, nil
 }
@@ -132,7 +134,7 @@ func (t *ForkTaskBuilder) buildOrPostLoad() ([]*forkedTask, []TaskBuilder, error
 			}
 		}
 
-		builder, err := NewTaskBuilder(childWorkflowName, branch.Task, t.temporalWorker, t.doc, t.eventEmitter)
+		builder, err := NewTaskBuilder(childWorkflowName, branch.Task, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts)
 		if err != nil {
 			log.Error().Err(err).Msg("Error creating the forked task builder")
 			return nil, nil, fmt.Errorf("error creating the forked task builder: %w", err)

@@ -19,6 +19,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"time"
@@ -42,26 +43,29 @@ import (
 )
 
 type runOptions struct {
-	CloudEventsConfig       string
-	CodecEndpoint           string
-	CodecHeaders            map[string]string
-	ConvertData             string
-	ConvertKeyPath          string
-	EnvPrefix               string
-	DirectoryGlob           string
-	DirectoryPath           string
-	Files                   []string
-	GracefulShutdownTimeout time.Duration
-	HealthListenAddress     string
-	MetricsListenAddress    string
-	MetricsPrefix           string
-	TemporalAddress         string
-	TemporalAPIKey          string
-	TemporalMTLSCertPath    string
-	TemporalMTLSKeyPath     string
-	TemporalTLSEnabled      bool
-	TemporalNamespace       string
-	Validate                bool
+	CloudEventsConfig              string
+	CodecEndpoint                  string
+	CodecHeaders                   map[string]string
+	ContainerRuntime               string
+	ContainerRuntimeNamespace      string
+	ContainerRuntimeServiceAccount string
+	ConvertData                    string
+	ConvertKeyPath                 string
+	EnvPrefix                      string
+	DirectoryGlob                  string
+	DirectoryPath                  string
+	Files                          []string
+	GracefulShutdownTimeout        time.Duration
+	HealthListenAddress            string
+	MetricsListenAddress           string
+	MetricsPrefix                  string
+	TemporalAddress                string
+	TemporalAPIKey                 string
+	TemporalMTLSCertPath           string
+	TemporalMTLSKeyPath            string
+	TemporalTLSEnabled             bool
+	TemporalNamespace              string
+	Validate                       bool
 
 	Telemetry *telemetry.Telemetry
 }
@@ -362,6 +366,7 @@ func buildWorkersByTaskQueue(
 		if !ok {
 			pollerAutoscaler := worker.NewPollerBehaviorAutoscaling(worker.PollerBehaviorAutoscalingOptions{})
 			w = worker.New(temporalClient, reg.TaskQueue, worker.Options{
+				Identity: "bumtitty",
 				WorkflowTaskPollerBehavior: pollerAutoscaler,
 				ActivityTaskPollerBehavior: pollerAutoscaler,
 				NexusTaskPollerBehavior:    pollerAutoscaler,
@@ -385,7 +390,15 @@ func buildWorkersByTaskQueue(
 			Str("file", reg.SourceFile).
 			Msg("Registering workflow")
 
-		if err := zigflow.NewWorkflow(w, reg.Definition, envvars, reg.Events, opts.Telemetry); err != nil {
+		taskOpts := &tasks.TaskOpts{
+			Run: &tasks.RunTaskOpts{
+				Namespace:      opts.ContainerRuntimeNamespace,
+				Runtime:        opts.ContainerRuntime,
+				ServiceAccount: opts.ContainerRuntimeServiceAccount,
+			},
+		}
+
+		if err := zigflow.NewWorkflow(w, reg.Definition, envvars, reg.Events, opts.Telemetry, taskOpts); err != nil {
 			return nil, gh.FatalError{
 				Cause: err,
 				WithParams: func(l *zerolog.Event) *zerolog.Event {
@@ -612,6 +625,22 @@ func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
 	)
 	gh.HideCommandOutput(cmd, "codec-headers")
 
+	viper.SetDefault("container_runtime", "docker")
+	cmd.Flags().StringVar(
+		&opts.ContainerRuntime, "container-runtime",
+		viper.GetString("container_runtime"), "Container runtime to use for `run.container` tasks. Can be `docker` or `kubernetes`",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ContainerRuntimeNamespace, "container-runtime-namespace",
+		viper.GetString("container_runtime_namespace"), "Namespace to use for the container runtime",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ContainerRuntimeServiceAccount, "container-runtime-service-account",
+		viper.GetString("container_runtime_service_account"), "Service account to use for the container runtime",
+	)
+
 	cmd.Flags().StringVar(
 		&opts.ConvertData, "convert-data",
 		viper.GetString("convert_data"), fmt.Sprintf("Data conversion mode: %q, %q, or %q", codec.CodecNone, codec.CodecAES, codec.CodecRemote),
@@ -685,6 +714,27 @@ from local development to production.`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if _, err := codec.ParseCodecType(opts.ConvertData); err != nil {
 				return err
+			}
+
+			var isValidRuntime bool
+			validRuntimes := []string{"docker", "kubernetes"}
+			for _, valid := range validRuntimes {
+				if opts.ContainerRuntime == valid {
+					isValidRuntime = true
+				}
+			}
+			if !isValidRuntime {
+				return gh.FatalError{
+					WithParams: func(l *zerolog.Event) *zerolog.Event {
+						return l.Str("runtime", opts.ContainerRuntime).Any("validRuntimes", validRuntimes)
+					},
+					Msg: "Invalid container runtime",
+				}
+			}
+
+			// Allow explicit override when the runtime-provided default cannot be conditionally replaced.
+			if s := os.Getenv("CONTAINER_RUNTIME_SERVICE_ACCOUNT_OVERRIDE"); s != "" {
+				opts.ContainerRuntimeServiceAccount = s
 			}
 
 			return nil

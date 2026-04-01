@@ -35,7 +35,7 @@ func TestSetTaskBuilderBuild(t *testing.T) {
 		},
 	}
 
-	builder, err := NewSetTaskBuilder(nil, task, "set-task", nil, testEvents)
+	builder, err := NewSetTaskBuilder(nil, task, "set-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 
 	fn, err := builder.Build()

@@ -47,7 +47,7 @@ func TestCallActivityTaskBuilderExecute(t *testing.T) {
 		},
 	}
 
-	b, err := NewCallActivityTaskBuilder(nil, task, "callActivity", nil, testEvents)
+	b, err := NewCallActivityTaskBuilder(nil, task, "callActivity", nil, testEvents, nil)
 	assert.NoError(t, err)
 
 	fn, err := b.Build()

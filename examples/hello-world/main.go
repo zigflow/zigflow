@@ -32,6 +32,7 @@ func exec() error {
 	// The client is a heavyweight object that should be created once per process.
 	c, err := temporal.NewConnectionWithEnvvars(
 		temporal.WithZerolog(&log.Logger),
+		temporal.WithHostPort("localhost:7080"),
 	)
 	if err != nil {
 		return gh.FatalError{
@@ -46,7 +47,7 @@ func exec() error {
 	}
 
 	ctx := context.Background()
-	we, err := c.ExecuteWorkflow(ctx, workflowOptions, "hello-world")
+	we, err := c.ExecuteWorkflow(ctx, workflowOptions, "simple-workflow")
 	if err != nil {
 		return gh.FatalError{
 			Cause: err,

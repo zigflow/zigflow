@@ -31,6 +31,7 @@ func NewCallGRPCTaskBuilder(
 	taskName string,
 	doc *model.Workflow,
 	emitter *cloudevents.Events,
+	taskOpts *TaskOpts,
 ) (*CallGRPCTaskBuilder, error) {
 	return &CallGRPCTaskBuilder{
 		builder: builder[*model.CallGRPC]{
@@ -38,6 +39,7 @@ func NewCallGRPCTaskBuilder(
 			eventEmitter:   emitter,
 			name:           taskName,
 			task:           task,
+			taskOpts:       taskOpts,
 			temporalWorker: temporalWorker,
 		},
 	}, nil

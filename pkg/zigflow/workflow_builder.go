@@ -34,6 +34,7 @@ func NewWorkflow(
 	envvars map[string]any,
 	emitter *cloudevents.Events,
 	telem *telemetry.Telemetry,
+	taskOpts *tasks.TaskOpts,
 ) error {
 	workflowName := doc.Document.Name
 	l := log.With().Str("workflowName", workflowName).Logger()
@@ -50,6 +51,7 @@ func NewWorkflow(
 		workflowName,
 		doc,
 		emitter,
+		taskOpts,
 		tasks.DoTaskOpts{
 			// Pass the envvars - this will be passed to the state object
 			Envvars: envvars,
@@ -83,6 +85,7 @@ func newWorkflowPostLoad(doc *model.Workflow) error {
 		workflowName,
 		doc,
 		&cloudevents.Events{}, // Stubbed as not used by the post loader
+		&tasks.TaskOpts{},     // Stubbed as not used by the post loader
 	)
 	if err != nil {
 		l.Error().Err(err).Msg("Error creating Do prep builder")

@@ -37,6 +37,7 @@ func NewCallActivityTaskBuilder(
 	taskName string,
 	doc *model.Workflow,
 	emitter *cloudevents.Events,
+	taskOpts *TaskOpts,
 ) (*CallActivityTaskBuilder, error) {
 	if task.Call != customCallFunctionActivity {
 		return nil, fmt.Errorf("unsupported call task '%s' for activity builder", task.Call)
@@ -48,6 +49,7 @@ func NewCallActivityTaskBuilder(
 			eventEmitter:   emitter,
 			name:           taskName,
 			task:           task,
+			taskOpts:       taskOpts,
 			temporalWorker: temporalWorker,
 		},
 	}, nil

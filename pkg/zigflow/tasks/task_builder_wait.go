@@ -33,6 +33,7 @@ func NewWaitTaskBuilder(
 	taskName string,
 	doc *model.Workflow,
 	emitter *cloudevents.Events,
+	taskOpts *TaskOpts,
 ) (*WaitTaskBuilder, error) {
 	return &WaitTaskBuilder{
 		builder: builder[*model.WaitTask]{
@@ -40,6 +41,7 @@ func NewWaitTaskBuilder(
 			eventEmitter:   emitter,
 			name:           taskName,
 			task:           task,
+			taskOpts:       taskOpts,
 			temporalWorker: temporalWorker,
 		},
 	}, nil

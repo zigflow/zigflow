@@ -40,7 +40,7 @@ func TestRunTaskBuilderBuildSetsAwaitDefault(t *testing.T) {
 		},
 	}
 
-	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 
 	fn, err := builder.Build()
@@ -95,7 +95,7 @@ func TestRunTaskBuilderRunWorkflow(t *testing.T) {
 				},
 			}
 
-			builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+			builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents, nil)
 			assert.NoError(t, err)
 
 			fn, err := builder.Build()
@@ -192,7 +192,7 @@ func TestRunTaskBuilderRunScriptValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			builder, err := NewRunTaskBuilder(nil, tc.task, "script-task", nil, testEvents)
+			builder, err := NewRunTaskBuilder(nil, tc.task, "script-task", nil, testEvents, nil)
 			assert.NoError(t, err)
 
 			_, err = builder.Build()
@@ -215,7 +215,7 @@ func TestRunTaskBuilderRunScriptExecutesActivity(t *testing.T) {
 		},
 	}
 
-	builder, err := NewRunTaskBuilder(nil, task, "script-task", nil, testEvents)
+	builder, err := NewRunTaskBuilder(nil, task, "script-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 
 	fn, err := builder.Build()
@@ -258,7 +258,7 @@ func TestRunTaskBuilderRunShellExecutesActivity(t *testing.T) {
 		},
 	}
 
-	builder, err := NewRunTaskBuilder(nil, task, "shell-task", nil, testEvents)
+	builder, err := NewRunTaskBuilder(nil, task, "shell-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 
 	fn, err := builder.Build()

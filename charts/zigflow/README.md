@@ -85,6 +85,7 @@ false
 			<td>object</td>
 			<td><pre lang="json">
 {
+  "container-runtime": "kubernetes",
   "log-level": "info"
 }
 </pre>
@@ -416,11 +417,27 @@ true
 {
   "do": [
     {
+      "container": {
+        "export": {
+          "as": "${ $context + { container: . } }"
+        },
+        "run": {
+          "container": {
+            "arguments": [
+              "env"
+            ],
+            "environment": {
+              "hello": "world"
+            },
+            "image": "alpine"
+          }
+        }
+      }
+    },
+    {
       "set": {
         "output": {
-          "as": {
-            "data": "${ . }"
-          }
+          "as": "${ $context +  { data: . } }"
         },
         "set": {
           "message": "Hello from Ziggy"
