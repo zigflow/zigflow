@@ -40,10 +40,18 @@ jobs:
         with:
           node-version: lts/*
           cache: npm
-          cache-dependency-path: docs/package-lock.json
+          cache-dependency-path: |
+            docs/package-lock.json
+            scripts/package-lock.json
 
       - name: Update docs npm dependencies
         working-directory: docs
+        run: |
+          npm install
+          npm update
+
+      - name: Update scripts npm dependencies
+        working-directory: scripts
         run: |
           npm install
           npm update
@@ -59,6 +67,7 @@ jobs:
             - Pre-commit dependencies update via `pre-commit autoupdate`
             - Go dependencies updated via `go get -u ./...` and `go mod tidy`
             - Docs npm dependencies updated via `npm update` in `docs`
+            - Scripts npm dependencies updated via `npm update` in `scripts`
           branch: chore/update-deps
           delete-branch: true
           labels: dependencies
