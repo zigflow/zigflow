@@ -32,7 +32,7 @@ cases. In most scenarios, you probably won't need to configure this.
 | heartbeatTimeout | [`duration`](/docs/dsl/intro#duration) | `no` | - | Heartbeat interval. A [`heartbeat`](/docs/dsl/metadata/heartbeat) must be set and be called before the interval passes. |
 | scheduleToCloseTimeout | [`duration`](/docs/dsl/intro#duration) | `no` | - | Total time that a workflow is willing to wait for an Activity to complete |
 | scheduleToStartTimeout | [`duration`](/docs/dsl/intro#duration) | `no` | - | Time that the Activity Task can stay in the Task Queue before it is picked up by a Worker. Do not specify this timeout unless using host specific Task Queues for Activity Tasks are being used for routing |
-| startToCloseTimeout | [`duration`](/docs/dsl/intro#duration) | `no` | `{"minutes":5}` | Maximum time of a single Activity execution attempt |
+| startToCloseTimeout | [`duration`](/docs/dsl/intro#duration) | `no` | `{"seconds":15}` | Maximum time of a single Activity execution attempt |
 | retryPolicy | [`RetryPolicy`](#types-retry-policy) | `no` | - | Specifies how to retry an Activity if an error occurs |
 | disableEagerExecution | `boolean` | `no` | `false` | If `true`, eager execution will not be requested, regardless of worker settings. If `false`, eager execution may still be disabled at the worker level or may not be requested due to lack of available slots. |
 | summary | `string` | `no` | The task's name | Add a summary to the Temporal workflow UI |

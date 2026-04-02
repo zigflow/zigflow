@@ -162,7 +162,7 @@ A `raise` inside the `try` block is caught by the `catch` block. Use this
 intentionally only if you want to normalise errors to a consistent format.
 
 **Not setting `startToCloseTimeout` for long-running activities.**
-The default start-to-close timeout is 5 minutes. Long-running activities
+The default start-to-close timeout is 15 seconds. Long-running activities
 (such as container executions or waiting on external systems) should increase
 this via `metadata.activityOptions.startToCloseTimeout`.
 
