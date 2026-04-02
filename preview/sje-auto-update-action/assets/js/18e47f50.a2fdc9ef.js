@@ -1,1 +1,0 @@
-"use strict";(globalThis.webpackChunkzigflow=globalThis.webpackChunkzigflow||[]).push([[7503],{64889(a){a.exports=JSON.parse('{"metadata":{"permalink":"/preview/sje-auto-update-action/articles","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
