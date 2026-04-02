@@ -39,6 +39,8 @@ workflow:
   enabled: true
   # -- Use the inline workflow. If false, you must declare a secret with the workflow in <code>workflow.yaml</code>
   useInline: true
+  # -- Raw workflow file content passed via <code>--set-file</code> at deploy time. Takes precedence over <code>useInline</code>.
+  rawFile: ""
   # -- Name of the secret containing <code>workflow.yaml</code>
   secret: workflow
   # -- Location the workflow volumes is mapped
@@ -48,7 +50,7 @@ workflow:
     document:
       dsl: 1.0.0
       namespace: zigflow
-      name: simple-workflow
+      name: hello-world
       version: 1.0.0
     do:
       - set:

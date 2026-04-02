@@ -1,5 +1,4 @@
-{{- if .Values.workflow.enabled }}
-{{- if .Values.workflow.useInline }}
+{{- if and .Values.workflow.enabled (or .Values.workflow.useInline .Values.workflow.rawFile) }}
 apiVersion: v1
 kind: Secret
 metadata:
@@ -7,7 +6,10 @@ metadata:
   labels:
     {{- include "zigflow.labels" . | nindent 4 }}
 data:
+  {{- if .Values.workflow.rawFile }}
+  workflow.yaml: {{ .Values.workflow.rawFile | b64enc | quote }}
+  {{- else if .Values.workflow.useInline }}
   workflow.yaml: |
     {{ .Values.workflow.inline | toYaml | b64enc }}
-{{- end }}
+  {{- end }}
 {{- end }}

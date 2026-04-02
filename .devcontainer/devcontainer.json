@@ -30,6 +30,7 @@
   },
   "postCreateCommand": {
     "go-generate": "go generate ./...",
+    "helm-plugin-unittest": "helm plugin install --verify=false https://github.com/helm-unittest/helm-unittest",
     "install-air": "go install github.com/air-verse/air@latest"
   },
   "containerEnv": {

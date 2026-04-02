@@ -22,6 +22,9 @@ spec:
         {{- if .Values.workflow.useInline }}
         checksum/workflow-inline: {{ .Values.workflow.inline | toYaml | b64enc | sha256sum | quote }}
         {{- end }}
+        {{- if .Values.workflow.rawFile }}
+        checksum/workflow-raw: {{ .Values.workflow.rawFile | sha256sum | quote }}
+        {{- end }}
         checksum/workflow-secret: {{ .Values.workflow.secret | sha256sum | quote }}
         {{- end }}
       {{- with .Values.podAnnotations }}

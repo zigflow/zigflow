@@ -430,7 +430,7 @@ true
   ],
   "document": {
     "dsl": "1.0.0",
-    "name": "simple-workflow",
+    "name": "hello-world",
     "namespace": "zigflow",
     "version": "1.0.0"
   }
@@ -438,6 +438,15 @@ true
 </pre>
 </td>
 			<td>Workflow YAML</td>
+		</tr>
+		<tr>
+			<td>workflow.rawFile</td>
+			<td>string</td>
+			<td><pre lang="json">
+""
+</pre>
+</td>
+			<td>Raw workflow file content passed via <code>--set-file</code> at deploy time. Takes precedence over <code>useInline</code>.</td>
 		</tr>
 		<tr>
 			<td>workflow.secret</td>

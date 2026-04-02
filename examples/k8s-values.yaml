@@ -1,0 +1,3 @@
+workflow:
+  enabled: true
+  useInline: false

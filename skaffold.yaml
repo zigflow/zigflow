@@ -31,8 +31,6 @@ deploy:
         setValueTemplates:
           image.repository: "{{.IMAGE_REPO_zigflow}}"
           image.tag: "{{.IMAGE_TAG_zigflow}}"
-          config.file: "{{.WORKFLOW_FILE | default \"/go/app/workflow.example.yaml\"}}"
-          workflow.enabled: "{{.WORKFLOW_ENABLED | default false}}"
         setValues:
           image:
             pullPolicy: Never
@@ -47,6 +45,11 @@ portForward:
   - resourceType: Service
     resourceName: temporal
     namespace: temporal
+    port: 7233
+    localPort: 7080
+  - resourceType: Service
+    resourceName: temporal
+    namespace: temporal
     port: 8233
     localPort: 8080
 
@@ -54,3 +57,34 @@ profiles:
   - name: minikube
     activation:
       - kubeContext: minikube
+
+  - name: local-workflow
+    patches:
+      - op: add
+        path: /deploy/helm/releases/0/setValueTemplates/config.file
+        value: "{{.WORKFLOW_FILE | default \"/go/app/workflow.example.yaml\"}}"
+      - op: add
+        path: /deploy/helm/releases/0/setValueTemplates/workflow.enabled
+        value: "{{.WORKFLOW_ENABLED | default false}}"
+
+  - name: hello-world
+    patches:
+      - op: add
+        path: /deploy/helm/releases/0/valuesFiles
+        value:
+          - examples/k8s-values.yaml
+      - op: add
+        path: /deploy/helm/releases/0/setFiles
+        value:
+          workflow.rawFile: examples/hello-world/workflow.yaml
+
+  - name: heartbeat
+    patches:
+      - op: add
+        path: /deploy/helm/releases/0/valuesFiles
+        value:
+          - examples/k8s-values.yaml
+      - op: add
+        path: /deploy/helm/releases/0/setFiles
+        value:
+          workflow.rawFile: examples/heartbeat/workflow.yaml

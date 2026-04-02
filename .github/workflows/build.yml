@@ -128,6 +128,12 @@ jobs:
       - name: helm lint
         run: helm lint charts/zigflow
 
+      - name: Install helm-unittest
+        run: helm plugin install --verify=false https://github.com/helm-unittest/helm-unittest
+
+      - name: helm unittest
+        run: helm unittest charts/zigflow
+
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@0.35.0
         with:
@@ -192,7 +198,7 @@ jobs:
         run: |
           temporal workflow start \
             --workflow-id example \
-            --type simple-workflow \
+            --type hello-world \
             --task-queue zigflow
 
       - name: Get the workflow result
