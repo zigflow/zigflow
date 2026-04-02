@@ -38,7 +38,7 @@ optimise efficiency within an organisation.
 | document | [`document`](#document) | `yes` | Documents the defined workflow. |
 | do | [`map[string, task]`](/docs/dsl/tasks/intro) | `yes` | The [task(s)](/docs/dsl/tasks/intro) that must be performed by the [workflow](#workflow). |
 | input | [`input`](#input) | `no` | Configures the workflow's input. |
-| timeout | [`timeout`](#timeout) | `no` | The configuration of the workflow's activity [Start-To-Close timeout](https://docs.temporal.io/encyclopedia/detecting-activity-failures#start-to-close-timeout). Defaults to 5 minutes |
+| timeout | [`timeout`](#timeout) | `no` | The configuration of the workflow's activity [Start-To-Close timeout](https://docs.temporal.io/encyclopedia/detecting-activity-failures#start-to-close-timeout). Defaults to 15 seconds |
 | schedule | [`schedule`](#schedule) | `no` | Configures the workflow's schedule, if any. |
 
 ## Document

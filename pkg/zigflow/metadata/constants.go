@@ -36,7 +36,7 @@ const (
 
 const MaxHistoryLengthAttribute string = "canMaxHistoryLength"
 
-const defaultWorkflowTimeout = time.Minute * 5
+const defaultWorkflowTimeout = time.Second * 15
 
 var defaultRetryPolicy = &temporal.RetryPolicy{
 	InitialInterval:    time.Second,
