@@ -109,7 +109,7 @@ platform.`,
 		newValidateCmd(),
 		newSchemaCmd(),
 		newGraphCmd(),
-		newGenerateDocsCmd(rootCmd),
+		newGenerateCmd(rootCmd),
 	)
 
 	return rootCmd

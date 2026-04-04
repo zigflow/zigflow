@@ -1,0 +1,13 @@
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: schedule-every
+  version: 0.0.1
+  metadata:
+    scheduleWorkflowName: my-workflow
+schedule:
+  every: PT1H
+do:
+  - step:
+      set:
+        key: value

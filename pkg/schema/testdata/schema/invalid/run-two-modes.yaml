@@ -1,0 +1,15 @@
+# run must have exactly one of container/script/shell/workflow
+# The runtime rejects count != 1 ("only one of ... must be specified")
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: run-two-modes
+  version: 0.0.1
+do:
+  - runTask:
+      run:
+        script:
+          language: js
+          code: console.log("hello")
+        shell:
+          command: echo hello

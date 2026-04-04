@@ -1,0 +1,12 @@
+# script.code is required: the runtime rejects scripts with no inline code
+# ("run script has no code defined")
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: run-script-missing-code
+  version: 0.0.1
+do:
+  - runScript:
+      run:
+        script:
+          language: js

@@ -1,0 +1,15 @@
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: listen-with-timeout
+  version: 0.0.1
+do:
+  - waitForSignal:
+      metadata:
+        timeout: 30s
+      listen:
+        to:
+          one:
+            with:
+              id: my-signal
+              type: signal

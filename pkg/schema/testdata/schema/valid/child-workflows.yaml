@@ -1,0 +1,56 @@
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: childWorkflow
+  version: 0.0.1
+  title: Child Workflows
+  summary: Define multiple workflows and call a child workflow from a parent
+timeout:
+  after:
+    minutes: 1
+do:
+  - parentWorkflow:
+      do:
+        - wait:
+            wait:
+              seconds: 5
+        # Call child workflow as a single workflow - this will be run synchronously
+        - callChildWorkflow1:
+            run:
+              workflow:
+                name: child-workflow1
+                namespace: default
+                version: 0.0.0
+        # Do a fan-out child workflow - this will be run asynchronously
+        - fanOut:
+            fork:
+              compete: false
+              branches:
+                - callWorkflow1:
+                    run:
+                      workflow:
+                        name: child-workflow1
+                        namespace: default
+                        version: 0.0.0
+                - callWorkflow2:
+                    run:
+                      workflow:
+                        name: child-workflow2
+                        namespace: default
+                        version: 0.0.0
+        - wait:
+            output:
+              as:
+                completed: true
+            wait:
+              seconds: 5
+  - child-workflow1:
+      do:
+        - wait:
+            wait:
+              seconds: 10
+  - child-workflow2:
+      do:
+        - wait:
+            wait:
+              seconds: 3

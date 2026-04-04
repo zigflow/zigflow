@@ -1,0 +1,19 @@
+# listen.to must contain exactly one of: one, any, all
+# Specifying both one and all satisfies two oneOf branches, failing the constraint
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: listen-one-and-all
+  version: 0.0.1
+do:
+  - waitForEvent:
+      listen:
+        to:
+          one:
+            with:
+              id: my-signal
+              type: signal
+          all:
+            - with:
+                id: my-update
+                type: update

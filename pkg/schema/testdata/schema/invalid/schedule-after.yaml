@@ -1,0 +1,13 @@
+# schedule.after is explicitly rejected by the runtime ("schedule.after not supported")
+# additionalProperties: false on the schedule object rejects this field
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: schedule-after
+  version: 0.0.1
+schedule:
+  after: PT5M
+do:
+  - step:
+      set:
+        key: value

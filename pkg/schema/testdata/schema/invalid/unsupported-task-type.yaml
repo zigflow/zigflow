@@ -1,0 +1,11 @@
+# "emit" is not a supported Zigflow task type.
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: unsupported-task-type
+  version: 0.0.1
+do:
+  - publishEvent:
+      emit:
+        event:
+          type: com.example.event

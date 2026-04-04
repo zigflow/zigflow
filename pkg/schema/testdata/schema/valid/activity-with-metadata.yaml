@@ -1,0 +1,16 @@
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: activity-with-metadata
+  version: 0.0.1
+do:
+  - fetchData:
+      metadata:
+        activityOptions:
+          startToCloseTimeout: PT30S
+          retryPolicy:
+            maximumAttempts: 3
+      call: activity
+      with:
+        name: myapp.FetchData
+        taskQueue: my-worker

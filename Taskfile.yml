@@ -95,6 +95,16 @@ tasks:
       - trivy config --severity HIGH,CRITICAL --format table --exit-code 1 charts/zigflow
       - trivy image --severity HIGH,CRITICAL --format table --exit-code 1 --pkg-types os,library --ignore-unfixed ghcr.io/zigflow/zigflow
 
+  schema:check:
+    desc: Verify schema snapshot is up to date
+    cmds:
+      - go test ./pkg/schema/... -run TestSchemaSnapshot
+
+  schema:update:
+    desc: Update schema golden snapshot
+    cmds:
+      - UPDATE_GOLDEN=1 go test ./pkg/schema/... -run TestSchemaSnapshot
+
   start:
     desc: Run example by name (NAME required)
     requires:

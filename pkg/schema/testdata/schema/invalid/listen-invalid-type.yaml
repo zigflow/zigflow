@@ -1,0 +1,14 @@
+# with.type must be one of: query, signal, update
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: listen-invalid-type
+  version: 0.0.1
+do:
+  - waitForEvent:
+      listen:
+        to:
+          one:
+            with:
+              id: my-event
+              type: webhook

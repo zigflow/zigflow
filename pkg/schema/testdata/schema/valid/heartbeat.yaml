@@ -1,0 +1,23 @@
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: heartbeat
+  version: 0.0.1
+  title: Heartbeat
+  summary: Set [activity heartbeat](https://docs.temporal.io/encyclopedia/detecting-activity-failures#activity-heartbeat). Useful on long-running activities.
+do:
+  - longRunningActivity:
+      metadata:
+        # Trigger a heartbeat every 8 seconds - this MUST be less than your heartbeatTimeout
+        heartbeat:
+          seconds: 8
+        activityOptions:
+          # Set a heartbeat timeout of 10 seconds
+          heartbeatTimeout:
+            seconds: 10
+      run:
+        shell:
+          # Sleep for 30s - this will timeout if heartbeat doesn't run
+          command: sleep
+          arguments:
+            - "30"

@@ -1,0 +1,9 @@
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: simple-set
+  version: 0.0.1
+do:
+  - greet:
+      set:
+        message: Hello from Zigflow

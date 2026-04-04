@@ -18,6 +18,7 @@ require (
 	github.com/posthog/posthog-go v1.11.2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.35.0
+	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/serverlessworkflow/sdk-go/v3 v3.2.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0

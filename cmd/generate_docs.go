@@ -30,9 +30,8 @@ import (
 
 func newGenerateDocsCmd(root *cobra.Command) *cobra.Command {
 	return &cobra.Command{
-		Use:    "generate-docs",
-		Short:  "Generate documentation",
-		Hidden: true,
+		Use:   "docs",
+		Short: "Generate documentation",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var outDir string
 			if len(args) == 0 {

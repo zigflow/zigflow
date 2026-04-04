@@ -1,0 +1,11 @@
+# listen.to must contain exactly one of: one, any, all
+# An empty to object satisfies none of the oneOf branches
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: listen-empty-to
+  version: 0.0.1
+do:
+  - waitForSignal:
+      listen:
+        to: {}

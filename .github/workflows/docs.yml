@@ -91,7 +91,7 @@ jobs:
 
       - name: Generate CLI docs
         working-directory: .
-        run: go run . generate-docs
+        run: go run . generate docs
 
       - name: Build docs
         env:

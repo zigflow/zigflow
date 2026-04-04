@@ -1,0 +1,13 @@
+# with.id is required by the runtime (validateEventFilter checks event.With.ID != "")
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: listen-missing-id
+  version: 0.0.1
+do:
+  - waitForSignal:
+      listen:
+        to:
+          one:
+            with:
+              type: signal

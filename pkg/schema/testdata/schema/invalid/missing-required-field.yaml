@@ -1,0 +1,6 @@
+# Missing the required top-level "do" field.
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: missing-required-field
+  version: 0.0.1

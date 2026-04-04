@@ -8,7 +8,7 @@
     "deploy": "docusaurus deploy",
     "docusaurus": "docusaurus",
     "format": "prettier --write \"**/*.js\"",
-    "generate-cli-docs": "go run .. generate-docs ./docs/cli/commands",
+    "generate-cli-docs": "go run .. generate docs ./docs/cli/commands",
     "lint": "eslint \"**/*.js\"",
     "postinstall": "npm run generate-cli-docs",
     "prestart": "npm run generate-cli-docs",

@@ -1,0 +1,16 @@
+# schedule.on is not handled by the runtime and is rejected via additionalProperties: false
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: schedule-on
+  version: 0.0.1
+schedule:
+  on:
+    one:
+      with:
+        id: my-signal
+        type: signal
+do:
+  - step:
+      set:
+        key: value

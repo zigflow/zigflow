@@ -1,0 +1,13 @@
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: schedule-cron
+  version: 0.0.1
+  metadata:
+    scheduleWorkflowName: my-workflow
+schedule:
+  cron: "0 * * * *"
+do:
+  - step:
+      set:
+        key: value

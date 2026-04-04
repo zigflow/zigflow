@@ -35,7 +35,7 @@ func TestNewRootCmd_Subcommands(t *testing.T) {
 	assert.True(t, names["version"])
 	assert.True(t, names["validate"])
 	assert.True(t, names["schema"])
-	assert.True(t, names["generate-docs"])
+	assert.True(t, names["generate"])
 }
 
 func TestNewRootCmd_Flags(t *testing.T) {

@@ -1,0 +1,14 @@
+# await: false is rejected when script is present: the runtime requires scripts
+# to be awaited ("run scripts must be run with await")
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: run-script-no-await
+  version: 0.0.1
+do:
+  - runScript:
+      run:
+        await: false
+        script:
+          language: js
+          code: console.log("hello")

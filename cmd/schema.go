@@ -14,24 +14,14 @@
  * limitations under the License.
  */
 
-//go:generate cp ../docs/static/schema.yaml schema.yaml
-
 package cmd
 
 import (
-	_ "embed"
-	"encoding/json"
 	"fmt"
 
-	gh "github.com/mrsimonemms/golang-helpers"
-	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"sigs.k8s.io/yaml"
 )
-
-//go:embed schema.yaml
-var Schema []byte
 
 func newSchemaCmd() *cobra.Command {
 	var opts struct {
@@ -51,46 +41,12 @@ Zigflow CLI.
 By exposing the schema programmatically, Zigflow enables reliable
 validation, structured generation and automated tooling integration.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			v := opts.Output
-
-			var fn func(map[string]any) ([]byte, error)
-
-			switch v {
-			case "json":
-				fn = func(m map[string]any) ([]byte, error) {
-					return json.MarshalIndent(m, "", "  ")
-				}
-			case "yaml":
-				fn = func(m map[string]any) ([]byte, error) {
-					return yaml.Marshal(m)
-				}
-			default:
-				return gh.FatalError{
-					Msg: "Invalid output",
-					WithParams: func(l *zerolog.Event) *zerolog.Event {
-						return l.Str("output", v)
-					},
-				}
-			}
-
-			// Convert to a map
-			var result map[string]any
-			if err := yaml.Unmarshal(Schema, &result); err != nil {
-				return gh.FatalError{
-					Cause: err,
-					Msg:   "Error converting schema to Go",
-				}
-			}
-
-			res, err := fn(result)
+			data, err := marshalSchema(opts.Output)
 			if err != nil {
-				return gh.FatalError{
-					Cause: err,
-					Msg:   "Error building the schema in the desired output",
-				}
+				return err
 			}
 
-			fmt.Println(string(res))
+			fmt.Print(string(data))
 
 			return nil
 		},

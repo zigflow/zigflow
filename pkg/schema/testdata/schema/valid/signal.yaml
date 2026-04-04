@@ -1,0 +1,31 @@
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: signal
+  version: 0.0.1
+  title: Signal Listeners
+  summary: Listen for Temporal signal events
+do:
+  - approveListener:
+      metadata:
+        timeout: 10s # Controls the AwaitWithTimeout timeout - defaults to 60s
+      listen:
+        to:
+          one:
+            with:
+              # ID maps to the signal name in Temporal - this blocks until received
+              id: approve
+              # Temporal signal - used to make write request
+              type: signal
+              acceptIf: ${ $data.approveListener }
+  - outputSignal:
+      export:
+        as: '${ $context + { response: . } }'
+      set:
+        # Get the data from the approveListener signal
+        signal: ${ $data.approveListener }
+  - wait:
+      output:
+        as: ${ $context }
+      wait:
+        seconds: 5

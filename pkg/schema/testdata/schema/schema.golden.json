@@ -1,0 +1,1265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zigflow.dev/schemas/1.0.0/workflow.json",
+  "title": "Zigflow",
+  "description": "JSON Schema for a Zigflow workflow definition.",
+  "type": "object",
+  "properties": {
+    "do": {
+      "$ref": "#/$defs/taskList",
+      "description": "The ordered list of tasks the workflow executes."
+    },
+    "document": {
+      "description": "Workflow document block containing identity and version fields.",
+      "type": "object",
+      "properties": {
+        "dsl": {
+          "title": "WorkflowDSL",
+          "description": "The Serverless Workflow DSL version this workflow targets.",
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+        },
+        "metadata": {
+          "$ref": "#/$defs/metadata",
+          "description": "Workflow-level metadata applied to all tasks unless overridden."
+        },
+        "name": {
+          "title": "WorkflowName",
+          "description": "The workflow name. Must be a lowercase DNS label.",
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$"
+        },
+        "namespace": {
+          "title": "WorkflowNamespace",
+          "description": "The workflow namespace. Must be a lowercase DNS label.",
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$"
+        },
+        "summary": {
+          "description": "Optional Markdown summary.",
+          "type": "string"
+        },
+        "tags": {
+          "description": "Arbitrary key-value tags.",
+          "type": "object",
+          "additionalProperties": true
+        },
+        "title": {
+          "description": "Optional human-readable title.",
+          "type": "string"
+        },
+        "version": {
+          "title": "WorkflowVersion",
+          "description": "The workflow's semantic version.",
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+        }
+      },
+      "required": [
+        "dsl",
+        "namespace",
+        "name",
+        "version"
+      ],
+      "unevaluatedProperties": false
+    },
+    "input": {
+      "description": "Transforms the data passed into the workflow.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "output": {
+      "description": "Transforms the data returned from the workflow.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "schedule": {
+      "description": "Workflow schedule. Only cron and every are supported; after and on are not.",
+      "type": "object",
+      "properties": {
+        "cron": {
+          "description": "Cron expression defining when the workflow runs (e.g. 0 * * * *).",
+          "type": "string"
+        },
+        "every": {
+          "$ref": "#/$defs/duration",
+          "description": "Interval between workflow executions."
+        }
+      },
+      "additionalProperties": false
+    },
+    "timeout": {
+      "description": "Workflow-level timeout. Applies as the default startToCloseTimeout for all activities.",
+      "anyOf": [
+        {
+          "description": "Reference to a named timeout defined in the use block.",
+          "type": "string"
+        },
+        {
+          "description": "Inline timeout with an after duration.",
+          "type": "object",
+          "properties": {
+            "after": {
+              "$ref": "#/$defs/duration",
+              "description": "Duration after which the workflow times out."
+            }
+          },
+          "required": [
+            "after"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "required": [
+    "document",
+    "do"
+  ],
+  "$defs": {
+    "activityOptions": {
+      "type": "object",
+      "properties": {
+        "disableEagerExecution": {
+          "description": "Disable Temporal eager activity execution.",
+          "type": "boolean"
+        },
+        "heartbeatTimeout": {
+          "$ref": "#/$defs/duration",
+          "description": "Duration before a heartbeat times out."
+        },
+        "priority": {
+          "description": "Temporal activity priority configuration.",
+          "type": "object",
+          "properties": {
+            "fairnessKey": {
+              "description": "Fairness key for weighted fair scheduling.",
+              "type": "string"
+            },
+            "fairnessWeight": {
+              "description": "Fairness weight applied alongside fairnessKey.",
+              "type": "number"
+            },
+            "priorityKey": {
+              "description": "Temporal priority key for task queue ordering.",
+              "type": "integer"
+            }
+          }
+        },
+        "retryPolicy": {
+          "$ref": "#/$defs/retryPolicy"
+        },
+        "scheduleToCloseTimeout": {
+          "$ref": "#/$defs/duration",
+          "description": "Duration from schedule to close."
+        },
+        "scheduleToStartTimeout": {
+          "$ref": "#/$defs/duration",
+          "description": "Duration from schedule to start."
+        },
+        "startToCloseTimeout": {
+          "$ref": "#/$defs/duration",
+          "description": "Duration from start to close."
+        },
+        "summary": {
+          "description": "Human-readable summary shown in the Temporal UI.",
+          "type": "string"
+        }
+      }
+    },
+    "callActivityTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/taskBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "call": {
+              "description": "Identifies this as a custom Temporal activity call.",
+              "type": "string",
+              "const": "activity"
+            },
+            "with": {
+              "description": "Activity call configuration.",
+              "type": "object",
+              "properties": {
+                "arguments": {
+                  "description": "Positional arguments passed to the activity.",
+                  "type": "array",
+                  "items": {}
+                },
+                "name": {
+                  "description": "Registered name of the Temporal activity to invoke.",
+                  "type": "string"
+                },
+                "taskQueue": {
+                  "description": "Temporal task queue that handles this activity.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "taskQueue"
+              ]
+            }
+          },
+          "required": [
+            "call",
+            "with"
+          ]
+        }
+      ]
+    },
+    "callGrpcTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/taskBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "call": {
+              "description": "Identifies this as a gRPC call.",
+              "type": "string",
+              "const": "grpc"
+            },
+            "with": {
+              "description": "gRPC call configuration.",
+              "type": "object",
+              "properties": {
+                "arguments": {
+                  "description": "Method arguments.",
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "method": {
+                  "description": "gRPC method name.",
+                  "type": "string"
+                },
+                "proto": {
+                  "description": "Protobuf service descriptor or inline proto definition.",
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  ]
+                },
+                "service": {
+                  "description": "gRPC service location.",
+                  "type": "object",
+                  "properties": {
+                    "authentication": {
+                      "description": "Named authentication policy.",
+                      "type": "string"
+                    },
+                    "host": {
+                      "description": "Service host (default: localhost).",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "Fully qualified gRPC service name.",
+                      "type": "string"
+                    },
+                    "port": {
+                      "description": "Service port (default: 50051).",
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ]
+                }
+              },
+              "required": [
+                "service",
+                "method"
+              ]
+            }
+          },
+          "required": [
+            "call",
+            "with"
+          ]
+        }
+      ]
+    },
+    "callHttpTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/taskBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "call": {
+              "description": "Identifies this as an HTTP call.",
+              "type": "string",
+              "const": "http"
+            },
+            "with": {
+              "description": "HTTP call configuration.",
+              "type": "object",
+              "properties": {
+                "body": {
+                  "description": "Request body (any serialisable value)."
+                },
+                "endpoint": {
+                  "description": "Target URL or endpoint object.",
+                  "anyOf": [
+                    {
+                      "description": "Literal URL string.",
+                      "type": "string"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "authentication": {
+                          "description": "Named authentication policy to apply.",
+                          "type": "string"
+                        },
+                        "uri": {
+                          "description": "The request URI.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "uri"
+                      ]
+                    }
+                  ]
+                },
+                "headers": {
+                  "description": "Request headers.",
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "method": {
+                  "description": "HTTP method.",
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE",
+                    "HEAD",
+                    "OPTIONS"
+                  ]
+                },
+                "query": {
+                  "description": "Query string parameters.",
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              },
+              "required": [
+                "method",
+                "endpoint"
+              ]
+            }
+          },
+          "required": [
+            "call",
+            "with"
+          ]
+        }
+      ]
+    },
+    "doTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/taskBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "do": {
+              "$ref": "#/$defs/taskList",
+              "description": "Sequential list of tasks to execute."
+            }
+          },
+          "required": [
+            "do"
+          ]
+        }
+      ]
+    },
+    "duration": {
+      "description": "A duration value. Either an ISO 8601 string or an object with named time unit fields.",
+      "anyOf": [
+        {
+          "description": "ISO 8601 duration string (e.g. PT30S, P1DT2H).",
+          "type": "string"
+        },
+        {
+          "description": "Inline duration with named time unit fields.",
+          "type": "object",
+          "properties": {
+            "days": {
+              "type": "integer"
+            },
+            "hours": {
+              "type": "integer"
+            },
+            "milliseconds": {
+              "type": "integer"
+            },
+            "minutes": {
+              "type": "integer"
+            },
+            "seconds": {
+              "type": "integer"
+            }
+          }
+        }
+      ]
+    },
+    "forTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/taskBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "do": {
+              "$ref": "#/$defs/taskList",
+              "description": "Tasks executed on each iteration."
+            },
+            "for": {
+              "description": "Loop definition.",
+              "type": "object",
+              "properties": {
+                "at": {
+                  "description": "Variable name bound to the current iteration index.",
+                  "type": "string"
+                },
+                "each": {
+                  "description": "Variable name bound to the current iteration value.",
+                  "type": "string"
+                },
+                "in": {
+                  "description": "Runtime expression that evaluates to the collection to iterate over.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "each",
+                "in"
+              ]
+            }
+          },
+          "required": [
+            "for",
+            "do"
+          ]
+        }
+      ]
+    },
+    "forkTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/taskBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "fork": {
+              "description": "Parallel execution configuration.",
+              "type": "object",
+              "properties": {
+                "branches": {
+                  "$ref": "#/$defs/taskList",
+                  "description": "Tasks to execute in parallel."
+                },
+                "compete": {
+                  "description": "When true, the first task to complete cancels the remaining tasks.",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "branches"
+              ]
+            }
+          },
+          "required": [
+            "fork"
+          ]
+        }
+      ]
+    },
+    "listenTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/taskBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "listen": {
+              "description": "Listen configuration.",
+              "type": "object",
+              "properties": {
+                "to": {
+                  "description": "Event consumption strategy. Exactly one of one, any, or all must be specified.",
+                  "type": "object",
+                  "properties": {
+                    "all": {
+                      "description": "Complete when all listed events have arrived.",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "with": {
+                            "description": "Event filter criteria.",
+                            "type": "object",
+                            "properties": {
+                              "acceptIf": {
+                                "description": "Runtime expression evaluated to decide whether the event is accepted."
+                              },
+                              "data": {
+                                "description": "Runtime expression or value used as the reply payload."
+                              },
+                              "id": {
+                                "description": "Temporal signal, query, or update name. Required by the runtime.",
+                                "type": "string"
+                              },
+                              "source": {
+                                "description": "CloudEvent source filter.",
+                                "type": "string"
+                              },
+                              "type": {
+                                "description": "Temporal mechanism type.",
+                                "type": "string",
+                                "enum": [
+                                  "query",
+                                  "signal",
+                                  "update"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type"
+                            ],
+                            "additionalProperties": true
+                          }
+                        },
+                        "required": [
+                          "with"
+                        ]
+                      }
+                    },
+                    "any": {
+                      "description": "Complete when any one of the listed events arrives.",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "with": {
+                            "description": "Event filter criteria.",
+                            "type": "object",
+                            "properties": {
+                              "acceptIf": {
+                                "description": "Runtime expression evaluated to decide whether the event is accepted."
+                              },
+                              "data": {
+                                "description": "Runtime expression or value used as the reply payload."
+                              },
+                              "id": {
+                                "description": "Temporal signal, query, or update name. Required by the runtime.",
+                                "type": "string"
+                              },
+                              "source": {
+                                "description": "CloudEvent source filter.",
+                                "type": "string"
+                              },
+                              "type": {
+                                "description": "Temporal mechanism type.",
+                                "type": "string",
+                                "enum": [
+                                  "query",
+                                  "signal",
+                                  "update"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type"
+                            ],
+                            "additionalProperties": true
+                          }
+                        },
+                        "required": [
+                          "with"
+                        ]
+                      }
+                    },
+                    "one": {
+                      "description": "Wait for a single matching event.",
+                      "type": "object",
+                      "properties": {
+                        "with": {
+                          "description": "Event filter criteria.",
+                          "type": "object",
+                          "properties": {
+                            "acceptIf": {
+                              "description": "Runtime expression evaluated to decide whether the event is accepted."
+                            },
+                            "data": {
+                              "description": "Runtime expression or value used as the reply payload."
+                            },
+                            "id": {
+                              "description": "Temporal signal, query, or update name. Required by the runtime.",
+                              "type": "string"
+                            },
+                            "source": {
+                              "description": "CloudEvent source filter.",
+                              "type": "string"
+                            },
+                            "type": {
+                              "description": "Temporal mechanism type.",
+                              "type": "string",
+                              "enum": [
+                                "query",
+                                "signal",
+                                "update"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "type"
+                          ],
+                          "additionalProperties": true
+                        }
+                      },
+                      "required": [
+                        "with"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false,
+                  "oneOf": [
+                    {
+                      "required": [
+                        "one"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "any"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "all"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "to"
+              ]
+            }
+          },
+          "required": [
+            "listen"
+          ]
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "activityOptions": {
+          "$ref": "#/$defs/activityOptions"
+        },
+        "canMaxHistoryLength": {
+          "description": "Maximum Temporal workflow history length before Continue-As-New is triggered.",
+          "type": "integer"
+        },
+        "heartbeat": {
+          "$ref": "#/$defs/duration",
+          "description": "How often to record an activity heartbeat."
+        },
+        "searchAttributes": {
+          "description": "Map of Temporal search attribute names to their type and value.",
+          "type": "object",
+          "additionalProperties": {
+            "description": "A single Temporal search attribute.",
+            "type": "object",
+            "properties": {
+              "type": {
+                "description": "Temporal search attribute type.",
+                "type": "string",
+                "enum": [
+                  "datetime",
+                  "keywordlist",
+                  "keyword",
+                  "text",
+                  "int",
+                  "double",
+                  "bool"
+                ]
+              },
+              "value": {
+                "description": "Attribute value. Set to null to unset the attribute."
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "raiseTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/taskBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "raise": {
+              "description": "Raise configuration.",
+              "type": "object",
+              "properties": {
+                "error": {
+                  "description": "The error to raise.",
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "description": "Detailed human-readable error description.",
+                      "type": "string"
+                    },
+                    "instance": {
+                      "description": "URI identifying the specific error occurrence.",
+                      "type": "string"
+                    },
+                    "status": {
+                      "description": "HTTP-style status code for the error.",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "description": "Short human-readable error title.",
+                      "type": "string"
+                    },
+                    "type": {
+                      "description": "Error type (e.g. https://zigflow.dev/errors/validation).",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "status"
+                  ]
+                }
+              },
+              "required": [
+                "error"
+              ]
+            }
+          },
+          "required": [
+            "raise"
+          ]
+        }
+      ]
+    },
+    "retryPolicy": {
+      "description": "Temporal retry policy for an activity.",
+      "type": "object",
+      "properties": {
+        "backoffCoefficient": {
+          "description": "Multiplier applied to the retry interval after each failure.",
+          "type": "number"
+        },
+        "initialInterval": {
+          "$ref": "#/$defs/duration",
+          "description": "Duration for the first retry interval (e.g. PT1S or {seconds: 1})."
+        },
+        "maximumAttempts": {
+          "description": "Maximum number of retry attempts before the activity fails permanently.",
+          "type": "integer"
+        },
+        "maximumInterval": {
+          "$ref": "#/$defs/duration",
+          "description": "Cap on the retry interval."
+        },
+        "nonRetryableErrorTypes": {
+          "description": "Error type names that should not be retried.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "runTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/taskBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "run": {
+              "description": "Run configuration. Exactly one of container, script, shell, or workflow must be set.",
+              "allOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "await": {
+                      "description": "Wait for the run to finish before continuing (default: true).",
+                      "type": "boolean"
+                    },
+                    "container": {
+                      "description": "Container execution configuration.",
+                      "type": "object",
+                      "properties": {
+                        "arguments": {
+                          "description": "Positional arguments passed to the container command.",
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "command": {
+                          "description": "Command to run inside the container.",
+                          "type": "string"
+                        },
+                        "environment": {
+                          "description": "Environment variables.",
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "image": {
+                          "description": "Container image reference.",
+                          "type": "string"
+                        },
+                        "name": {
+                          "description": "Optional container name label.",
+                          "type": "string"
+                        },
+                        "volumes": {
+                          "description": "Volume mounts.",
+                          "type": "object",
+                          "additionalProperties": true
+                        }
+                      },
+                      "required": [
+                        "image"
+                      ],
+                      "not": {
+                        "required": [
+                          "ports"
+                        ]
+                      }
+                    },
+                    "script": {
+                      "description": "Inline script execution configuration.",
+                      "type": "object",
+                      "properties": {
+                        "arguments": {
+                          "description": "Arguments passed to the script or shell command.",
+                          "anyOf": [
+                            {
+                              "description": "Positional argument list.",
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            {
+                              "description": "Named argument map.",
+                              "type": "object",
+                              "additionalProperties": true
+                            }
+                          ]
+                        },
+                        "code": {
+                          "description": "Inline script source code.",
+                          "type": "string"
+                        },
+                        "environment": {
+                          "description": "Environment variables.",
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "language": {
+                          "description": "Script language.",
+                          "type": "string",
+                          "enum": [
+                            "js",
+                            "javascript",
+                            "python"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "language",
+                        "code"
+                      ]
+                    },
+                    "shell": {
+                      "description": "Shell command execution configuration.",
+                      "type": "object",
+                      "properties": {
+                        "arguments": {
+                          "description": "Arguments passed to the script or shell command.",
+                          "anyOf": [
+                            {
+                              "description": "Positional argument list.",
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            {
+                              "description": "Named argument map.",
+                              "type": "object",
+                              "additionalProperties": true
+                            }
+                          ]
+                        },
+                        "command": {
+                          "description": "Shell command to run.",
+                          "type": "string"
+                        },
+                        "environment": {
+                          "description": "Environment variables.",
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "command"
+                      ]
+                    },
+                    "workflow": {
+                      "description": "Child workflow execution configuration.",
+                      "type": "object",
+                      "properties": {
+                        "input": {
+                          "description": "Input passed to the child workflow.",
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "name": {
+                          "description": "Name of the child workflow to execute.",
+                          "type": "string"
+                        },
+                        "namespace": {
+                          "description": "Temporal namespace of the child workflow.",
+                          "type": "string"
+                        },
+                        "version": {
+                          "description": "Semantic version of the child workflow.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "namespace",
+                        "version"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "oneOf": [
+                    {
+                      "description": "Container run mode.",
+                      "type": "object",
+                      "required": [
+                        "container"
+                      ]
+                    },
+                    {
+                      "description": "Script run mode. await: false is not permitted.",
+                      "type": "object",
+                      "properties": {
+                        "await": {
+                          "not": {
+                            "const": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "script"
+                      ]
+                    },
+                    {
+                      "description": "Shell run mode.",
+                      "type": "object",
+                      "required": [
+                        "shell"
+                      ]
+                    },
+                    {
+                      "description": "Workflow run mode.",
+                      "type": "object",
+                      "required": [
+                        "workflow"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "run"
+          ]
+        }
+      ]
+    },
+    "setTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/taskBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "set": {
+              "description": "Key-value pairs to assign into the workflow context.",
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "set"
+          ]
+        }
+      ]
+    },
+    "switchTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/taskBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "switch": {
+              "description": "Ordered list of cases evaluated top to bottom. The first matching case is taken.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "then": {
+                    "description": "Name of the task to execute when this case matches, or a flow directive.",
+                    "type": "string"
+                  },
+                  "when": {
+                    "description": "Runtime expression that must evaluate to true for this case to match. Omit for the default case.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "then"
+                ]
+              }
+            }
+          },
+          "required": [
+            "switch"
+          ]
+        }
+      ]
+    },
+    "task": {
+      "description": "A Zigflow task. Exactly one task type must be present.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/callActivityTask"
+        },
+        {
+          "$ref": "#/$defs/callHttpTask"
+        },
+        {
+          "$ref": "#/$defs/callGrpcTask"
+        },
+        {
+          "$ref": "#/$defs/doTask"
+        },
+        {
+          "$ref": "#/$defs/forTask"
+        },
+        {
+          "$ref": "#/$defs/forkTask"
+        },
+        {
+          "$ref": "#/$defs/listenTask"
+        },
+        {
+          "$ref": "#/$defs/raiseTask"
+        },
+        {
+          "$ref": "#/$defs/runTask"
+        },
+        {
+          "$ref": "#/$defs/setTask"
+        },
+        {
+          "$ref": "#/$defs/switchTask"
+        },
+        {
+          "$ref": "#/$defs/tryTask"
+        },
+        {
+          "$ref": "#/$defs/waitTask"
+        }
+      ]
+    },
+    "taskBase": {
+      "type": "object",
+      "properties": {
+        "export": {
+          "description": "Exports data to the workflow context after the task completes.",
+          "type": "object",
+          "additionalProperties": true
+        },
+        "if": {
+          "description": "Runtime expression evaluated before the task runs. Task is skipped when false.",
+          "type": "string"
+        },
+        "input": {
+          "description": "Transforms the task input before execution.",
+          "type": "object",
+          "additionalProperties": true
+        },
+        "metadata": {
+          "$ref": "#/$defs/metadata"
+        },
+        "output": {
+          "description": "Transforms the task output after execution.",
+          "type": "object",
+          "additionalProperties": true
+        },
+        "then": {
+          "description": "Name of the next task to execute, or a flow directive (end, exit, continue).",
+          "type": "string"
+        },
+        "timeout": {
+          "description": "Task-level timeout configuration.",
+          "anyOf": [
+            {
+              "description": "Inline timeout with an after duration.",
+              "type": "object",
+              "properties": {
+                "after": {
+                  "$ref": "#/$defs/duration",
+                  "description": "Duration after which the task times out."
+                }
+              },
+              "required": [
+                "after"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "description": "Reference to a named timeout defined in the use block.",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "taskItem": {
+      "description": "A named task. The single property key is the task name; the value is the task definition.",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/task"
+      },
+      "minProperties": 1,
+      "maxProperties": 1
+    },
+    "taskList": {
+      "description": "An ordered list of named tasks.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/taskItem"
+      }
+    },
+    "tryTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/taskBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "catch": {
+              "description": "Error handling configuration.",
+              "type": "object",
+              "properties": {
+                "as": {
+                  "description": "Variable name that holds the caught error object.",
+                  "type": "string"
+                },
+                "do": {
+                  "$ref": "#/$defs/taskList",
+                  "description": "Tasks to execute when an error is caught."
+                },
+                "retry": {
+                  "description": "Inline retry policy for the caught error.",
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "when": {
+                  "description": "Runtime expression to filter which errors are caught.",
+                  "type": "string"
+                }
+              }
+            },
+            "try": {
+              "$ref": "#/$defs/taskList",
+              "description": "Tasks to attempt."
+            }
+          },
+          "required": [
+            "try",
+            "catch"
+          ]
+        }
+      ]
+    },
+    "waitTask": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/taskBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "wait": {
+              "$ref": "#/$defs/duration",
+              "description": "Duration to wait before continuing."
+            }
+          },
+          "required": [
+            "wait"
+          ]
+        }
+      ]
+    }
+  }
+}

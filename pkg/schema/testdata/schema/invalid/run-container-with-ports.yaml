@@ -1,0 +1,14 @@
+# container.ports is rejected: the runtime explicitly rejects port mappings
+# ("ports are not allowed on containers")
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: run-container-with-ports
+  version: 0.0.1
+do:
+  - runContainer:
+      run:
+        container:
+          image: alpine
+          ports:
+            - "8080:80"

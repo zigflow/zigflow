@@ -1,0 +1,12 @@
+# activityOptions must be an object, not a string.
+document:
+  dsl: 1.0.0
+  namespace: zigflow
+  name: invalid-metadata-type
+  version: 0.0.1
+do:
+  - badTask:
+      metadata:
+        activityOptions: "not-an-object"
+      set:
+        value: 1
