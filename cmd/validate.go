@@ -107,6 +107,8 @@ Arguments:
 		viper.GetBool("output_json"), "Output as JSON",
 	)
 
+	cmd.AddCommand(newValidateSchemaCmd())
+
 	return cmd
 }
 

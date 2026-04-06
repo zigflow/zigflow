@@ -99,7 +99,12 @@ func RenderHuman(w io.Writer, result ValidationResult) {
 	_, _ = fmt.Fprintf(w, "%d validation error(s):\n\n", len(result.Errors))
 
 	for i, err := range result.Errors {
-		_, _ = fmt.Fprintf(w, "%d. %s: %s\n", i+1, err.Path, humanMessage(err.Error))
+		msg := err.Message
+		if err.Error != nil {
+			msg = humanMessage(err.Error)
+		}
+
+		_, _ = fmt.Fprintf(w, "%d. %s: %s\n", i+1, err.Path, msg)
 	}
 }
 
