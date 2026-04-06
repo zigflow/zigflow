@@ -73,6 +73,14 @@ repos:
         pass_filenames: false
   - repo: local
     hooks:
+      - id: validate-example-schemas
+        name: Validate example workflow schemas
+        entry: go run . validate schema
+        language: system
+        pass_filenames: true
+        files: ^examples/.+/workflow\.yaml$
+  - repo: local
+    hooks:
       - id: generate-authors
         name: generate-authors
         entry: ./scripts/generate-authors.sh

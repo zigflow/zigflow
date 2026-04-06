@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -25,6 +26,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func writeTempFile(t *testing.T, dir, name, content string) string {
+	t.Helper()
+	path := filepath.Join(dir, name)
+	require.NoError(t, os.WriteFile(path, []byte(content), 0o600))
+	return path
+}
 
 // workflowSchemaInvalid is structurally invalid: the document block is present
 // but the required "name" field is missing.
@@ -37,37 +45,8 @@ do:
       set:
         hello: world`
 
-// workflowSchemaUnknownField contains a field rejected by the schema:
-// schedule.after is not supported by the runtime.
-const workflowSchemaUnknownField = `document:
-  dsl: 1.0.0
-  namespace: default
-  name: test
-  version: 0.0.1
-schedule:
-  after: PT5M
-do:
-  - step:
-      set:
-        hello: world`
-
-func writeTemp(t *testing.T, dir, name, content string) string {
-	t.Helper()
-	path := filepath.Join(dir, name)
-	require.NoError(t, os.WriteFile(path, []byte(content), 0o600))
-
-	return path
-}
-
 func TestNewValidateSchemaCmd(t *testing.T) {
-	tests := []struct {
-		name         string
-		content      string
-		filePath     string
-		extraArgs    []string
-		expectError  bool
-		expectOutput string
-	}{
+	tests := []subCmdTestCase{
 		{
 			name:         "valid workflow",
 			content:      validWorkflowYAML,
@@ -93,8 +72,8 @@ func TestNewValidateSchemaCmd(t *testing.T) {
 			expectOutput: `"valid": false`,
 		},
 		{
-			name:        "invalid workflow - unsupported field",
-			content:     workflowSchemaUnknownField,
+			name:        "invalid workflow - unsupported schedule field",
+			content:     workflowScheduleAfterRejected,
 			expectError: true,
 		},
 		{
@@ -109,37 +88,78 @@ func TestNewValidateSchemaCmd(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			filePath := test.filePath
+	runSubCmdTests(t, newValidateSchemaCmd, tests)
+}
 
-			if filePath == "" {
-				tmpDir, err := os.MkdirTemp("", "validate_schema_test")
-				require.NoError(t, err)
-				t.Cleanup(func() { assert.NoError(t, os.RemoveAll(tmpDir)) })
+type multiSchemaCase struct {
+	name         string
+	contents     []string // one entry per file
+	expectError  bool
+	expectOutput string
+}
 
-				filePath = writeTemp(t, tmpDir, "workflow.yaml", test.content)
-			}
+func runMultiSchemaTest(t *testing.T, tc multiSchemaCase) {
+	t.Helper()
 
-			var out bytes.Buffer
+	tmpDir, err := os.MkdirTemp("", "validate_schema_multi")
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, os.RemoveAll(tmpDir)) })
 
-			cmd := newValidateSchemaCmd()
-			cmd.SilenceErrors = true
-			cmd.SilenceUsage = true
-			cmd.SetOut(&out)
-			cmd.SetArgs(append([]string{filePath}, test.extraArgs...))
+	args := make([]string, len(tc.contents))
+	for i, content := range tc.contents {
+		args[i] = writeTempFile(t, tmpDir, fmt.Sprintf("f%d.yaml", i), content)
+	}
 
-			err := cmd.Execute()
+	var out bytes.Buffer
+	cmd := newValidateSchemaCmd()
+	cmd.SilenceErrors = true
+	cmd.SilenceUsage = true
+	cmd.SetOut(&out)
+	cmd.SetArgs(args)
 
-			if test.expectError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+	err = cmd.Execute()
+	if tc.expectError {
+		assert.Error(t, err)
+	} else {
+		assert.NoError(t, err)
+	}
 
-			if test.expectOutput != "" {
-				assert.Contains(t, out.String(), test.expectOutput)
-			}
+	if tc.expectOutput != "" {
+		assert.Contains(t, out.String(), tc.expectOutput)
+	}
+}
+
+func TestNewValidateSchemaCmdMultiFile(t *testing.T) {
+	cases := []multiSchemaCase{
+		{
+			name:         "all files valid",
+			contents:     []string{validWorkflowYAML, validWorkflowYAML},
+			expectOutput: "All 2 file(s) passed schema validation.",
+		},
+		{
+			name:         "one file fails, one passes",
+			contents:     []string{validWorkflowYAML, workflowSchemaInvalid},
+			expectError:  true,
+			expectOutput: "1 of 2 file(s) failed schema validation.",
+		},
+		{
+			name:         "all files fail",
+			contents:     []string{workflowSchemaInvalid, workflowSchemaInvalid},
+			expectError:  true,
+			expectOutput: "2 of 2 file(s) failed schema validation.",
+		},
+		{
+			// Both file names must appear in output, confirming no early exit.
+			name:         "validation does not stop on first failure",
+			contents:     []string{workflowSchemaInvalid, validWorkflowYAML},
+			expectError:  true,
+			expectOutput: "f0.yaml",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			runMultiSchemaTest(t, tc)
 		})
 	}
 }
