@@ -30,7 +30,7 @@ To use this, the `call` property must equal `activity`.
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
 | name | `string` | `yes` | The activity name to call. |
-| arguments | `string` | `any[]` | The arguments to pass to the activity. These are interpolated through the state. |
+| arguments | `any[]` | `no` | The arguments to pass to the activity. These are interpolated through the state. |
 | taskQueue | `string` | `yes` | The task queue where the activity is running. |
 
 ### Example {#activity-example}

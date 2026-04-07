@@ -37,7 +37,6 @@ using containerised applications, scripts, or commands.
 | image | `string` | `yes` | The name of the container image to run |
 | name | `string` | `no` | A [runtime expression](/docs/dsl/tasks/intro#runtime-expressions), if any, used to give specific name to the container. Uses a UUID if not set. |
 | command | `string` | `no` | The command, if any, to execute on the container |
-| ports | `map` | `no` | The container's port mappings, if any |
 | volumes | `map` | `no` | The container's volume mappings, if any |
 | environment | `map` | `no` | A key/value mapping of the environment variables, if any, to use when running the configured process |
 | arguments | `string[]` | `no` | A list of the arguments, if any, passed as argv to the command or default container CMD |
@@ -91,9 +90,8 @@ executing user-defined scripts written in various programming languages.
 
 :::warning
 The [Docker image](https://github.com/zigflow/zigflow/blob/main/Dockerfile)
-is built on the [`node:lts-alpine` image](https://hub.docker.com/_/node/) and
-installs the [`python3` Alpine package](https://pkgs.alpinelinux.org/package/edge/main/x86/python3).
-For specific versions of these languages, build your own image.
+installs latest versions of `nodejs` and `python3`. For specific versions of
+these languages, build your own image.
 :::
 
 This is a list of available languages and the command that is called.
