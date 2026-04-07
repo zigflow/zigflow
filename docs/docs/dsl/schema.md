@@ -27,11 +27,11 @@ The latest schema is available at:
 - `https://zigflow.dev/schema.yaml`
 - `https://zigflow.dev/schema.json`
 
-For production use, you should pin to a specific version.. Versioned schemas do
+For production use, you should pin to a specific version. Versioned schemas do
 not change after release:
 
-- `https://zigflow.dev/schema/<version>/workflow.yaml`
-- `https://zigflow.dev/schema/<version>/workflow.json`
+- `https://zigflow.dev/schemas/<version>/schema.yaml`
+- `https://zigflow.dev/schemas/<version>/schema.json`
 
 Versioned schemas are available from version `0.10.0` onwards.
 

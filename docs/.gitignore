@@ -21,3 +21,5 @@ yarn-error.log*
 
 # This is generated from Cobra
 docs/cli/commands
+
+static/schemas

@@ -78,4 +78,18 @@ repos:
         entry: ./scripts/generate-authors.sh
         language: script
         pass_filenames: false
+  - repo: local
+    hooks:
+      - id: generate-schema-json
+        name: Generate schema.json
+        entry: bash -c 'go run . schema --output json > docs/static/schema.json'
+        language: system
+        pass_filenames: false
+  - repo: local
+    hooks:
+      - id: generate-schema-yaml
+        name: Generate schema.yaml
+        entry: bash -c 'go run . schema --output yaml > docs/static/schema.yaml'
+        language: system
+        pass_filenames: false
 exclude: charts/.*/README.md
