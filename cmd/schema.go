@@ -14,24 +14,22 @@
  * limitations under the License.
  */
 
-//go:generate cp ../docs/static/schema.yaml schema.yaml
-
 package cmd
 
 import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"strings"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	gh "github.com/mrsimonemms/golang-helpers"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/zigflow/zigflow/pkg/schema"
 	"sigs.k8s.io/yaml"
 )
-
-//go:embed schema.yaml
-var Schema []byte
 
 func newSchemaCmd() *cobra.Command {
 	var opts struct {
@@ -53,16 +51,16 @@ validation, structured generation and automated tooling integration.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			v := opts.Output
 
-			var fn func(map[string]any) ([]byte, error)
+			var fn func(*jsonschema.Schema) ([]byte, error)
 
 			switch v {
 			case "json":
-				fn = func(m map[string]any) ([]byte, error) {
-					return json.MarshalIndent(m, "", "  ")
+				fn = func(s *jsonschema.Schema) ([]byte, error) {
+					return json.MarshalIndent(s, "", "  ")
 				}
 			case "yaml":
-				fn = func(m map[string]any) ([]byte, error) {
-					return yaml.Marshal(m)
+				fn = func(s *jsonschema.Schema) ([]byte, error) {
+					return yaml.Marshal(s)
 				}
 			default:
 				return gh.FatalError{
@@ -73,16 +71,16 @@ validation, structured generation and automated tooling integration.`,
 				}
 			}
 
-			// Convert to a map
-			var result map[string]any
-			if err := yaml.Unmarshal(Schema, &result); err != nil {
+			// Build the schema
+			schema, err := schema.BuildSchema(Version, v)
+			if err != nil {
 				return gh.FatalError{
 					Cause: err,
-					Msg:   "Error converting schema to Go",
+					Msg:   "Error building Zigflow schema",
 				}
 			}
 
-			res, err := fn(result)
+			res, err := fn(schema)
 			if err != nil {
 				return gh.FatalError{
 					Cause: err,
@@ -90,7 +88,7 @@ validation, structured generation and automated tooling integration.`,
 				}
 			}
 
-			fmt.Println(string(res))
+			fmt.Println(strings.TrimSpace(string(res)))
 
 			return nil
 		},

@@ -82,6 +82,12 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
 
+      - name: Zigflow schema JSON
+        run: go run . schema -o json
+
+      - name: Zigflow schema YAML
+        run: go run . schema -o yaml
+
   e2e:
     runs-on: ubuntu-latest
     env:
