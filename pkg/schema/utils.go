@@ -1,0 +1,37 @@
+/*
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package schema
+
+import (
+	"fmt"
+
+	"github.com/google/jsonschema-go/jsonschema"
+)
+
+func SchemaRef(name string) string {
+	return fmt.Sprintf(ref, name)
+}
+
+// falseSchema is a helper to return a schema that resolves as "false" when marshalled
+func falseSchema() *jsonschema.Schema {
+	return &jsonschema.Schema{Not: &jsonschema.Schema{}}
+}
+
+// trueSchema is a helper to return a schema that resolves as "true" when marshalled
+func trueSchema() *jsonschema.Schema {
+	return &jsonschema.Schema{}
+}

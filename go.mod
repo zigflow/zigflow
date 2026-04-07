@@ -10,6 +10,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.30.2
 	github.com/google/go-cmp v0.7.0
+	github.com/google/jsonschema-go v0.4.2
 	github.com/itchyny/gojq v0.12.19
 	github.com/matthewmueller/glob v0.1.1
 	github.com/mrsimonemms/golang-helpers v0.6.0
