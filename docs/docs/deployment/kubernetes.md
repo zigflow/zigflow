@@ -42,8 +42,8 @@ workflow:
   inline:
     document:
       dsl: 1.0.0
-      namespace: zigflow
-      name: hello-world
+      taskQueue: zigflow
+      workflowType: hello-world
       version: 1.0.0
     do:
       - greet:
@@ -78,8 +78,8 @@ workflow:
   inline:
     document:
       dsl: 1.0.0
-      namespace: zigflow
-      name: my-workflow
+      taskQueue: zigflow
+      workflowType: my-workflow
       version: 1.0.0
     do:
       - ...
@@ -270,7 +270,7 @@ for the complete values reference.
 ## Common mistakes
 
 **The pod starts but the workflow does not execute.**
-Check that the task queue name (`document.namespace`) matches what your
+Check that the task queue name (`document.taskQueue`) matches what your
 client uses. Also confirm the worker is connected to the correct Temporal
 namespace.
 

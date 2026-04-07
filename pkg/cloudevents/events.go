@@ -65,7 +65,7 @@ func (e *Events) Emit(ctx context.Context, eventType string, opts ...Option) {
 
 	// Hard-code important things
 	event.SetSpecVersion(sdk.VersionV1)
-	// Format is zigflow.dev/<task-queue>/<workflow>
+	// Format is zigflow.dev/<taskQueue>/<workflowType>
 	event.SetSource(fmt.Sprintf("zigflow.dev/%s/%s", e.workflow.Document.Namespace, e.workflow.Document.Name))
 	event.SetTime(time.Now())
 	event.SetType(fmt.Sprintf("dev.zigflow.%s", eventType))

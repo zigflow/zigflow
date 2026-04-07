@@ -156,8 +156,8 @@ consistent, declarative orchestration with less boilerplate.
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow # Mapped to the Temporal task queue
-  name: hello-world  # Workflow type
+  taskQueue: zigflow # Mapped to the Temporal task queue
+  workflowType: hello-world  # Workflow type
   version: 0.0.1
 do:
   - set:
@@ -195,8 +195,8 @@ validated against a JSON Schema before the workflow runs.
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: activity-call
+  taskQueue: zigflow
+  workflowType: activity-call
   version: 0.0.1
 input:
   schema:

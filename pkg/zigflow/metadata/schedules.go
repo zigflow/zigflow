@@ -31,16 +31,16 @@ type ScheduleInfo struct {
 
 func GetScheduleInfo(workflow *model.Workflow, envvars map[string]any) (*ScheduleInfo, error) {
 	// This is the workflow name we trigger - this is required
-	var workflowName string
+	var workflowType string
 	if t, ok := workflow.Document.Metadata[MetadataScheduleWorkflowName]; ok {
 		if t, ok := t.(string); ok {
-			workflowName = t
+			workflowType = t
 		} else {
 			return nil, fmt.Errorf("schedule workflow name must be a string")
 		}
 	}
 
-	// Optionally, get the schedule ID - default to "zigflow_<workflow.document.name>"
+	// Optionally, get the schedule ID - default to "zigflow_<document.workflowType>"
 	scheduleID := fmt.Sprintf("zigflow_%s", workflow.Document.Name)
 	if s, ok := workflow.Document.Metadata[MetadataScheduleID]; ok {
 		if sID, ok := s.(string); ok {
@@ -74,7 +74,7 @@ func GetScheduleInfo(workflow *model.Workflow, envvars map[string]any) (*Schedul
 
 	return &ScheduleInfo{
 		ID:           scheduleID,
-		WorkflowName: workflowName,
+		WorkflowName: workflowType,
 		Input:        parsedInput.(map[string]any)["input"].([]any),
 	}, nil
 }

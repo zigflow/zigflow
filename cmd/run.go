@@ -67,15 +67,15 @@ type runOptions struct {
 }
 
 // workflowRegistration holds a loaded and validated workflow definition ready
-// to be registered on a Temporal worker. TaskQueue is derived from the
-// document namespace. WorkflowName is derived from the document name, which
-// is the Temporal type identifier used during worker registration.
+// to be registered on a Temporal worker. TaskQueue is derived from
+// document.taskQueue. WorkflowType is derived from document.workflowType,
+// which is the Temporal type identifier used during worker registration.
 type workflowRegistration struct {
 	SourceFile   string
 	Definition   *model.Workflow
 	Events       *cloudevents.Events
 	TaskQueue    string
-	WorkflowName string
+	WorkflowType string
 }
 
 func panicMessage(r any) string {
@@ -191,6 +191,18 @@ func loadWorkflows(
 	registrations := make([]*workflowRegistration, 0, len(files))
 
 	for _, file := range files {
+		if validate {
+			if err := zigflow.ValidateFile(file); err != nil {
+				return nil, gh.FatalError{
+					Cause: err,
+					WithParams: func(l *zerolog.Event) *zerolog.Event {
+						return l.Str("file", file)
+					},
+					Msg: "Schema validation failed",
+				}
+			}
+		}
+
 		def, err := zigflow.LoadFromFile(file)
 		if err != nil {
 			return nil, gh.FatalError{
@@ -202,16 +214,17 @@ func loadWorkflows(
 			}
 		}
 
-		// Defensive check: Name and Namespace are used as Temporal registration
-		// keys and worker-grouping keys respectively. An empty value would
-		// silently produce a broken worker or a duplicate-key collision, so
-		// reject such definitions here regardless of schema validation.
+		// Defensive check: workflowType and taskQueue are used as Temporal
+		// registration keys and worker-grouping keys respectively. An empty
+		// value would silently produce a broken worker or a duplicate-key
+		// collision, so reject such definitions here regardless of schema
+		// validation.
 		if def.Document.Name == "" {
 			return nil, gh.FatalError{
 				WithParams: func(l *zerolog.Event) *zerolog.Event {
 					return l.Str("file", file)
 				},
-				Msg: "Workflow document name must not be empty",
+				Msg: "Workflow document.workflowType must not be empty",
 			}
 		}
 		if def.Document.Namespace == "" {
@@ -219,7 +232,7 @@ func loadWorkflows(
 				WithParams: func(l *zerolog.Event) *zerolog.Event {
 					return l.Str("file", file)
 				},
-				Msg: "Workflow document namespace must not be empty",
+				Msg: "Workflow document.taskQueue must not be empty",
 			}
 		}
 
@@ -250,7 +263,7 @@ func loadWorkflows(
 			Definition:   def,
 			Events:       events,
 			TaskQueue:    def.Document.Namespace,
-			WorkflowName: def.Document.Name,
+			WorkflowType: def.Document.Name,
 		})
 	}
 
@@ -258,9 +271,9 @@ func loadWorkflows(
 }
 
 // validateWorkflowConflicts detects registrations that would conflict on the
-// same Temporal worker. Temporal uses doc.Document.Name as the workflow type
-// identifier (via RegisterWorkflowWithOptions), so two workflows with the same
-// name on the same task queue cannot coexist on a single worker.
+// same Temporal worker. Temporal uses document.workflowType as the workflow
+// type identifier (via RegisterWorkflowWithOptions), so two workflows with the
+// same workflowType on the same taskQueue cannot coexist on a single worker.
 func validateWorkflowConflicts(registrations []*workflowRegistration) error {
 	// seen maps task queue -> workflow name -> source file
 	seen := make(map[string]map[string]string)
@@ -269,19 +282,19 @@ func validateWorkflowConflicts(registrations []*workflowRegistration) error {
 		if _, ok := seen[reg.TaskQueue]; !ok {
 			seen[reg.TaskQueue] = make(map[string]string)
 		}
-		if existing, ok := seen[reg.TaskQueue][reg.WorkflowName]; ok {
+		if existing, ok := seen[reg.TaskQueue][reg.WorkflowType]; ok {
 			return gh.FatalError{
 				Msg: "Duplicate workflow name on the same task queue",
 				WithParams: func(l *zerolog.Event) *zerolog.Event {
 					return l.
-						Str("workflowName", reg.WorkflowName).
+						Str("workflowType", reg.WorkflowType).
 						Str("taskQueue", reg.TaskQueue).
 						Str("file", reg.SourceFile).
 						Str("conflictsWith", existing)
 				},
 			}
 		}
-		seen[reg.TaskQueue][reg.WorkflowName] = reg.SourceFile
+		seen[reg.TaskQueue][reg.WorkflowType] = reg.SourceFile
 	}
 
 	return nil
@@ -296,13 +309,13 @@ func runScheduleUpdates(
 	envvars map[string]any,
 ) error {
 	for _, reg := range registrations {
-		log.Info().Str("workflow", reg.WorkflowName).Msg("Updating schedules")
+		log.Info().Str("workflow", reg.WorkflowType).Msg("Updating schedules")
 		if err := zigflow.UpdateSchedules(ctx, temporalClient, reg.Definition, envvars); err != nil {
 			return gh.FatalError{
 				Cause: err,
 				WithParams: func(l *zerolog.Event) *zerolog.Event {
 					return l.
-						Str("workflow", reg.WorkflowName).
+						Str("workflow", reg.WorkflowType).
 						Str("taskQueue", reg.TaskQueue).
 						Str("file", reg.SourceFile)
 				},
@@ -381,7 +394,7 @@ func buildWorkersByTaskQueue(
 
 		log.Info().
 			Str("task-queue", reg.TaskQueue).
-			Str("workflow", reg.WorkflowName).
+			Str("workflow", reg.WorkflowType).
 			Str("file", reg.SourceFile).
 			Msg("Registering workflow")
 
@@ -390,7 +403,7 @@ func buildWorkersByTaskQueue(
 				Cause: err,
 				WithParams: func(l *zerolog.Event) *zerolog.Event {
 					return l.
-						Str("workflow", reg.WorkflowName).
+						Str("workflow", reg.WorkflowType).
 						Str("file", reg.SourceFile)
 				},
 				Msg: "Unable to build workflow from DSL",
@@ -672,10 +685,10 @@ Workflow definitions are loaded from the files specified with --file, from a
 directory matched with --dir and --glob, or from both sources combined. All
 definitions are validated before any worker is started.
 
-Workflows that share a task queue (defined by their document namespace) are
+Workflows that share a task queue (defined by document.taskQueue) are
 registered on a single shared worker. Each distinct task queue gets its own
 worker. Multiple definitions targeting the same task queue and sharing a
-workflow name are rejected before startup.
+workflowType are rejected before startup.
 
 The process blocks until interrupted and then stops all workers cleanly before
 closing the Temporal connection.

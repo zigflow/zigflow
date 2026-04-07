@@ -48,8 +48,8 @@ Documents the workflow definition.
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
 | dsl | `string` | `yes` | The version of the DSL used to define the workflow. |
-| namespace | `string` | `yes` | The Temporal [Task Queue](https://docs.temporal.io/task-queue).<br /><br />**IMPORTANT**: this does **not** map to the [Temporal namespace](https://docs.temporal.io/namespaces), which is part of the connection information set at runtime. |
-| name | `string` | `yes` | The Temporal workflow's name. This will be ignored if multiple [`do`](/docs/dsl/tasks/do) are set and the workflow names will be taken from the step name |
+| taskQueue | `string` | `yes` | The Temporal [Task Queue](https://docs.temporal.io/task-queue) this workflow runs on. Workers register on this queue; clients must target the same name. |
+| workflowType | `string` | `yes` | The Temporal workflow type name. This will be ignored if multiple [`do`](/docs/dsl/tasks/do) are set and the workflow names will be taken from the step name. |
 | version | `string` | `yes` | The workflow's [semantic version](https://semver.org/) |
 | title | `string` | `no` | The workflow's title. |
 | summary | `string` | `no` | The workflow's Markdown summary. |
@@ -227,8 +227,8 @@ Defines a workflow or task timeout.
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: default
-  name: timeout-example
+  taskQueue: default
+  workflowType: timeout-example
   version: 0.1.0
 do:
   - waitAMinute:
@@ -279,6 +279,6 @@ This configures a [Temporal schedule](https://docs.temporal.io/schedule).
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
-| scheduleWorkflowName | `string` | `yes` | Set the workflow name to trigger - this will either be the document.name or the Do task |
-| scheduleId | `string` | `no` | Set the schedule ID. If not set, this will to `zigflow_<workflow.document.name>` |
+| scheduleWorkflowName | `string` | `yes` | Set the workflow name to trigger - this will either be the document.workflowType or the Do task |
+| scheduleId | `string` | `no` | Set the schedule ID. If not set, this defaults to `zigflow_<document.workflowType>` |
 | scheduleInput | `any[]` | `no` | Set the input |

@@ -35,8 +35,8 @@ connection to Temporal is made.
 
 Validation checks:
 
-- Required fields are present (`document.dsl`, `document.namespace`,
-  `document.name`, `document.version`, `do`)
+- Required fields are present (`document.dsl`, `document.taskQueue`,
+  `document.workflowType`, `document.version`, `do`)
 - All task types are recognised
 - Input schema is valid JSON Schema, if provided
 - All output and export expressions are syntactically correct
@@ -58,12 +58,12 @@ Zigflow connects to the Temporal server at the address given by
 ### 4. Register the workflow
 
 Zigflow registers the compiled workflow and its activities with Temporal under
-the task queue specified by `document.namespace`.
+the task queue specified by `document.taskQueue`.
 
 ### 5. Start polling
 
 The worker enters a poll loop. It asks Temporal: "is there any work on the
-`<namespace>` task queue?"
+`<taskQueue>` task queue?"
 
 The worker continues polling until it is interrupted (for example, with
 `Ctrl+C`).

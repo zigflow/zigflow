@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: mf-same
-  name: workflow-a
+  taskQueue: mf-same
+  workflowType: workflow-a
   version: 0.0.1
 do:
   - set:

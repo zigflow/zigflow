@@ -34,14 +34,15 @@ workflow definition.
 :::
 
 When defined at the root level, if a single is specified then a single Temporal
-workflow is registered, with the workflow name set by the `document.name` property.
+workflow is registered, with the workflow name set by the
+`document.workflowType` property.
 In this example, the workflow name is `single-workflow`:
 
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: single-workflow
+  taskQueue: zigflow
+  workflowType: single-workflow
   version: 0.0.1
 do:
   - setData:
@@ -78,14 +79,14 @@ Workflow names must be unique.
 
 When defined at the root level, you can use the Do task to create multiple
 workflows by specifying multiple Do tasks at the top level. If you do this, the
-workflow names will be set by the task name and the `document.name` property
+workflow names will be set by the task name and the `document.workflowType` property
 will be ignored.
 
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: multiple-workflows # This property is ignored
+  taskQueue: zigflow
+  workflowType: multiple-workflows # This property is ignored
   version: 0.0.1
 do:
   - workflow1:
@@ -115,7 +116,7 @@ independent and are named `workflow1` and `workflow2`.
 
 ## Gotchas
 
-**`document.name` is ignored when multiple Do tasks are defined at the root
+**`document.workflowType` is ignored when multiple Do tasks are defined at the root
 level.** Workflow type names are taken from the task names (`workflow1`,
 `workflow2`) instead.
 

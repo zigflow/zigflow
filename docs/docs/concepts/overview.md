@@ -24,8 +24,8 @@ it into a Temporal workflow and starts a worker that processes executions.
 ```yaml title="workflow.yaml"
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: greet-user
+  taskQueue: zigflow
+  workflowType: greet-user
   version: 1.0.0
 do:
   - greet:
@@ -96,8 +96,8 @@ Zigflow is a worker and a compiler. It does not:
 
 ## Common mistakes
 
-**Confusing the Zigflow `namespace` with the Temporal namespace.**
-The `document.namespace` field maps to the Temporal **task queue**, not the
+**Confusing `document.taskQueue` with the Temporal namespace.**
+The `document.taskQueue` field sets the Temporal **task queue** name, not the
 Temporal namespace. The Temporal namespace is set at runtime via
 `--temporal-namespace`.
 

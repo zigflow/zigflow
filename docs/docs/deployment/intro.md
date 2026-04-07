@@ -22,7 +22,7 @@ more **Temporal workers** that:
 
 A single Zigflow process can load multiple workflow definitions from separate
 files or a directory. Workflows that share a task queue (defined by
-`document.namespace`) run on the same worker. Each distinct task queue gets
+`document.taskQueue`) run on the same worker. Each distinct task queue gets
 its own worker.
 
 There is no separate API server, no database and no persistent storage.

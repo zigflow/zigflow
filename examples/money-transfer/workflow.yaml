@@ -180,8 +180,8 @@
 
 document:
   dsl: 1.0.0
-  namespace: MoneyTransfer
-  name: money-transfer
+  taskQueue: MoneyTransfer
+  workflowType: money-transfer
   version: 0.0.1
   title: Money Transfer Demo
   summary: Temporal's world-famous Money Transfer Demo, in Zigflow form

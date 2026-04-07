@@ -26,8 +26,8 @@ import (
 
 const validWorkflowYAML = `document:
   dsl: 1.0.0
-  namespace: default
-  name: test
+  taskQueue: default
+  workflowType: test
   version: 0.0.1
 do:
   - step:
@@ -36,7 +36,26 @@ do:
 
 const workflowUnsupportedDSL = `document:
   dsl: 0.9.0
-  namespace: default
+  taskQueue: default
+  workflowType: test
+  version: 0.0.1
+do:
+  - step:
+      set:
+        hello: world`
+
+const workflowMissingWorkflowName = `document:
+  dsl: 1.0.0
+  taskQueue: default
+  version: 0.0.1
+do:
+  - step:
+      set:
+        hello: world`
+
+const workflowLegacyName = `document:
+  dsl: 1.0.0
+  taskQueue: default
   name: test
   version: 0.0.1
 do:
@@ -44,9 +63,10 @@ do:
       set:
         hello: world`
 
-const workflowMissingName = `document:
+const workflowLegacyNamespace = `document:
   dsl: 1.0.0
   namespace: default
+  workflowType: test
   version: 0.0.1
 do:
   - step:
@@ -86,8 +106,18 @@ func TestNewValidateCmd(t *testing.T) {
 			ExpectError: true,
 		},
 		{
-			Name:        "workflow missing required name field",
-			Content:     workflowMissingName,
+			Name:        "workflow missing required workflowType field",
+			Content:     workflowMissingWorkflowName,
+			ExpectError: true,
+		},
+		{
+			Name:        "legacy document.name field is rejected",
+			Content:     workflowLegacyName,
+			ExpectError: true,
+		},
+		{
+			Name:        "legacy document.namespace field is rejected",
+			Content:     workflowLegacyNamespace,
 			ExpectError: true,
 		},
 	}

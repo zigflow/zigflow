@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: competing-tasks
+  taskQueue: zigflow
+  workflowType: competing-tasks
   version: 0.0.1
   title: Competing Concurrent Tasks
   summary: Have two tasks competing and the first to finish wins

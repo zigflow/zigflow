@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: workflow1 # Workflow name - not registered if every top-level task is a "do"
+  taskQueue: zigflow
+  workflowType: workflow1 # Workflow name - not registered if every top-level task is a "do"
   version: 0.0.1
   title: Multiple Workflows
   summary: Define and run multiple workflows within a single YAML file

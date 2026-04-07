@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: childWorkflow
+  taskQueue: zigflow
+  workflowType: childWorkflow
   version: 0.0.1
   title: Child Workflows
   summary: Define multiple workflows and call a child workflow from a parent

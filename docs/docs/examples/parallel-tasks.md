@@ -18,8 +18,8 @@ The slower branch is cancelled.
 ```yaml title="workflow.yaml"
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: competing-tasks
+  taskQueue: zigflow
+  workflowType: competing-tasks
   version: 0.0.1
 timeout:
   after:

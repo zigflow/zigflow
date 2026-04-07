@@ -45,7 +45,7 @@ This starts a Temporal worker that:
 
 - Connects to Temporal (default: `localhost:7233`)
 - Registers the compiled workflow on the task queue defined by
-  `document.namespace`
+  `document.taskQueue`
 - Polls Temporal until interrupted
 
 ### 4. Trigger the workflow
@@ -184,8 +184,8 @@ The task queue and workflow type must match what your client uses.
 Check:
 
 - `--task-queue` in `temporal workflow start` matches
-  `document.namespace` in your YAML
-- `--type` matches `document.name`
+  `document.taskQueue` in your YAML
+- `--type` matches `document.workflowType`
 
 **"dial tcp: connection refused" on startup.**
 Temporal is not reachable. Check `--temporal-address` and confirm

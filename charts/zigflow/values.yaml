@@ -49,8 +49,8 @@ workflow:
   inline:
     document:
       dsl: 1.0.0
-      namespace: zigflow
-      name: hello-world
+      taskQueue: zigflow
+      workflowType: hello-world
       version: 1.0.0
     do:
       - set:

@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: workflow2
+  taskQueue: zigflow
+  workflowType: workflow2
   version: 0.0.1
   title: Workflow 2
   summary: Another type of workflow

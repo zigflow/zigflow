@@ -1061,16 +1061,6 @@ properties:
         description: Holds additional information about the workflow.
         title: WorkflowMetadata
         type: object
-      name:
-        description: The workflow's name
-        pattern: ^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$
-        title: WorkflowName
-        type: string
-      namespace:
-        description: The workflow's namespace
-        pattern: ^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$
-        title: WorkflowNamespace
-        type: string
       summary:
         description: The workflow's Markdown summary.
         title: WorkflowSummary
@@ -1080,6 +1070,11 @@ properties:
         description: A key/value mapping of the workflow's tags, if any.
         title: WorkflowTags
         type: object
+      taskQueue:
+        description: The Temporal task queue the workflow runs on.
+        pattern: ^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$
+        title: WorkflowTaskQueue
+        type: string
       title:
         description: The workflow's title.
         title: WorkflowTitle
@@ -1089,10 +1084,15 @@ properties:
         pattern: ^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
         title: WorkflowVersion
         type: string
+      workflowType:
+        description: The Temporal workflow type name.
+        pattern: ^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$
+        title: WorkflowType
+        type: string
     required:
     - dsl
-    - namespace
-    - name
+    - taskQueue
+    - workflowType
     - version
     title: Document
     type: object

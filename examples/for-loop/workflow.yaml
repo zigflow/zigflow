@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: for-loop
+  taskQueue: zigflow
+  workflowType: for-loop
   version: 0.0.1
   title: For
   summary: How to use the for loop task

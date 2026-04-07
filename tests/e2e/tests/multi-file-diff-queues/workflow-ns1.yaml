@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: mf-ns1
-  name: workflow
+  taskQueue: mf-ns1
+  workflowType: workflow
   version: 0.0.1
 do:
   - set:

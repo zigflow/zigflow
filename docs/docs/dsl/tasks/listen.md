@@ -74,8 +74,8 @@ progress
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: query
+  taskQueue: zigflow
+  workflowType: query
   version: 0.0.1
 do:
   - queryState:
@@ -126,8 +126,8 @@ no response and is typically used to make fire-and-forget calls to a workflow.
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: signal
+  taskQueue: zigflow
+  workflowType: signal
   version: 0.0.1
 do:
   - approveListener:
@@ -169,8 +169,8 @@ makes a write call, optionally validates the input and then returns a response.
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: updates
+  taskQueue: zigflow
+  workflowType: updates
   version: 0.0.1
 do:
   - callDoctor:

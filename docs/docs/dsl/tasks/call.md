@@ -38,8 +38,8 @@ To use this, the `call` property must equal `activity`.
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: external-activity-call
+  taskQueue: zigflow
+  workflowType: external-activity-call
   version: 0.0.1
 do:
   - captureInput:
@@ -77,8 +77,8 @@ Call an external resource via gRPC. To use this, the `call` property must equal
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: external-activity-call
+  taskQueue: zigflow
+  workflowType: external-activity-call
   version: 0.0.1
 do:
   - greet:
@@ -117,8 +117,8 @@ Call an external resource via HTTP. To use this, the `call` property must equal
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: call-http
+  taskQueue: zigflow
+  workflowType: call-http
   version: 0.0.1
 do:
   - getUser:

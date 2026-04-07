@@ -17,8 +17,8 @@ Pause a workflow and wait for an external signal before continuing.
 ```yaml title="workflow.yaml"
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: signal
+  taskQueue: zigflow
+  workflowType: signal
   version: 0.0.1
 do:
   - approveListener:

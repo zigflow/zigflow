@@ -182,7 +182,7 @@ id: 550e8400-e29b-41d4-a716-446655440000
 time: "2026-02-09T10:30:00Z"
 datacontenttype: application/json
 data:
-  workflowName: example
+  workflowType: example
   input:
     userId: 42
 ---
@@ -339,7 +339,7 @@ before starting the worker. Run `zigflow validate` to see the error:
 
 1 validation error(s):
 
-1. document.name: is required
+1. document.workflowType: is required
 ```
 
 Fix the reported field and restart the worker.

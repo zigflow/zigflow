@@ -27,8 +27,8 @@ metadata which is treated as global to the workflow.
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: simple-workflow
+  taskQueue: zigflow
+  workflowType: simple-workflow
   version: 1.0.0
   metadata: {}
 ```

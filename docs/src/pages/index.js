@@ -27,8 +27,8 @@ import styles from './index.module.css';
 
 export const EXAMPLE_WORKFLOW = `document:
   dsl: 1.0.0
-  namespace: acme
-  name: onboard-user
+  taskQueue: acme
+  workflowType: onboard-user
   version: 1.0.0
 do:
   - fetchProfile:

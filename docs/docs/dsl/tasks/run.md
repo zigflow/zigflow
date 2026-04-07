@@ -47,8 +47,8 @@ using containerised applications, scripts, or commands.
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: example
+  taskQueue: zigflow
+  workflowType: example
   version: 0.0.1
 do:
   - container:
@@ -106,8 +106,8 @@ This is a list of available languages and the command that is called.
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: example
+  taskQueue: zigflow
+  workflowType: example
   version: 0.0.1
 do:
   - nodejs:
@@ -171,8 +171,8 @@ tasks.
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: example
+  taskQueue: zigflow
+  workflowType: example
   version: 0.0.1
 do:
   - runShell:
@@ -207,8 +207,8 @@ workflow units.
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: example
+  taskQueue: zigflow
+  workflowType: example
   version: 0.0.1
 timeout:
   after:

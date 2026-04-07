@@ -51,7 +51,7 @@ ENV WORKFLOW_DIRECTORY=/app/workflows
 COPY ./workflows /app/workflows
 ```
 
-Each distinct `document.namespace` in those files gets its own Temporal worker
+Each distinct `document.taskQueue` in those files gets its own Temporal worker
 and task queue.
 
 You can also combine both: set `WORKFLOW_FILE` and `WORKFLOW_DIRECTORY` together.

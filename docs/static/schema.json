@@ -21,18 +21,6 @@
           "description": "Holds additional information about the workflow.",
           "additionalProperties": true
         },
-        "name": {
-          "type": "string",
-          "title": "WorkflowName",
-          "description": "The workflow's name",
-          "pattern": "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$"
-        },
-        "namespace": {
-          "type": "string",
-          "title": "WorkflowNamespace",
-          "description": "The workflow's namespace",
-          "pattern": "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$"
-        },
         "summary": {
           "type": "string",
           "title": "WorkflowSummary",
@@ -44,6 +32,12 @@
           "description": "A key/value mapping of the workflow's tags, if any.",
           "additionalProperties": true
         },
+        "taskQueue": {
+          "type": "string",
+          "title": "WorkflowTaskQueue",
+          "description": "The Temporal task queue the workflow runs on.",
+          "pattern": "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$"
+        },
         "title": {
           "type": "string",
           "title": "WorkflowTitle",
@@ -54,14 +48,20 @@
           "title": "WorkflowVersion",
           "description": "The workflow's semantic version.",
           "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+        },
+        "workflowType": {
+          "type": "string",
+          "title": "WorkflowType",
+          "description": "The Temporal workflow type name.",
+          "pattern": "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$"
         }
       },
       "title": "Document",
       "description": "Documents the workflow",
       "required": [
         "dsl",
-        "namespace",
-        "name",
+        "taskQueue",
+        "workflowType",
         "version"
       ],
       "unevaluatedProperties": false

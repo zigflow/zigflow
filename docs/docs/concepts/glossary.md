@@ -60,20 +60,10 @@ Used in the [`switch`](/docs/dsl/tasks/switch) task.
 
 ---
 
-## Namespace (Zigflow)
-
-The `document.namespace` field in a Zigflow YAML file. Maps to the Temporal
-**task queue**, not the Temporal namespace. Workers register on this task
-queue; clients must use the same name.
-
----
-
 ## Namespace (Temporal)
 
 An isolation boundary in Temporal. The default is `default`. Set at runtime
 with `--temporal-namespace`.
-
-Do not confuse with `document.namespace`.
 
 ---
 
@@ -111,7 +101,7 @@ In Zigflow, handled by the [`listen`](/docs/dsl/tasks/listen) task with
 A named channel in Temporal that connects clients and workers. Workers poll
 a task queue for work. Clients start executions on a task queue.
 
-In Zigflow, `document.namespace` sets the task queue name.
+In Zigflow, `document.taskQueue` sets the task queue name.
 
 ---
 
@@ -144,7 +134,7 @@ starts a Temporal worker.
 ## Workflow type
 
 The name Temporal uses to identify a workflow. In Zigflow, this is
-`document.name`. Clients must use this name when starting an execution.
+`document.workflowType`. Clients must use this name when starting an execution.
 
 ---
 

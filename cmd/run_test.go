@@ -137,13 +137,13 @@ func TestNewRunCmd_Flags(t *testing.T) {
 }
 
 // minimalWorkflowYAML returns the smallest valid workflow YAML for the given
-// namespace and name. The document version and DSL are fixed to keep fixtures
-// short.
+// taskQueue and workflowType. The document version and DSL are fixed to keep
+// fixtures short.
 func minimalWorkflowYAML(namespace, name string) string {
 	return `document:
   dsl: 1.0.0
-  namespace: ` + namespace + `
-  name: ` + name + `
+  taskQueue: ` + namespace + `
+  workflowType: ` + name + `
   version: 0.0.1
 do:
   - noop:
@@ -254,7 +254,7 @@ func TestLoadWorkflows_SingleValidFile(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, regs, 1)
 	assert.Equal(t, "myns", regs[0].TaskQueue)
-	assert.Equal(t, "mywf", regs[0].WorkflowName)
+	assert.Equal(t, "mywf", regs[0].WorkflowType)
 	assert.Equal(t, p, regs[0].SourceFile)
 }
 
@@ -274,8 +274,8 @@ func TestLoadWorkflows_RejectsEmptyName(t *testing.T) {
 	p := filepath.Join(dir, "empty-name.yaml")
 	require.NoError(t, os.WriteFile(p, []byte(`document:
   dsl: 1.0.0
-  namespace: ns
-  name: ""
+  taskQueue: ns
+  workflowType: ""
   version: 0.0.1
 do:
   - noop:
@@ -285,8 +285,7 @@ do:
 
 	validator := newTestValidator(t)
 	_, err := loadWorkflows([]string{p}, "", validator, false)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "name must not be empty")
+	assert.Error(t, err, "empty workflowType must be rejected")
 }
 
 func TestLoadWorkflows_RejectsEmptyNamespace(t *testing.T) {
@@ -294,8 +293,8 @@ func TestLoadWorkflows_RejectsEmptyNamespace(t *testing.T) {
 	p := filepath.Join(dir, "empty-ns.yaml")
 	require.NoError(t, os.WriteFile(p, []byte(`document:
   dsl: 1.0.0
-  namespace: ""
-  name: wf
+  taskQueue: ""
+  workflowType: wf
   version: 0.0.1
 do:
   - noop:
@@ -305,16 +304,15 @@ do:
 
 	validator := newTestValidator(t)
 	_, err := loadWorkflows([]string{p}, "", validator, false)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "namespace must not be empty")
+	assert.Error(t, err, "empty taskQueue must be rejected")
 }
 
 // ---- validateWorkflowConflicts ----
 
 func TestValidateWorkflowConflicts_DuplicateNameSameQueue(t *testing.T) {
 	regs := []*workflowRegistration{
-		{SourceFile: "a.yaml", TaskQueue: "q", WorkflowName: "wf"},
-		{SourceFile: "b.yaml", TaskQueue: "q", WorkflowName: "wf"},
+		{SourceFile: "a.yaml", TaskQueue: "q", WorkflowType: "wf"},
+		{SourceFile: "b.yaml", TaskQueue: "q", WorkflowType: "wf"},
 	}
 	err := validateWorkflowConflicts(regs)
 	assert.Error(t, err)
@@ -323,16 +321,16 @@ func TestValidateWorkflowConflicts_DuplicateNameSameQueue(t *testing.T) {
 
 func TestValidateWorkflowConflicts_SameNameDifferentQueues(t *testing.T) {
 	regs := []*workflowRegistration{
-		{SourceFile: "a.yaml", TaskQueue: "q1", WorkflowName: "wf"},
-		{SourceFile: "b.yaml", TaskQueue: "q2", WorkflowName: "wf"},
+		{SourceFile: "a.yaml", TaskQueue: "q1", WorkflowType: "wf"},
+		{SourceFile: "b.yaml", TaskQueue: "q2", WorkflowType: "wf"},
 	}
 	assert.NoError(t, validateWorkflowConflicts(regs))
 }
 
 func TestValidateWorkflowConflicts_DifferentNamesSameQueue(t *testing.T) {
 	regs := []*workflowRegistration{
-		{SourceFile: "a.yaml", TaskQueue: "q", WorkflowName: "wf1"},
-		{SourceFile: "b.yaml", TaskQueue: "q", WorkflowName: "wf2"},
+		{SourceFile: "a.yaml", TaskQueue: "q", WorkflowType: "wf1"},
+		{SourceFile: "b.yaml", TaskQueue: "q", WorkflowType: "wf2"},
 	}
 	assert.NoError(t, validateWorkflowConflicts(regs))
 }
@@ -353,4 +351,38 @@ func TestPrepareRegistrations_HappyPath(t *testing.T) {
 	regs, err := prepareRegistrations(opts)
 	require.NoError(t, err)
 	assert.Len(t, regs, 2)
+}
+
+// TestLoadWorkflows_ValidateFlagControlsSchemaValidation verifies that the
+// validate flag is threaded through to schema validation in the loader.
+func TestLoadWorkflows_ValidateFlagControlsSchemaValidation(t *testing.T) {
+	// A workflow using the legacy document.name field, which the Zigflow schema
+	// rejects but the raw SDK unmarshal accepts.
+	const legacyWorkflow = `document:
+  dsl: 1.0.0
+  taskQueue: default
+  name: test
+  version: 0.0.1
+do:
+  - step:
+      set:
+        hello: world
+`
+
+	dir := t.TempDir()
+	p := filepath.Join(dir, "legacy.yaml")
+	require.NoError(t, os.WriteFile(p, []byte(legacyWorkflow), 0o600))
+
+	validator := newTestValidator(t)
+
+	t.Run("validate=true rejects legacy fields", func(t *testing.T) {
+		_, err := loadWorkflows([]string{p}, "", validator, true)
+		assert.Error(t, err, "schema validation must reject legacy fields when validate=true")
+	})
+
+	t.Run("validate=false allows legacy fields", func(t *testing.T) {
+		regs, err := loadWorkflows([]string{p}, "", validator, false)
+		assert.NoError(t, err, "legacy fields must be accepted when validate=false")
+		assert.Len(t, regs, 1)
+	})
 }

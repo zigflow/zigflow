@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: activity-call
+  taskQueue: zigflow
+  workflowType: activity-call
   version: 0.0.1
   title: Activity Call
   summary: Invoke an external Temporal activity from Zigflow

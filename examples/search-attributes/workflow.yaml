@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: searchAttributes # Workflow name
+  taskQueue: zigflow
+  workflowType: searchAttributes # Workflow name
   version: 0.0.1
   title: Custom Search Attributes
   summary: How to add custom search attribute data into your Temporal workflows

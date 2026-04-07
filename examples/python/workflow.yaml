@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: basic-python
+  taskQueue: zigflow
+  workflowType: basic-python
   version: 0.0.1
   title: Python
   summary: The basic example, but in Python

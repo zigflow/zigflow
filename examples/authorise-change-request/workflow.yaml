@@ -19,8 +19,8 @@
 
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: authoriseChangeRequest
+  taskQueue: zigflow
+  workflowType: authoriseChangeRequest
   version: 0.0.1
   title: Authorise Change Request
   summary: Authorise and implement or reject a change request

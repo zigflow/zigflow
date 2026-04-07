@@ -23,8 +23,8 @@ integer count.
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow # Mapped to the task queue
-  name: for-loop # Workflow name
+  taskQueue: zigflow # Mapped to the task queue
+  workflowType: for-loop # Workflow name
   version: 0.0.1
 do:
   # Iterate over the map object

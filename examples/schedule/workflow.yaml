@@ -1,12 +1,12 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: schedule
+  taskQueue: zigflow
+  workflowType: schedule
   version: 0.0.1
   title: Scheduling
   summary: Schedule the tasks to be triggered automatically
   metadata:
-    # Set the workflow name to trigger - this will either be the document.name or the Do task (see multiple-workflows example)
+    # Set the workflow name to trigger - this will either be the document.workflowType or the Do task (see multiple-workflows example)
     scheduleWorkflowName: schedule
     # Optionally set the schedule ID name
     scheduleId: some-schedule

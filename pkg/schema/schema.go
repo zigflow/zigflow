@@ -56,7 +56,7 @@ var schemaProperties = map[string]*jsonschema.Schema{
 		Type:                  "object",
 		Title:                 "Document",
 		Description:           "Documents the workflow",
-		Required:              []string{"dsl", "namespace", "name", "version"},
+		Required:              []string{"dsl", "taskQueue", "workflowType", "version"},
 		UnevaluatedProperties: falseSchema(),
 		Properties: map[string]*jsonschema.Schema{
 			"dsl": {
@@ -71,17 +71,17 @@ var schemaProperties = map[string]*jsonschema.Schema{
 				Description:          "Holds additional information about the workflow.",
 				AdditionalProperties: trueSchema(),
 			},
-			"name": {
+			"taskQueue": {
 				Type:        "string",
-				Title:       "WorkflowName",
+				Title:       "WorkflowTaskQueue",
 				Pattern:     dnsLabelPattern,
-				Description: "The workflow's name",
+				Description: "The Temporal task queue the workflow runs on.",
 			},
-			"namespace": {
+			"workflowType": {
 				Type:        "string",
-				Title:       "WorkflowNamespace",
+				Title:       "WorkflowType",
 				Pattern:     dnsLabelPattern,
-				Description: "The workflow's namespace",
+				Description: "The Temporal workflow type name.",
 			},
 			"summary": {
 				Type:        "string",

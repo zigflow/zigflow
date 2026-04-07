@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: updates
+  taskQueue: zigflow
+  workflowType: updates
   version: 0.0.1
   title: Update Listeners
   summary: Listen for Temporal update events

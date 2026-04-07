@@ -35,8 +35,8 @@ func NewWorkflow(
 	emitter *cloudevents.Events,
 	telem *telemetry.Telemetry,
 ) error {
-	workflowName := doc.Document.Name
-	l := log.With().Str("workflowName", workflowName).Logger()
+	workflowType := doc.Document.Name
+	l := log.With().Str("workflowType", workflowType).Logger()
 
 	maxHistoryLength, err := metadata.GetMaxHistoryLength(doc)
 	if err != nil {
@@ -47,7 +47,7 @@ func NewWorkflow(
 	doBuilder, err := tasks.NewDoTaskBuilder(
 		temporalWorker,
 		&model.DoTask{Do: doc.Do},
-		workflowName,
+		workflowType,
 		doc,
 		emitter,
 		tasks.DoTaskOpts{
@@ -74,13 +74,13 @@ func NewWorkflow(
 }
 
 func newWorkflowPostLoad(doc *model.Workflow) error {
-	workflowName := doc.Document.Name
-	l := log.With().Str("workflowName", workflowName).Logger()
+	workflowType := doc.Document.Name
+	l := log.With().Str("workflowType", workflowType).Logger()
 
 	doBuilder, err := tasks.NewDoTaskBuilder(
 		nil,
 		&model.DoTask{Do: doc.Do},
-		workflowName,
+		workflowType,
 		doc,
 		&cloudevents.Events{}, // Stubbed as not used by the post loader
 	)

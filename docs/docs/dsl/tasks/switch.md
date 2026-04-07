@@ -38,8 +38,8 @@ on `$input.orderType`:
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: order-router
+  taskQueue: zigflow
+  workflowType: order-router
   version: 1.0.0
 do:
   - routeOrder:

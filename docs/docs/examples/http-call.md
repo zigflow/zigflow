@@ -18,8 +18,8 @@ workflow state.
 ```yaml title="workflow.yaml"
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: fetch-user
+  taskQueue: zigflow
+  workflowType: fetch-user
   version: 0.0.1
 do:
   - getUser:

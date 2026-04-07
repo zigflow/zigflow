@@ -48,8 +48,8 @@ This workflow sets a single value and returns it as output.
 ```yaml title="workflow.yaml"
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: simple-workflow
+  taskQueue: zigflow
+  workflowType: simple-workflow
   version: 1.0.0
 do:
   - set:

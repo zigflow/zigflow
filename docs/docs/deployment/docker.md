@@ -180,7 +180,7 @@ If you configure a workflow file, it must exist. To use directory-only mode,
 set `WORKFLOW_FILE=`. If a configured file does not exist, Zigflow will fail at
 startup. There is no implicit fallback or silent skip.
 
-Workflows that share a task queue (defined by `document.namespace`) are
+Workflows that share a task queue (defined by `document.taskQueue`) are
 registered on the same Temporal worker. Each distinct task queue gets its
 own worker.
 

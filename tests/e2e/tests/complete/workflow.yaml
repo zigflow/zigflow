@@ -2,8 +2,8 @@
 # test.
 document:
   dsl: 1.0.0
-  namespace: complete
-  name: workflow
+  taskQueue: complete
+  workflowType: workflow
   version: 0.0.1
 input:
   schema:

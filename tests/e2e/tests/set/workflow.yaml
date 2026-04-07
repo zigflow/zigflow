@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: set
-  name: workflow
+  taskQueue: set
+  workflowType: workflow
   version: 0.0.1
 do:
   - set:

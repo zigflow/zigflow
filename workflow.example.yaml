@@ -1,9 +1,9 @@
-# This is a simple Serverless Workflow that will be
+# This is a simple Zigflow workflow definition that will be
 # translated into a Temporal workflow
 document:
   dsl: 1.0.0
-  namespace: zigflow # Mapped to the task queue
-  name: example # Workflow name
+  taskQueue: zigflow # The Temporal task queue
+  workflowType: example # The Temporal workflow type name
   version: 0.0.1
   title: Example Workflow
   summary: An example of how to use Serverless Workflow to define Temporal Workflows

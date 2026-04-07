@@ -29,10 +29,10 @@ import (
 func minimalWorkflow() map[string]any {
 	return map[string]any{
 		"document": map[string]any{
-			"dsl":       "1.0.0",
-			"namespace": "default",
-			"name":      "test",
-			"version":   "1.0.0",
+			"dsl":          "1.0.0",
+			"taskQueue":    "default",
+			"workflowType": "test",
+			"version":      "1.0.0",
 		},
 		"do": []any{
 			map[string]any{
@@ -42,6 +42,57 @@ func minimalWorkflow() map[string]any {
 			},
 		},
 	}
+}
+
+// TestSchema_DocumentFields verifies that the document schema accepts the
+// Zigflow-aligned field names and rejects the old Serverless Workflow names.
+func TestSchema_DocumentFields(t *testing.T) {
+	s, err := BuildSchema("1.0.0", "json")
+	require.NoError(t, err)
+
+	resolved, err := s.Resolve(nil)
+	require.NoError(t, err)
+
+	t.Run("workflowType and taskQueue are accepted", func(t *testing.T) {
+		err := resolved.Validate(minimalWorkflow())
+		assert.NoError(t, err)
+	})
+
+	t.Run("old name field is rejected", func(t *testing.T) {
+		doc := minimalWorkflow()
+		document := doc["document"].(map[string]any)
+		delete(document, "workflowType")
+		document["name"] = "test"
+
+		err := resolved.Validate(doc)
+		assert.Error(t, err, "old 'name' field must be rejected; use 'workflowType' instead")
+	})
+
+	t.Run("old namespace field is rejected", func(t *testing.T) {
+		doc := minimalWorkflow()
+		document := doc["document"].(map[string]any)
+		delete(document, "taskQueue")
+		document["namespace"] = "default"
+
+		err := resolved.Validate(doc)
+		assert.Error(t, err, "old 'namespace' field must be rejected; use 'taskQueue' instead")
+	})
+
+	t.Run("missing workflowType is rejected", func(t *testing.T) {
+		doc := minimalWorkflow()
+		delete(doc["document"].(map[string]any), "workflowType")
+
+		err := resolved.Validate(doc)
+		assert.Error(t, err, "document without workflowType must fail validation")
+	})
+
+	t.Run("missing taskQueue is rejected", func(t *testing.T) {
+		doc := minimalWorkflow()
+		delete(doc["document"].(map[string]any), "taskQueue")
+
+		err := resolved.Validate(doc)
+		assert.Error(t, err, "document without taskQueue must fail validation")
+	})
 }
 
 // TestSchema_RejectsUnknownTopLevelProperties verifies that the root schema

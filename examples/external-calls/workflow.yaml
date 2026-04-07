@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: external-calls
+  taskQueue: zigflow
+  workflowType: external-calls
   version: 0.0.1
   title: External Calls
   summary: An example of how to use Zigflow to make external gRPC and HTTP calls

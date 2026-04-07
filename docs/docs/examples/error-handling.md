@@ -21,8 +21,8 @@ block intercepts the error and sets a fallback value.
 ```yaml title="workflow.yaml"
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: try-catch
+  taskQueue: zigflow
+  workflowType: try-catch
   version: 0.0.1
 do:
   - user:

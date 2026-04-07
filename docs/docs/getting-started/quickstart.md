@@ -64,8 +64,8 @@ Create a file named `workflow.yaml`:
 ```yaml title="workflow.yaml"
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: hello-world
+  taskQueue: zigflow
+  workflowType: hello-world
   version: 1.0.0
 do:
   - greet:
@@ -78,8 +78,8 @@ do:
 
 What this does:
 
-- `document.namespace`: sets the task queue to `zigflow`
-- `document.name`: sets the workflow type to `hello-world`
+- `document.taskQueue`: sets the Temporal task queue to `zigflow`
+- `document.workflowType`: sets the Temporal workflow type to `hello-world`
 - `do`: a list of tasks to run in order; each key (`greet`) is an arbitrary
   step name you choose. It is not a reserved keyword.
 - `set`: stores `message` into the workflow state
@@ -96,14 +96,14 @@ zigflow validate workflow.yaml
 ```
 
 A valid workflow prints nothing and exits with code 0. An invalid workflow
-prints a human-readable error. For example, if `document.name` is missing:
+prints a human-readable error. For example, if `document.workflowType` is missing:
 
 ```text
 ❌ Validation failed for workflow.yaml
 
 1 validation error(s):
 
-1. document.name: is required
+1. document.workflowType: is required
 ```
 
 Each error includes the field path and a description of the rule that failed.
@@ -180,12 +180,12 @@ temporal server start-dev
 ### "No workers are registered for this task queue"
 
 The task queue in your workflow file must match the task queue you use when
-starting the execution. The value is `document.namespace` in your YAML file.
+starting the execution. The value is `document.taskQueue` in your YAML file.
 
 ### "Workflow type not found"
 
-The workflow type must match `document.name` in your YAML file. Check for
-typos.
+The workflow type must match `document.workflowType` in your YAML file. Check
+for typos.
 
 ### The worker shows no output after starting
 

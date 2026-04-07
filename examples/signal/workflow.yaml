@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: signal
+  taskQueue: zigflow
+  workflowType: signal
   version: 0.0.1
   title: Signal Listeners
   summary: Listen for Temporal signal events

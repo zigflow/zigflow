@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: heartbeat
+  taskQueue: zigflow
+  workflowType: heartbeat
   version: 0.0.1
   title: Heartbeat
   summary: Set [activity heartbeat](https://docs.temporal.io/encyclopedia/detecting-activity-failures#activity-heartbeat). Useful on long-running activities.

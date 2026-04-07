@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: hello-world
+  taskQueue: zigflow
+  workflowType: hello-world
   version: 0.0.1
   title: Hello World AES Encrypted
   summary: Hello world with Zigflow, but [encrypted](https://github.com/mrsimonemms/temporal-codec-server)

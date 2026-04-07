@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: try-catch
+  taskQueue: zigflow
+  workflowType: try-catch
   version: 0.0.1
   title: Try/Catch
   summary: An example of how to catch an erroring workflow

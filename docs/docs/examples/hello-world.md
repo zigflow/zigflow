@@ -17,8 +17,8 @@ A minimal workflow that sets a single value and returns it.
 ```yaml title="workflow.yaml"
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: hello-world
+  taskQueue: zigflow
+  workflowType: hello-world
   version: 0.0.1
 do:
   - greet:
@@ -33,8 +33,8 @@ do:
 
 | Part | Purpose |
 | --- | --- |
-| `document.namespace` | Sets the Temporal task queue to `zigflow` |
-| `document.name` | Sets the workflow type to `hello-world` |
+| `document.taskQueue` | Sets the Temporal task queue to `zigflow` |
+| `document.workflowType` | Sets the Temporal workflow type to `hello-world` |
 | `set` | Writes `message` into the workflow state |
 | `output.as` | Shapes the return value of this task |
 
@@ -84,11 +84,11 @@ so generated values such as `${ uuid }` are determinism-safe here.
 ## Common mistakes
 
 **"No workers are registered for this task queue."**
-The `--task-queue` value must match `document.namespace` in the YAML
+The `--task-queue` value must match `document.taskQueue` in the YAML
 file.
 
 **"Workflow type not found."**
-The `--type` value must match `document.name` in the YAML file.
+The `--type` value must match `document.workflowType` in the YAML file.
 
 ---
 

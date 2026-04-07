@@ -58,6 +58,13 @@ Arguments:
 				File: filePath,
 			}
 
+			if err := zigflow.ValidateFile(filePath); err != nil {
+				return gh.FatalError{
+					Cause: err,
+					Msg:   "Schema validation failed",
+				}
+			}
+
 			workflowDefinition, err := zigflow.LoadFromFile(filePath)
 			if err != nil {
 				return gh.FatalError{

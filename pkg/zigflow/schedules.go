@@ -61,7 +61,7 @@ func UpdateSchedules(ctx context.Context, temporalClient client.Client, workflow
 		Spec: *scheduleSpec,
 		Action: &client.ScheduleWorkflowAction{
 			Workflow:  info.WorkflowName,
-			TaskQueue: workflow.Document.Namespace,
+			TaskQueue: workflow.Document.Namespace, // mapped from document.taskQueue
 			Args:      info.Input,
 		},
 	}

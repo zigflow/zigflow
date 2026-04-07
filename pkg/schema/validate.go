@@ -14,11 +14,25 @@
  * limitations under the License.
  */
 
-package zigflow
+package schema
 
 import "fmt"
 
-var (
-	ErrUnsupportedDSL   = fmt.Errorf("unsupported dsl version")
-	ErrSchemaValidation = fmt.Errorf("workflow failed schema validation")
-)
+// ValidateDocument validates a raw workflow document map against the Zigflow
+// JSON Schema. It returns a non-nil error if the document does not conform,
+// including when legacy fields (document.name, document.namespace) are present
+// or when required fields (document.workflowType, document.taskQueue) are
+// absent.
+func ValidateDocument(doc map[string]any) error {
+	s, err := BuildSchema("development", "json")
+	if err != nil {
+		return fmt.Errorf("building schema: %w", err)
+	}
+
+	resolved, err := s.Resolve(nil)
+	if err != nil {
+		return fmt.Errorf("resolving schema: %w", err)
+	}
+
+	return resolved.Validate(doc)
+}

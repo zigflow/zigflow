@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: basic
+  taskQueue: zigflow
+  workflowType: basic
   version: 0.0.1
   title: Basic
   summary: An example of how to use Serverless Workflow to define Temporal Workflows

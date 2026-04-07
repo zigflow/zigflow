@@ -1,7 +1,7 @@
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: raise
+  taskQueue: zigflow
+  workflowType: raise
   version: 0.0.1
   title: Throw an error
   summary: Throw an error from a Temporal workflow

@@ -430,9 +430,9 @@ true
   ],
   "document": {
     "dsl": "1.0.0",
-    "name": "hello-world",
-    "namespace": "zigflow",
-    "version": "1.0.0"
+    "taskQueue": "zigflow",
+    "version": "1.0.0",
+    "workflowType": "hello-world"
   }
 }
 </pre>

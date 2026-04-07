@@ -20,8 +20,8 @@ periods, scheduled actions and pauses between retry attempts.
 ```yaml
 document:
   dsl: 1.0.0
-  namespace: zigflow
-  name: example
+  taskQueue: zigflow
+  workflowType: example
   version: 0.0.1
 do:
   - wait:

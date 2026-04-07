@@ -47,7 +47,7 @@ namespace is `default`.
 In Zigflow, the Temporal namespace is set at runtime with the
 `--temporal-namespace` flag, not in the YAML definition.
 
-Do not confuse this with `document.namespace`, which maps to the task queue.
+Do not confuse this with `document.taskQueue`, which sets the task queue name.
 
 ---
 
@@ -56,7 +56,7 @@ Do not confuse this with `document.namespace`, which maps to the task queue.
 A task queue is a named channel between clients and workers. Workers poll a
 task queue for work. Clients start executions on a task queue.
 
-In Zigflow, `document.namespace` in your YAML sets the task queue name. When
+In Zigflow, `document.taskQueue` in your YAML sets the task queue name. When
 you run `zigflow run`, the worker registers itself on that task queue.
 
 ---
@@ -87,7 +87,7 @@ Temporal activities.
 A worker is a process that polls Temporal for tasks and executes them.
 
 `zigflow run` starts a Temporal worker. The worker polls the task queue
-specified by `document.namespace` and executes workflow and activity tasks.
+specified by `document.taskQueue` and executes workflow and activity tasks.
 
 ---
 
@@ -155,7 +155,7 @@ The Temporal server will queue the execution, but it will not start until a
 worker is polling the task queue.
 
 **Using the wrong task queue name.**
-Check that `document.namespace` in your YAML matches what your client uses as
+Check that `document.taskQueue` in your YAML matches what your client uses as
 the task queue.
 
 ---
