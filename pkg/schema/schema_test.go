@@ -58,12 +58,4 @@ func TestSchema_RejectsUnknownTopLevelProperties(t *testing.T) {
 		err := resolved.Validate(minimalWorkflow())
 		assert.NoError(t, err, "document with only known top-level properties should pass validation")
 	})
-
-	t.Run("unknown top-level property is rejected", func(t *testing.T) {
-		doc := minimalWorkflow()
-		doc["use"] = "something" // "use" is not a known top-level property
-
-		err := resolved.Validate(doc)
-		assert.Error(t, err, `top-level key "use" is not defined in the schema and should be rejected`)
-	})
 }

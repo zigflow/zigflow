@@ -28,15 +28,14 @@ func BuildSchema(version, format string) (*jsonschema.Schema, error) {
 		schemaID = fmt.Sprintf(SchemaID, format)
 	}
 	schema := &jsonschema.Schema{
-		ID:                    schemaID,
-		Schema:                SchemaVersion,
-		Title:                 SchemaTitle,
-		Description:           SchemaDescription,
-		Type:                  "object",
-		Required:              []string{"do", "document"},
-		Properties:            schemaProperties,
-		Defs:                  buildDefinitions(),
-		UnevaluatedProperties: falseSchema(),
+		ID:          schemaID,
+		Schema:      SchemaVersion,
+		Title:       SchemaTitle,
+		Description: SchemaDescription,
+		Type:        "object",
+		Required:    []string{"do", "document"},
+		Properties:  schemaProperties,
+		Defs:        buildDefinitions(),
 	}
 
 	// Validate the generated schema

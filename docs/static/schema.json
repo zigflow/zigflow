@@ -1556,6 +1556,5 @@
   "required": [
     "do",
     "document"
-  ],
-  "unevaluatedProperties": false
+  ]
 }
