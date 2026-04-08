@@ -1,0 +1,1255 @@
+$defs:
+  callTask:
+    description: Defines the call to perform.
+    oneOf:
+    - allOf:
+      - $ref: '#/$defs/taskBase'
+      - properties:
+          call:
+            const: activity
+            type: string
+          with:
+            description: The activity call arguments.
+            properties:
+              arguments:
+                type: array
+              name:
+                description: The name of the activity to call on the defined Activity
+                  service.
+                title: WithActivityName
+                type: string
+              taskQueue:
+                description: The name of the task queue to call on the defined Activity
+                  service.
+                title: WithActivityTaskQueue
+                type: string
+            required:
+            - name
+            - taskQueue
+            title: ActivityArguments
+            type: object
+            unevaluatedProperties: false
+      description: Defines the external Temporal activity call to perform.
+      required:
+      - call
+      - with
+      title: CallActivity
+      type: object
+      unevaluatedProperties: false
+    - allOf:
+      - $ref: '#/$defs/taskBase'
+      - properties:
+          call:
+            const: grpc
+            type: string
+          with:
+            description: The GRPC call arguments.
+            properties:
+              arguments:
+                additionalProperties: true
+                description: The arguments, if any, to call the method with.
+                title: WithGRPCArguments
+                type: object
+              method:
+                description: The name of the method to call on the defined GRPC service.
+                title: WithGRPCMethod
+                type: string
+              proto:
+                $ref: '#/$defs/externalResource'
+                description: The proto resource that describes the GRPC service to
+                  call.
+                title: WithGRPCProto
+              service:
+                properties:
+                  host:
+                    description: The hostname of the GRPC service to call.
+                    pattern: ^[a-zA-Z0-9](?:[a-zA-Z0-9-.]{0,61}[a-zA-Z0-9])?$
+                    title: WithGRPCServiceHost
+                    type: string
+                  name:
+                    description: The name of the GRPC service to call.
+                    title: WithGRPCServiceName
+                    type: string
+                  port:
+                    description: The port number of the GRPC service to call.
+                    maximum: 65535
+                    minimum: 0
+                    title: WithGRPCServicePort
+                    type: integer
+                required:
+                - name
+                - host
+                title: WithGRPCService
+                type: object
+                unevaluatedProperties: false
+            required:
+            - proto
+            - service
+            - method
+            title: GRPCArguments
+            type: object
+            unevaluatedProperties: false
+      description: Defines the GRPC call to perform.
+      required:
+      - call
+      - with
+      title: CallGRPC
+      type: object
+      unevaluatedProperties: false
+    - allOf:
+      - $ref: '#/$defs/taskBase'
+      - properties:
+          call:
+            const: http
+            type: string
+          with:
+            description: The HTTP call arguments.
+            properties:
+              body:
+                description: The body, if any, of the HTTP request to perform.
+                title: HTTPBody
+              endpoint:
+                $ref: '#/$defs/endpoint'
+                description: The HTTP endpoint to send the request to.
+                title: HTTPEndpoint
+              headers:
+                description: A name/value mapping of the headers, if any, of the HTTP
+                  request to perform.
+                oneOf:
+                - additionalProperties:
+                    type: string
+                  type: object
+                - $ref: '#/$defs/runtimeExpression'
+                title: HTTPHeaders
+              method:
+                description: The HTTP method of the HTTP request to perform.
+                title: HTTPMethod
+                type: string
+              output:
+                description: The http call output format. Defaults to 'content'.
+                enum:
+                - raw
+                - content
+                - response
+                title: HTTPOutput
+                type: string
+              query:
+                additionalProperties: true
+                description: A name/value mapping of the query parameters, if any,
+                  of the HTTP request to perform.
+                oneOf:
+                - additionalProperties:
+                    type: string
+                  type: object
+                - $ref: '#/$defs/runtimeExpression'
+                title: HTTPQuery
+              redirect:
+                description: Specifies whether redirection status codes (`300-399`)
+                  should be treated as errors.
+                title: HttpRedirect
+                type: boolean
+            required:
+            - method
+            - endpoint
+            title: HTTPArguments
+            type: object
+            unevaluatedProperties: false
+      description: Defines the HTTP call to perform.
+      required:
+      - call
+      - with
+      title: CallHTTP
+      type: object
+      unevaluatedProperties: false
+    title: CallTask
+  commonMetadata:
+    additionalProperties: true
+    properties:
+      activityOptions:
+        additionalProperties: false
+        properties:
+          disableEagerExecution:
+            default: false
+            description: If true, eager execution will not be requested, regardless
+              of worker settings. If false, eager execution may still be disabled
+              at the worker level or may not be requested due to lack of available
+              slots.
+            type: boolean
+          heartbeatTimeout:
+            $ref: '#/$defs/duration'
+            description: Heartbeat interval. A heartbeat must be set and be called
+              before the interval passes.
+            title: HeartbeatTimeout
+          retryPolicy:
+            additionalProperties: false
+            description: Specifies how to retry an Activity if an error occurs
+            properties:
+              backoffCoefficient:
+                default: 2
+                description: Coefficient used to calculate the next retry backoff
+                  interval.
+                title: BackoffCoefficient
+                type: number
+              initialInterval:
+                $ref: '#/$defs/duration'
+                description: Backoff interval for the first retry. If BackoffCoefficient
+                  is 1.0 then it is used for all retries.
+                title: InitialInterval
+              maximumAttempts:
+                default: 5
+                description: Maximum number of attempts. When exceeded the retries
+                  stop even if not expired yet.
+                title: MaximumAttempts
+                type: integer
+              maximumInterval:
+                $ref: '#/$defs/duration'
+                description: Maximum backoff interval between retries.
+                title: MaximumInterval
+              nonRetryableErrorTypes:
+                default: []
+                description: Temporal server will stop retry if error type matches
+                  this list.
+                items:
+                  type: string
+                title: NonRetryableErrorTypes
+                type: array
+            title: RetryPolicy
+            type: object
+          scheduleToCloseTimeout:
+            $ref: '#/$defs/duration'
+            description: Total time that a workflow is willing to wait for an Activity
+              to complete.
+            title: ScheduleToCloseTimeout
+          scheduleToStartTimeout:
+            $ref: '#/$defs/duration'
+            description: Time that the Activity Task can stay in the Task Queue before
+              it is picked up by a Worker. Do not specify this timeout unless using
+              host specific Task Queues for Activity Tasks are being used for routing.
+            title: ScheduleToStartTimeout
+          startToCloseTimeout:
+            $ref: '#/$defs/duration'
+            default:
+              minutes: 5
+            description: Maximum time of a single Activity execution attempt.
+            title: StartToCloseTimeout
+          summary:
+            default: <taskName>
+            description: Add a summary to the Temporal workflow UI.
+            type: string
+        title: ActivityOptionsMetadata
+        type: object
+    title: CommonMetadata
+    type: object
+  containerLifetime:
+    description: The configuration of a container's lifetime
+    properties:
+      cleanup:
+        default: always
+        description: The container cleanup policy to use
+        enum:
+        - always
+        - never
+        title: ContainerCleanupPolicy
+        type: string
+    required:
+    - cleanup
+    title: ContainerLifetime
+    type: object
+    unevaluatedProperties: false
+  doTask:
+    allOf:
+    - $ref: '#/$defs/taskBase'
+    - properties:
+        do:
+          $ref: '#/$defs/taskList'
+          description: The configuration of the tasks to perform sequentially.
+          title: DoTaskConfiguration
+    description: Allows to execute a list of tasks in sequence.
+    required:
+    - do
+    title: DoTask
+    type: object
+    unevaluatedProperties: false
+  documentMetadata:
+    additionalProperties: true
+    properties:
+      canMaxHistoryLength:
+        description: Allows you to test the Continue-As-New functionality by specifying
+          the max history length before triggering.
+        title: ContinueAsNewMaxHistoryLength
+        type: integer
+      scheduleId:
+        description: Set the schedule ID. If not set, this will to zigflow_<workflow.document.name>
+        title: ScheduleID
+        type: string
+      scheduleInput:
+        description: Set the input.
+        title: ScheduleInput
+        type: array
+      scheduleWorkflowName:
+        description: Set the workflow name to trigger - this will either be the document.name
+          or the Do task
+        title: ScheduleWorkflowName
+        type: string
+    title: DocumentMetadata
+    type: object
+  duration:
+    oneOf:
+    - minProperties: 1
+      properties:
+        days:
+          description: Number of days, if any.
+          title: DurationDays
+          type: integer
+        hours:
+          description: Number of hours, if any.
+          title: DurationHours
+          type: integer
+        milliseconds:
+          description: Number of milliseconds, if any.
+          title: DurationMilliseconds
+          type: integer
+        minutes:
+          description: Number of minutes, if any.
+          title: DurationMinutes
+          type: integer
+        seconds:
+          description: Number of seconds, if any.
+          title: DurationSeconds
+          type: integer
+      type: object
+      unevaluatedProperties: false
+  endpoint:
+    description: Represents an endpoint.
+    oneOf:
+    - $ref: '#/$defs/runtimeExpression'
+    - $ref: '#/$defs/uriTemplate'
+    - properties:
+        uri:
+          description: The endpoint's URI.
+          oneOf:
+          - $ref: '#/$defs/uriTemplate'
+            description: The literal endpoint's URI.
+            title: LiteralEndpointURI
+          - $ref: '#/$defs/runtimeExpression'
+            description: An expression based endpoint's URI.
+            title: ExpressionEndpointURI
+          title: EndpointUri
+      required:
+      - uri
+      title: EndpointConfiguration
+      type: object
+      unevaluatedProperties: false
+    title: Endpoint
+  error:
+    description: Represents an error.
+    properties:
+      detail:
+        anyOf:
+        - $ref: '#/$defs/runtimeExpression'
+          title: ExpressionErrorDetails
+        - title: LiteralErrorDetails
+          type: string
+        description: A human-readable explanation specific to this occurrence of the
+          error.
+        title: ErrorDetails
+      instance:
+        description: A JSON Pointer used to reference the component the error originates
+          from.
+        oneOf:
+        - description: The literal error instance.
+          format: json-pointer
+          title: LiteralErrorInstance
+          type: string
+        - $ref: '#/$defs/runtimeExpression'
+          description: An expression based error instance.
+          title: ExpressionErrorInstance
+        title: ErrorInstance
+      status:
+        description: The status code generated by the origin for this occurrence of
+          the error.
+        title: ErrorStatus
+        type: integer
+      title:
+        anyOf:
+        - $ref: '#/$defs/runtimeExpression'
+          title: ExpressionErrorTitle
+        - title: LiteralErrorTitle
+          type: string
+        description: A short, human-readable summary of the error.
+        title: ErrorTitle
+      type:
+        description: A URI reference that identifies the error type.
+        oneOf:
+        - $ref: '#/$defs/uriTemplate'
+          description: The literal error type.
+          title: LiteralErrorType
+        - $ref: '#/$defs/runtimeExpression'
+          description: An expression based error type.
+          title: ExpressionErrorType
+        title: ErrorType
+    required:
+    - type
+    - status
+    title: Error
+    type: object
+    unevaluatedProperties: false
+  eventConsumptionStrategy:
+    description: Describe the event consumption strategy to adopt.
+    oneOf:
+    - properties:
+        all:
+          description: A list containing all the events that must be consumed.
+          items:
+            $ref: '#/$defs/eventFilter'
+          title: AllEventConsumptionStrategyConfiguration
+          type: array
+      required:
+      - all
+      title: AllEventConsumptionStrategy
+    - properties:
+        any:
+          description: A list containing any of the events to consume.
+          items:
+            $ref: '#/$defs/eventFilter'
+          title: AnyEventConsumptionStrategyConfiguration
+          type: array
+      required:
+      - any
+      title: AnyEventConsumptionStrategy
+    - properties:
+        one:
+          $ref: '#/$defs/eventFilter'
+          description: The single event to consume.
+          title: OneEventConsumptionStrategyConfiguration
+      required:
+      - one
+      title: OneEventConsumptionStrategy
+    title: EventConsumptionStrategy
+    type: object
+    unevaluatedProperties: false
+  eventFilter:
+    description: An event filter is a mechanism used to selectively process or handle
+      events based on predefined criteria, such as event type, source, or specific
+      attributes.
+    properties:
+      with:
+        $ref: '#/$defs/eventProperties'
+        description: An event filter is a mechanism used to selectively process or
+          handle events based on predefined criteria, such as event type, source,
+          or specific attributes.
+        minProperties: 1
+        title: WithEvent
+    required:
+    - with
+    title: EventFilter
+    type: object
+    unevaluatedProperties: false
+  eventProperties:
+    additionalProperties: true
+    description: Describes the properties of an event.
+    properties:
+      data:
+        anyOf:
+        - $ref: '#/$defs/runtimeExpression'
+        - true
+        description: The event's payload data
+        title: EventData
+      datacontenttype:
+        description: Content type of data value. This attribute enables data to carry
+          any type of content, whereby format and encoding might differ from that
+          of the chosen event format.
+        title: EventDataContentType
+        type: string
+      dataschema:
+        description: The schema describing the event format.
+        oneOf:
+        - $ref: '#/$defs/uriTemplate'
+          description: The literal event data schema.
+          title: LiteralDataSchema
+        - $ref: '#/$defs/runtimeExpression'
+          description: An expression based event data schema.
+          title: ExpressionDataSchema
+        title: EventDataschema
+      id:
+        description: The event's unique identifier.
+        title: EventId
+        type: string
+      source:
+        description: Identifies the context in which an event happened.
+        oneOf:
+        - $ref: '#/$defs/uriTemplate'
+        - $ref: '#/$defs/runtimeExpression'
+        title: EventSource
+      subject:
+        description: The subject of the event.
+        title: EventSubject
+        type: string
+      time:
+        description: When the event occurred.
+        oneOf:
+        - format: date-time
+          title: LiteralTime
+          type: string
+        - $ref: '#/$defs/runtimeExpression'
+        title: EventTime
+      type:
+        description: This attribute contains a value describing the type of event
+          related to the originating occurrence.
+        title: EventType
+        type: string
+    title: EventProperties
+    type: object
+  export:
+    description: Set the content of the context.
+    properties:
+      as:
+        description: A runtime expression, if any, used to export the output data
+          to the context.
+        oneOf:
+        - type: string
+        - type: object
+        title: ExportAs
+      schema:
+        $ref: '#/$defs/schema'
+        description: The schema used to describe and validate the workflow context.
+        title: ExportSchema
+    title: Export
+    type: object
+    unevaluatedProperties: false
+  externalResource:
+    description: Represents an external resource.
+    properties:
+      endpoint:
+        $ref: '#/$defs/endpoint'
+        description: The endpoint of the external resource.
+        title: ExternalResourceEndpoint
+      name:
+        description: The name of the external resource, if any.
+        title: ExternalResourceName
+        type: string
+    required:
+    - endpoint
+    title: ExternalResource
+    type: object
+    unevaluatedProperties: false
+  flowDirective:
+    anyOf:
+    - default: continue
+      enum:
+      - continue
+      - exit
+      - end
+      title: FlowDirectiveEnum
+      type: string
+    - type: string
+    description: Represents different transition options for a workflow.
+    title: FlowDirective
+  forTask:
+    allOf:
+    - $ref: '#/$defs/taskBase'
+    - properties:
+        do:
+          $ref: '#/$defs/taskList'
+          title: ForTaskDo
+        for:
+          description: The definition of the loop that iterates over a range of values.
+          properties:
+            at:
+              default: index
+              description: The name of the variable used to store the index of the
+                current item being enumerated.
+              title: ForAt
+              type: string
+            each:
+              default: item
+              description: The name of the variable used to store the current item
+                being enumerated.
+              title: ForEach
+              type: string
+            in:
+              description: A runtime expression used to get the collection to enumerate.
+              title: ForIn
+              type: string
+          required:
+          - in
+          title: ForTaskConfiguration
+          type: object
+          unevaluatedProperties: false
+        while:
+          description: A runtime expression that represents the condition, if any,
+            that must be met for the iteration to continue.
+          title: While
+          type: string
+    description: Allows workflows to iterate over a collection of items, executing
+      a defined set of subtasks for each item in the collection. This task type is
+      instrumental in handling scenarios such as batch processing, data transformation,
+      and repetitive operations across datasets.
+    required:
+    - for
+    - do
+    title: ForTask
+    type: object
+    unevaluatedProperties: false
+  forkTask:
+    allOf:
+    - $ref: '#/$defs/taskBase'
+    - properties:
+        fork:
+          description: The configuration of the branches to perform concurrently.
+          properties:
+            branches:
+              $ref: '#/$defs/taskList'
+              title: ForkBranches
+            compete:
+              default: false
+              description: Indicates whether or not the concurrent tasks are racing
+                against each other, with a single possible winner, which sets the
+                composite task's output.
+              title: ForkCompete
+              type: boolean
+          required:
+          - branches
+          title: ForkTaskConfiguration
+          type: object
+          unevaluatedProperties: false
+    description: Allows workflows to execute multiple tasks concurrently and optionally
+      race them against each other, with a single possible winner, which sets the
+      task's output.
+    required:
+    - fork
+    title: ForkTask
+    type: object
+    unevaluatedProperties: false
+  input:
+    description: Configures the input of a workflow or task.
+    properties:
+      schema:
+        $ref: '#/$defs/schema'
+        description: The schema used to describe and validate the input of the workflow
+          or task.
+        title: InputSchema
+    title: Input
+    type: object
+    unevaluatedProperties: false
+  listenTask:
+    allOf:
+    - $ref: '#/$defs/taskBase'
+    - properties:
+        listen:
+          description: The configuration of the listener to use.
+          properties:
+            read:
+              default: data
+              description: Specifies how events are read during the listen operation.
+              enum:
+              - data
+              - envelope
+              - raw
+              title: ListenAndReadAs
+              type: string
+            to:
+              $ref: '#/$defs/eventConsumptionStrategy'
+              description: Defines the event(s) to listen to.
+              title: ListenTo
+          required:
+          - to
+          title: ListenTaskConfiguration
+          type: object
+          unevaluatedProperties: false
+    description: Provides a mechanism for workflows to await and react to external
+      events, enabling event-driven behaviour within workflow systems.
+    required:
+    - listen
+    title: ListenTask
+    type: object
+    unevaluatedProperties: false
+  output:
+    description: Configures the output of a workflow or task.
+    properties:
+      as:
+        description: A runtime expression, if any, used to mutate and/or filter the
+          output of the workflow or task.
+        oneOf:
+        - type: string
+        - type: object
+        title: OutputAs
+      schema:
+        $ref: '#/$defs/schema'
+        description: The schema used to describe and validate the output of the workflow
+          or task.
+        title: OutputSchema
+    title: Output
+    type: object
+    unevaluatedProperties: false
+  raiseTask:
+    allOf:
+    - $ref: '#/$defs/taskBase'
+    - properties:
+        raise:
+          description: The definition of the error to raise.
+          properties:
+            error:
+              oneOf:
+              - $ref: '#/$defs/error'
+                description: Defines the error to raise.
+                title: RaiseErrorDefinition
+              - description: The name of the error to raise
+                title: RaiseErrorReference
+                type: string
+              title: RaiseTaskError
+          required:
+          - error
+          title: RaiseTaskConfiguration
+          type: object
+          unevaluatedProperties: false
+    description: Intentionally triggers and propagates errors.
+    required:
+    - raise
+    title: RaiseTask
+    type: object
+    unevaluatedProperties: false
+  runTask:
+    allOf:
+    - $ref: '#/$defs/taskBase'
+    - properties:
+        run:
+          description: The configuration of the process to execute.
+          oneOf:
+          - description: Enables the execution of external processes encapsulated
+              within a containerized environment.
+            properties:
+              container:
+                description: The configuration of the container to run.
+                properties:
+                  arguments:
+                    description: A list of the arguments, if any, passed as argv to
+                      the command or default container CMD
+                    items:
+                      type: string
+                    title: ContainerArguments
+                    type: array
+                  command:
+                    description: The command, if any, to execute on the container.
+                    title: ContainerCommand
+                    type: string
+                  environment:
+                    description: A key/value mapping of the environment variables,
+                      if any, to use when running the configured process.
+                    title: ContainerEnvironment
+                    type: object
+                  image:
+                    description: The name of the container image to run.
+                    title: ContainerImage
+                    type: string
+                  lifetime:
+                    $ref: '#/$defs/containerLifetime'
+                    description: An object, if any, used to configure the container's
+                      lifetime
+                    title: ContainerLifetime
+                  name:
+                    description: A runtime expression, if any, used to give specific
+                      name to the container.
+                    title: ContainerName
+                    type: string
+                  volumes:
+                    description: The container's volume mappings, if any.
+                    title: ContainerVolumes
+                    type: object
+                required:
+                - image
+                title: Container
+                type: object
+                unevaluatedProperties: false
+            required:
+            - container
+            title: RunContainer
+          - description: Enables the execution of custom scripts or code within a
+              workflow, empowering workflows to perform specialised logic, data processing,
+              or integration tasks by executing user-defined scripts written in various
+              programming languages.
+            properties:
+              script:
+                description: The configuration of the script to run.
+                oneOf:
+                - description: The script's code.
+                  properties:
+                    code:
+                      title: InlineScriptCode
+                      type: string
+                  required:
+                  - code
+                  title: InlineScript
+                  type: object
+                properties:
+                  arguments:
+                    description: A list of the arguments, if any, to the script as
+                      argv
+                    items:
+                      type: string
+                    title: ScriptArguments
+                    type: array
+                  environment:
+                    additionalProperties: true
+                    description: A key/value mapping of the environment variables,
+                      if any, to use when running the configured script process.
+                    title: ScriptEnvironment
+                    type: object
+                  language:
+                    description: The language of the script to run.
+                    enum:
+                    - js
+                    - python
+                    title: ScriptLanguage
+                    type: string
+                required:
+                - language
+                title: Script
+                type: object
+                unevaluatedProperties: false
+            required:
+            - script
+            title: RunScript
+          - description: Enables the execution of shell commands within a workflow,
+              enabling workflows to interact with the underlying operating system
+              and perform system-level operations, such as file manipulation, environment
+              configuration, or system administration tasks.
+            properties:
+              shell:
+                description: The configuration of the shell command to run.
+                properties:
+                  arguments:
+                    description: A list of the arguments, if any, to the shell command
+                      as argv
+                    items:
+                      type: string
+                    title: ShellArguments
+                    type: array
+                  command:
+                    description: The shell command to run.
+                    title: ShellCommand
+                    type: string
+                  environment:
+                    additionalProperties: true
+                    description: A key/value mapping of the environment variables,
+                      if any, to use when running the configured process.
+                    title: ShellEnvironment
+                    type: object
+                required:
+                - command
+                title: Shell
+                type: object
+                unevaluatedProperties: false
+            required:
+            - shell
+            title: RunShell
+          - description: Enables the invocation and execution of nested workflows
+              within a parent workflow, facilitating modularization, reusability,
+              and abstraction of complex logic or business processes by encapsulating
+              them into standalone workflow units.
+            properties:
+              workflow:
+                description: The configuration of the workflow to run.
+                properties:
+                  input:
+                    additionalProperties: true
+                    description: The data, if any, to pass as input to the workflow
+                      to execute. The value should be validated against the target
+                      workflow's input schema, if specified.
+                    title: SubflowInput
+                    type: object
+                  type:
+                    description: The workflow type to run.
+                    title: SubflowType
+                    type: string
+                required:
+                - type
+                title: SubflowConfiguration
+                type: object
+                unevaluatedProperties: false
+            required:
+            - workflow
+            title: RunWorkflow
+          properties:
+            await:
+              default: true
+              description: Whether to await the process completion before continuing.
+              title: AwaitProcessCompletion
+              type: boolean
+          title: RunTaskConfiguration
+          type: object
+          unevaluatedProperties: false
+    description: Provides the capability to execute external containers, shell commands,
+      scripts, or workflows.
+    required:
+    - run
+    title: RunTask
+    type: object
+    unevaluatedProperties: false
+  runtimeExpression:
+    description: A runtime expression.
+    pattern: ^\s*\$\{.+\}\s*$
+    title: RuntimeExpression
+    type: string
+  schema:
+    description: Represents the definition of a schema.
+    oneOf:
+    - properties:
+        document:
+          description: The schema's inline definition.
+      required:
+      - document
+      title: SchemaInline
+    properties:
+      format:
+        default: json
+        description: The schema's format. Defaults to 'json'. The (optional) version
+          of the format can be set using `{format}:{version}`.
+        title: SchemaFormat
+        type: string
+    title: Schema
+    type: object
+    unevaluatedProperties: false
+  setTask:
+    allOf:
+    - $ref: '#/$defs/taskBase'
+    - properties:
+        set:
+          description: The data to set.
+          oneOf:
+          - additionalProperties: true
+            minProperties: 1
+            type: object
+          - type: string
+          title: SetTaskConfiguration
+    description: A task used to set data.
+    required:
+    - set
+    title: SetTask
+    type: object
+    unevaluatedProperties: false
+  subscriptionIterator:
+    description: Configures the iteration over each item (event or message) consumed
+      by a subscription.
+    properties:
+      at:
+        default: index
+        description: The name of the variable used to store the index of the current
+          item being enumerated.
+        title: SubscriptionIteratorIndex
+        type: string
+      do:
+        $ref: '#/$defs/taskList'
+        description: The tasks to perform for each consumed item.
+        title: SubscriptionIteratorTasks
+      export:
+        $ref: '#/$defs/export'
+        description: An object, if any, used to customise the content of the workflow
+          context.
+        title: SubscriptionIteratorExport
+      item:
+        default: item
+        description: The name of the variable used to store the current item being
+          enumerated.
+        title: SubscriptionIteratorItem
+        type: string
+      output:
+        $ref: '#/$defs/output'
+        description: An object, if any, used to customise the item's output and to
+          document its schema.
+        title: SubscriptionIteratorOutput
+    title: SubscriptionIterator
+    type: object
+    unevaluatedProperties: false
+  switchTask:
+    allOf:
+    - $ref: '#/$defs/taskBase'
+    - properties:
+        switch:
+          description: The definition of the switch to use.
+          items:
+            additionalProperties:
+              description: The definition of a case within a switch task, defining
+                a condition and corresponding tasks to execute if the condition is
+                met.
+              properties:
+                then:
+                  $ref: '#/$defs/flowDirective'
+                  description: The flow directive to execute when the case matches.
+                  title: SwitchCaseOutcome
+                when:
+                  description: A runtime expression used to determine whether or not
+                    the case matches.
+                  title: SwitchCaseCondition
+                  type: string
+              required:
+              - then
+              title: SwitchCase
+              type: object
+              unevaluatedProperties: false
+            maxProperties: 1
+            minProperties: 1
+            title: SwitchItem
+            type: object
+          minItems: 1
+          title: SwitchTaskConfiguration
+          type: array
+    description: Enables conditional branching within workflows, allowing them to
+      dynamically select different paths based on specified conditions or criteria.
+    required:
+    - switch
+    title: SwitchTask
+    type: object
+    unevaluatedProperties: false
+  task:
+    description: A discrete unit of work that contributes to achieving the overall
+      objectives defined by the workflow.
+    oneOf:
+    - $ref: '#/$defs/callTask'
+    - $ref: '#/$defs/doTask'
+    - $ref: '#/$defs/forTask'
+    - $ref: '#/$defs/forkTask'
+    - $ref: '#/$defs/listenTask'
+    - $ref: '#/$defs/raiseTask'
+    - $ref: '#/$defs/runTask'
+    - $ref: '#/$defs/setTask'
+    - $ref: '#/$defs/switchTask'
+    - $ref: '#/$defs/tryTask'
+    - $ref: '#/$defs/waitTask'
+    title: Task
+    unevaluatedProperties: false
+  taskBase:
+    description: An object inherited by all tasks.
+    properties:
+      export:
+        $ref: '#/$defs/export'
+        description: Export task output to context.
+        title: TaskBaseExport
+      if:
+        description: A runtime expression, if any, used to determine whether or not
+          the task should be run.
+        title: TaskBaseIf
+        type: string
+      input:
+        $ref: '#/$defs/input'
+        description: Configure the task's input.
+        title: TaskBaseInput
+      metadata:
+        additionalProperties: true
+        allOf:
+        - $ref: '#/$defs/commonMetadata'
+        - $ref: '#/$defs/taskMetadata'
+        description: Holds additional information about the task.
+        title: TaskBaseMetadata
+        type: object
+      output:
+        $ref: '#/$defs/output'
+        description: Configure the task's output.
+        title: TaskBaseOutput
+      then:
+        $ref: '#/$defs/flowDirective'
+        description: The flow directive to be performed upon completion of the task.
+        title: TaskBaseThen
+    title: TaskBase
+    type: object
+  taskList:
+    description: List of named tasks to perform.
+    items:
+      additionalProperties:
+        $ref: '#/$defs/task'
+      maxProperties: 1
+      minProperties: 1
+      title: TaskItem
+      type: object
+    title: TaskList
+    type: array
+  taskMetadata:
+    additionalProperties: true
+    properties:
+      __zigflow_id:
+        description: A system-generated unique identifier for the task. This value
+          is assigned automatically and should not be modified by users.
+        title: ZigflowID
+        type: string
+      heartbeat:
+        $ref: '#/$defs/duration'
+        description: Heartbeats will be triggered after this time period.
+        title: Heartbeat
+    title: TaskMetadata
+    type: object
+  timeout:
+    description: The definition of a timeout.
+    properties:
+      after:
+        $ref: '#/$defs/duration'
+        description: The duration after which to timeout.
+        title: TimeoutAfter
+    required:
+    - after
+    title: Timeout
+    type: object
+    unevaluatedProperties: false
+  tryTask:
+    allOf:
+    - $ref: '#/$defs/taskBase'
+    - properties:
+        catch:
+          description: The object used to define the errors to catch.
+          properties:
+            do:
+              $ref: '#/$defs/taskList'
+              description: The definition of the task(s) to run when catching an error.
+              title: TryTaskCatchDo
+          required:
+          - do
+          title: TryTaskCatch
+          type: object
+          unevaluatedProperties: false
+        try:
+          $ref: '#/$defs/taskList'
+          description: The task(s) to perform.
+          title: TryTaskConfiguration
+    description: Serves as a mechanism within workflows to handle errors gracefully,
+      potentially retrying failed tasks before proceeding with alternate ones.
+    required:
+    - try
+    - catch
+    title: TryTask
+    type: object
+    unevaluatedProperties: false
+  uriTemplate:
+    anyOf:
+    - format: uri-template
+      pattern: ^[A-Za-z][A-Za-z0-9+\-.]*://.*
+      title: LiteralUriTemplate
+      type: string
+    - format: uri
+      pattern: ^[A-Za-z][A-Za-z0-9+\-.]*://.*
+      title: LiteralUri
+      type: string
+    title: UriTemplate
+  waitTask:
+    allOf:
+    - $ref: '#/$defs/taskBase'
+    - properties:
+        wait:
+          $ref: '#/$defs/duration'
+          description: The amount of time to wait.
+          title: WaitTaskConfiguration
+    description: Allows workflows to pause or delay their execution for a specified
+      period of time.
+    required:
+    - wait
+    title: WaitTask
+    type: object
+    unevaluatedProperties: false
+$id: https://zigflow.dev/schema.yaml
+$schema: https://json-schema.org/draft/2020-12/schema
+description: JSON Schema for a Zigflow workflow definition.
+if:
+  required:
+  - schedule
+properties:
+  do:
+    $ref: '#/$defs/taskList'
+    description: Defines the task(s) the workflow must perform.
+    title: Do
+  document:
+    description: Documents the workflow
+    properties:
+      dsl:
+        description: The version of the DSL used by the workflow.
+        pattern: ^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
+        title: WorkflowDSL
+        type: string
+      metadata:
+        additionalProperties: true
+        allOf:
+        - $ref: '#/$defs/commonMetadata'
+        - $ref: '#/$defs/documentMetadata'
+        description: Holds additional information about the workflow.
+        title: WorkflowMetadata
+        type: object
+      summary:
+        description: The workflow's Markdown summary.
+        title: WorkflowSummary
+        type: string
+      tags:
+        additionalProperties: true
+        description: A key/value mapping of the workflow's tags, if any.
+        title: WorkflowTags
+        type: object
+      taskQueue:
+        description: The Temporal task queue the workflow runs on.
+        pattern: ^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$
+        title: WorkflowTaskQueue
+        type: string
+      title:
+        description: The workflow's title.
+        title: WorkflowTitle
+        type: string
+      version:
+        description: The workflow's semantic version.
+        pattern: ^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
+        title: WorkflowVersion
+        type: string
+      workflowType:
+        description: The Temporal workflow type name.
+        pattern: ^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$
+        title: WorkflowType
+        type: string
+    required:
+    - dsl
+    - taskQueue
+    - workflowType
+    - version
+    title: Document
+    type: object
+    unevaluatedProperties: false
+  input:
+    $ref: '#/$defs/input'
+    description: Configures the workflow's input.
+    title: Input
+  output:
+    $ref: '#/$defs/output'
+    description: Configures the workflow's output.
+    title: Output
+  schedule:
+    description: Schedules the workflow.
+    properties:
+      cron:
+        description: Specifies the schedule using a cron expression, e.g., '0 0 *
+          * *' for daily at midnight.
+        title: ScheduleCron
+        type: string
+      every:
+        $ref: '#/$defs/duration'
+        description: Specifies the duration of the interval at which the workflow
+          should be executed.
+        title: ScheduleEvery
+    title: Schedule
+    type: object
+    unevaluatedProperties: false
+  timeout:
+    deprecated: true
+    oneOf:
+    - $ref: '#/$defs/timeout'
+      description: The workflow's timeout configuration, if any.
+      title: TimeoutDefinition
+    title: DoTimeout
+required:
+- do
+- document
+then:
+  properties:
+    document:
+      properties:
+        metadata:
+          required:
+          - scheduleWorkflowName
+      required:
+      - metadata
+  required:
+  - document
+title: Zigflow
+type: object
