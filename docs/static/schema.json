@@ -872,11 +872,6 @@
         },
         {
           "properties": {
-            "foreach": {
-              "$ref": "#/$defs/subscriptionIterator",
-              "title": "ListenIterator",
-              "description": "Configures the iterator, if any, for processing consumed event(s)."
-            },
             "listen": {
               "type": "object",
               "properties": {

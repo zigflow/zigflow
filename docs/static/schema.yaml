@@ -535,10 +535,6 @@ $defs:
     allOf:
     - $ref: '#/$defs/taskBase'
     - properties:
-        foreach:
-          $ref: '#/$defs/subscriptionIterator'
-          description: Configures the iterator, if any, for processing consumed event(s).
-          title: ListenIterator
         listen:
           description: The configuration of the listener to use.
           properties:

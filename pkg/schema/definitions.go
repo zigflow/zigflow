@@ -748,11 +748,6 @@ var listenTaskDefinition = &jsonschema.Schema{
 		{Ref: SchemaRef("taskBase")},
 		{
 			Properties: map[string]*jsonschema.Schema{
-				"foreach": {
-					Ref:         SchemaRef("subscriptionIterator"),
-					Title:       "ListenIterator",
-					Description: "Configures the iterator, if any, for processing consumed event(s).",
-				},
 				"listen": {
 					Type:                  "object",
 					Title:                 "ListenTaskConfiguration",
