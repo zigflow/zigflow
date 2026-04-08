@@ -427,7 +427,7 @@
             }
           },
           "title": "ActivityOptionsMetadata",
-          "additionalProperties": false
+          "additionalProperties": true
         }
       },
       "title": "CommonMetadata",

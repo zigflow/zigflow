@@ -166,7 +166,7 @@ $defs:
     additionalProperties: true
     properties:
       activityOptions:
-        additionalProperties: false
+        additionalProperties: true
         properties:
           disableEagerExecution:
             default: false
