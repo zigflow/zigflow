@@ -36,6 +36,22 @@ func BuildSchema(version, format string) (*jsonschema.Schema, error) {
 		Required:    []string{"do", "document"},
 		Properties:  schemaProperties,
 		Defs:        buildDefinitions(),
+		If: &jsonschema.Schema{
+			Required: []string{"schedule"},
+		},
+		Then: &jsonschema.Schema{
+			Required: []string{"document"},
+			Properties: map[string]*jsonschema.Schema{
+				"document": {
+					Required: []string{"metadata"},
+					Properties: map[string]*jsonschema.Schema{
+						"metadata": {
+							Required: []string{"scheduleWorkflowName"},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	// Validate the generated schema
@@ -70,6 +86,10 @@ var schemaProperties = map[string]*jsonschema.Schema{
 				Title:                "WorkflowMetadata",
 				Description:          "Holds additional information about the workflow.",
 				AdditionalProperties: trueSchema(),
+				AllOf: []*jsonschema.Schema{
+					{Ref: SchemaRef("commonMetadata")},
+					{Ref: SchemaRef("documentMetadata")},
+				},
 			},
 			"taskQueue": {
 				Type:        "string",

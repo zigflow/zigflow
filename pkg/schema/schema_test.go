@@ -95,6 +95,43 @@ func TestSchema_DocumentFields(t *testing.T) {
 	})
 }
 
+// TestSchema_ScheduleRequiresScheduleWorkflowName verifies the conditional
+// if/then rule: when top-level schedule is present, document.metadata must
+// exist and contain scheduleWorkflowName.
+func TestSchema_ScheduleRequiresScheduleWorkflowName(t *testing.T) {
+	resolved := resolvedTestSchema(t)
+
+	t.Run("schedule present without document.metadata is rejected", func(t *testing.T) {
+		doc := minimalWorkflow()
+		doc["schedule"] = map[string]any{"cron": "0 0 * * *"}
+
+		err := resolved.Validate(doc)
+		assert.Error(t, err, "schedule without document.metadata must fail validation")
+	})
+
+	t.Run("schedule present with document.metadata but missing scheduleWorkflowName is rejected", func(t *testing.T) {
+		doc := minimalWorkflow()
+		doc["schedule"] = map[string]any{"cron": "0 0 * * *"}
+		doc["document"].(map[string]any)["metadata"] = map[string]any{
+			"scheduleId": "my-schedule",
+		}
+
+		err := resolved.Validate(doc)
+		assert.Error(t, err, "schedule with document.metadata but no scheduleWorkflowName must fail validation")
+	})
+
+	t.Run("schedule present with valid document.metadata.scheduleWorkflowName is accepted", func(t *testing.T) {
+		doc := minimalWorkflow()
+		doc["schedule"] = map[string]any{"cron": "0 0 * * *"}
+		doc["document"].(map[string]any)["metadata"] = map[string]any{
+			"scheduleWorkflowName": "my-workflow",
+		}
+
+		err := resolved.Validate(doc)
+		assert.NoError(t, err, "schedule with valid scheduleWorkflowName must pass validation")
+	})
+}
+
 // TestSchema_RejectsUnknownTopLevelProperties verifies that the root schema
 // enforces UnevaluatedProperties: false by rejecting any top-level key that
 // is not explicitly defined in the schema.

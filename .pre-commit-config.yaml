@@ -16,6 +16,7 @@ repos:
         args:
           - --autofix
           - --no-sort-keys
+        exclude: ^docs/static/
       - id: check-json
       - id: check-yaml
         exclude: charts

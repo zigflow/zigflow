@@ -19,7 +19,15 @@
           "type": "object",
           "title": "WorkflowMetadata",
           "description": "Holds additional information about the workflow.",
-          "additionalProperties": true
+          "additionalProperties": true,
+          "allOf": [
+            {
+              "$ref": "#/$defs/commonMetadata"
+            },
+            {
+              "$ref": "#/$defs/documentMetadata"
+            }
+          ]
         },
         "summary": {
           "type": "string",
@@ -339,6 +347,92 @@
         }
       ]
     },
+    "commonMetadata": {
+      "type": "object",
+      "properties": {
+        "activityOptions": {
+          "type": "object",
+          "properties": {
+            "disableEagerExecution": {
+              "type": "boolean",
+              "description": "If true, eager execution will not be requested, regardless of worker settings. If false, eager execution may still be disabled at the worker level or may not be requested due to lack of available slots.",
+              "default": false
+            },
+            "heartbeatTimeout": {
+              "$ref": "#/$defs/duration",
+              "title": "HeartbeatTimeout",
+              "description": "Heartbeat interval. A heartbeat must be set and be called before the interval passes."
+            },
+            "retryPolicy": {
+              "type": "object",
+              "properties": {
+                "backoffCoefficient": {
+                  "type": "number",
+                  "title": "BackoffCoefficient",
+                  "description": "Coefficient used to calculate the next retry backoff interval.",
+                  "default": 2.0
+                },
+                "initialInterval": {
+                  "$ref": "#/$defs/duration",
+                  "title": "InitialInterval",
+                  "description": "Backoff interval for the first retry. If BackoffCoefficient is 1.0 then it is used for all retries."
+                },
+                "maximumAttempts": {
+                  "type": "integer",
+                  "title": "MaximumAttempts",
+                  "description": "Maximum number of attempts. When exceeded the retries stop even if not expired yet.",
+                  "default": 5
+                },
+                "maximumInterval": {
+                  "$ref": "#/$defs/duration",
+                  "title": "MaximumInterval",
+                  "description": "Maximum backoff interval between retries."
+                },
+                "nonRetryableErrorTypes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "NonRetryableErrorTypes",
+                  "description": "Temporal server will stop retry if error type matches this list.",
+                  "default": []
+                }
+              },
+              "title": "RetryPolicy",
+              "description": "Specifies how to retry an Activity if an error occurs",
+              "additionalProperties": false
+            },
+            "scheduleToCloseTimeout": {
+              "$ref": "#/$defs/duration",
+              "title": "ScheduleToCloseTimeout",
+              "description": "Total time that a workflow is willing to wait for an Activity to complete."
+            },
+            "scheduleToStartTimeout": {
+              "$ref": "#/$defs/duration",
+              "title": "ScheduleToStartTimeout",
+              "description": "Time that the Activity Task can stay in the Task Queue before it is picked up by a Worker. Do not specify this timeout unless using host specific Task Queues for Activity Tasks are being used for routing."
+            },
+            "startToCloseTimeout": {
+              "$ref": "#/$defs/duration",
+              "title": "StartToCloseTimeout",
+              "description": "Maximum time of a single Activity execution attempt.",
+              "default": {
+                "seconds": 15
+              }
+            },
+            "summary": {
+              "type": "string",
+              "description": "Add a summary to the Temporal workflow UI.",
+              "default": "\u003ctaskName\u003e"
+            }
+          },
+          "title": "ActivityOptionsMetadata",
+          "additionalProperties": true
+        }
+      },
+      "title": "CommonMetadata",
+      "additionalProperties": true
+    },
     "containerLifetime": {
       "type": "object",
       "properties": {
@@ -382,6 +476,34 @@
           }
         }
       ]
+    },
+    "documentMetadata": {
+      "type": "object",
+      "properties": {
+        "canMaxHistoryLength": {
+          "type": "integer",
+          "title": "ContinueAsNewMaxHistoryLength",
+          "description": "Allows you to test the Continue-As-New functionality by specifying the max history length before triggering."
+        },
+        "scheduleId": {
+          "type": "string",
+          "title": "ScheduleID",
+          "description": "Set the schedule ID. If not set, this will to zigflow_\u003cworkflow.document.name\u003e"
+        },
+        "scheduleInput": {
+          "type": "array",
+          "title": "ScheduleInput",
+          "description": "Set the input."
+        },
+        "scheduleWorkflowName": {
+          "type": "string",
+          "title": "ScheduleWorkflowName",
+          "description": "Set the workflow name to trigger - this will either be the document.name or the Do task",
+          "minLength": 1
+        }
+      },
+      "title": "DocumentMetadata",
+      "additionalProperties": true
     },
     "duration": {
       "oneOf": [
@@ -1406,7 +1528,15 @@
           "type": "object",
           "title": "TaskBaseMetadata",
           "description": "Holds additional information about the task.",
-          "additionalProperties": true
+          "additionalProperties": true,
+          "allOf": [
+            {
+              "$ref": "#/$defs/commonMetadata"
+            },
+            {
+              "$ref": "#/$defs/taskMetadata"
+            }
+          ]
         },
         "output": {
           "$ref": "#/$defs/output",
@@ -1435,6 +1565,23 @@
       },
       "title": "TaskList",
       "description": "List of named tasks to perform."
+    },
+    "taskMetadata": {
+      "type": "object",
+      "properties": {
+        "__zigflow_id": {
+          "type": "string",
+          "title": "ZigflowID",
+          "description": "A system-generated unique identifier for the task. This value is assigned automatically and should not be modified by users."
+        },
+        "heartbeat": {
+          "$ref": "#/$defs/duration",
+          "title": "Heartbeat",
+          "description": "Heartbeats will be triggered after this time period."
+        }
+      },
+      "title": "TaskMetadata",
+      "additionalProperties": true
     },
     "timeout": {
       "type": "object",
@@ -1538,5 +1685,29 @@
   "required": [
     "do",
     "document"
-  ]
+  ],
+  "if": {
+    "required": [
+      "schedule"
+    ]
+  },
+  "then": {
+    "properties": {
+      "document": {
+        "properties": {
+          "metadata": {
+            "required": [
+              "scheduleWorkflowName"
+            ]
+          }
+        },
+        "required": [
+          "metadata"
+        ]
+      }
+    },
+    "required": [
+      "document"
+    ]
+  }
 }

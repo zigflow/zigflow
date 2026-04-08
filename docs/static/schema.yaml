@@ -162,6 +162,84 @@ $defs:
       type: object
       unevaluatedProperties: false
     title: CallTask
+  commonMetadata:
+    additionalProperties: true
+    properties:
+      activityOptions:
+        additionalProperties: true
+        properties:
+          disableEagerExecution:
+            default: false
+            description: If true, eager execution will not be requested, regardless
+              of worker settings. If false, eager execution may still be disabled
+              at the worker level or may not be requested due to lack of available
+              slots.
+            type: boolean
+          heartbeatTimeout:
+            $ref: '#/$defs/duration'
+            description: Heartbeat interval. A heartbeat must be set and be called
+              before the interval passes.
+            title: HeartbeatTimeout
+          retryPolicy:
+            additionalProperties: false
+            description: Specifies how to retry an Activity if an error occurs
+            properties:
+              backoffCoefficient:
+                default: 2
+                description: Coefficient used to calculate the next retry backoff
+                  interval.
+                title: BackoffCoefficient
+                type: number
+              initialInterval:
+                $ref: '#/$defs/duration'
+                description: Backoff interval for the first retry. If BackoffCoefficient
+                  is 1.0 then it is used for all retries.
+                title: InitialInterval
+              maximumAttempts:
+                default: 5
+                description: Maximum number of attempts. When exceeded the retries
+                  stop even if not expired yet.
+                title: MaximumAttempts
+                type: integer
+              maximumInterval:
+                $ref: '#/$defs/duration'
+                description: Maximum backoff interval between retries.
+                title: MaximumInterval
+              nonRetryableErrorTypes:
+                default: []
+                description: Temporal server will stop retry if error type matches
+                  this list.
+                items:
+                  type: string
+                title: NonRetryableErrorTypes
+                type: array
+            title: RetryPolicy
+            type: object
+          scheduleToCloseTimeout:
+            $ref: '#/$defs/duration'
+            description: Total time that a workflow is willing to wait for an Activity
+              to complete.
+            title: ScheduleToCloseTimeout
+          scheduleToStartTimeout:
+            $ref: '#/$defs/duration'
+            description: Time that the Activity Task can stay in the Task Queue before
+              it is picked up by a Worker. Do not specify this timeout unless using
+              host specific Task Queues for Activity Tasks are being used for routing.
+            title: ScheduleToStartTimeout
+          startToCloseTimeout:
+            $ref: '#/$defs/duration'
+            default:
+              seconds: 15
+            description: Maximum time of a single Activity execution attempt.
+            title: StartToCloseTimeout
+          summary:
+            default: <taskName>
+            description: Add a summary to the Temporal workflow UI.
+            type: string
+        title: ActivityOptionsMetadata
+        type: object
+    title: CommonMetadata
+    type: object
   containerLifetime:
     description: The configuration of a container's lifetime
     properties:
@@ -192,6 +270,30 @@ $defs:
     title: DoTask
     type: object
     unevaluatedProperties: false
+  documentMetadata:
+    additionalProperties: true
+    properties:
+      canMaxHistoryLength:
+        description: Allows you to test the Continue-As-New functionality by specifying
+          the max history length before triggering.
+        title: ContinueAsNewMaxHistoryLength
+        type: integer
+      scheduleId:
+        description: Set the schedule ID. If not set, this will to zigflow_<workflow.document.name>
+        title: ScheduleID
+        type: string
+      scheduleInput:
+        description: Set the input.
+        title: ScheduleInput
+        type: array
+      scheduleWorkflowName:
+        description: Set the workflow name to trigger - this will either be the document.name
+          or the Do task
+        minLength: 1
+        title: ScheduleWorkflowName
+        type: string
+    title: DocumentMetadata
+    type: object
   duration:
     oneOf:
     - minProperties: 1
@@ -935,6 +1037,9 @@ $defs:
         title: TaskBaseInput
       metadata:
         additionalProperties: true
+        allOf:
+        - $ref: '#/$defs/commonMetadata'
+        - $ref: '#/$defs/taskMetadata'
         description: Holds additional information about the task.
         title: TaskBaseMetadata
         type: object
@@ -959,6 +1064,20 @@ $defs:
       type: object
     title: TaskList
     type: array
+  taskMetadata:
+    additionalProperties: true
+    properties:
+      __zigflow_id:
+        description: A system-generated unique identifier for the task. This value
+          is assigned automatically and should not be modified by users.
+        title: ZigflowID
+        type: string
+      heartbeat:
+        $ref: '#/$defs/duration'
+        description: Heartbeats will be triggered after this time period.
+        title: Heartbeat
+    title: TaskMetadata
+    type: object
   timeout:
     description: The definition of a timeout.
     properties:
@@ -1028,6 +1147,9 @@ $defs:
 $id: https://zigflow.dev/schema.yaml
 $schema: https://json-schema.org/draft/2020-12/schema
 description: JSON Schema for a Zigflow workflow definition.
+if:
+  required:
+  - schedule
 properties:
   do:
     $ref: '#/$defs/taskList'
@@ -1043,6 +1165,9 @@ properties:
         type: string
       metadata:
         additionalProperties: true
+        allOf:
+        - $ref: '#/$defs/commonMetadata'
+        - $ref: '#/$defs/documentMetadata'
         description: Holds additional information about the workflow.
         title: WorkflowMetadata
         type: object
@@ -1116,5 +1241,16 @@ properties:
 required:
 - do
 - document
+then:
+  properties:
+    document:
+      properties:
+        metadata:
+          required:
+          - scheduleWorkflowName
+      required:
+      - metadata
+  required:
+  - document
 title: Zigflow
 type: object

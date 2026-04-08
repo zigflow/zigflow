@@ -26,8 +26,10 @@ import (
 func buildDefinitions() map[string]*jsonschema.Schema {
 	return map[string]*jsonschema.Schema{
 		"callTask":                 callTaskDefinition,
+		"commonMetadata":           commonMetadataDefinition,
 		"containerLifetime":        containerLifetimeDefinition,
 		"doTask":                   doTaskDefinition,
+		"documentMetadata":         documentMetadataDefinition,
 		"duration":                 durationDefinition,
 		"endpoint":                 endpointDefinition,
 		"error":                    errorDefinition,
@@ -52,6 +54,7 @@ func buildDefinitions() map[string]*jsonschema.Schema {
 		"task":                     taskDefinition,
 		"taskBase":                 taskBaseDefinition,
 		"taskList":                 taskListDefinition,
+		"taskMetadata":             taskMetadataDefinition,
 		"timeout":                  timeoutDefinition,
 		"tryTask":                  tryTaskDefinition,
 		"uriTemplate":              uriTemplateDefinition,
@@ -254,6 +257,93 @@ var callTaskDefinition = &jsonschema.Schema{
 	},
 }
 
+var commonMetadataDefinition = &jsonschema.Schema{
+	Type:                 "object",
+	Title:                "CommonMetadata",
+	AdditionalProperties: trueSchema(),
+	Properties: map[string]*jsonschema.Schema{
+		"activityOptions": {
+			Type:                 "object",
+			Title:                "ActivityOptionsMetadata",
+			AdditionalProperties: trueSchema(),
+			Properties: map[string]*jsonschema.Schema{
+				"disableEagerExecution": {
+					Type:    "boolean",
+					Default: json.RawMessage("false"),
+					Description: "If true, eager execution will not be requested, regardless of worker settings. " +
+						"If false, eager execution may still be disabled at the worker level or may not be requested due to lack of available slots.",
+				},
+				"heartbeatTimeout": {
+					Ref:         SchemaRef("duration"),
+					Title:       "HeartbeatTimeout",
+					Description: "Heartbeat interval. A heartbeat must be set and be called before the interval passes.",
+				},
+				"retryPolicy": {
+					Type:                 "object",
+					Title:                "RetryPolicy",
+					Description:          "Specifies how to retry an Activity if an error occurs",
+					AdditionalProperties: falseSchema(),
+					Properties: map[string]*jsonschema.Schema{
+						"backoffCoefficient": {
+							Type:        "number",
+							Title:       "BackoffCoefficient",
+							Description: "Coefficient used to calculate the next retry backoff interval.",
+							Default:     json.RawMessage("2.0"),
+						},
+						"initialInterval": {
+							Ref:         SchemaRef("duration"),
+							Title:       "InitialInterval",
+							Description: "Backoff interval for the first retry. If BackoffCoefficient is 1.0 then it is used for all retries.",
+						},
+						"maximumAttempts": {
+							Type:        "integer",
+							Title:       "MaximumAttempts",
+							Description: "Maximum number of attempts. When exceeded the retries stop even if not expired yet.",
+							Default:     json.RawMessage("5"),
+						},
+						"maximumInterval": {
+							Ref:         SchemaRef("duration"),
+							Title:       "MaximumInterval",
+							Description: "Maximum backoff interval between retries.",
+						},
+						"nonRetryableErrorTypes": {
+							Type:        "array",
+							Title:       "NonRetryableErrorTypes",
+							Description: "Temporal server will stop retry if error type matches this list.",
+							Default:     json.RawMessage("[]"),
+							Items: &jsonschema.Schema{
+								Type: "string",
+							},
+						},
+					},
+				},
+				"scheduleToCloseTimeout": {
+					Ref:         SchemaRef("duration"),
+					Title:       "ScheduleToCloseTimeout",
+					Description: "Total time that a workflow is willing to wait for an Activity to complete.",
+				},
+				"scheduleToStartTimeout": {
+					Ref:   SchemaRef("duration"),
+					Title: "ScheduleToStartTimeout",
+					Description: "Time that the Activity Task can stay in the Task Queue before it is picked up by a Worker. " +
+						"Do not specify this timeout unless using host specific Task Queues for Activity Tasks are being used for routing.",
+				},
+				"startToCloseTimeout": {
+					Ref:         SchemaRef("duration"),
+					Title:       "StartToCloseTimeout",
+					Description: "Maximum time of a single Activity execution attempt.",
+					Default:     json.RawMessage(`{"seconds": 15}`),
+				},
+				"summary": {
+					Type:        "string",
+					Default:     json.RawMessage(`"<taskName>"`),
+					Description: "Add a summary to the Temporal workflow UI.",
+				},
+			},
+		},
+	},
+}
+
 var containerLifetimeDefinition = &jsonschema.Schema{
 	Type:                  "object",
 	Title:                 "ContainerLifetime",
@@ -287,6 +377,35 @@ var doTaskDefinition = &jsonschema.Schema{
 					Description: "The configuration of the tasks to perform sequentially.",
 				},
 			},
+		},
+	},
+}
+
+var documentMetadataDefinition = &jsonschema.Schema{
+	Type:                 "object",
+	Title:                "DocumentMetadata",
+	AdditionalProperties: trueSchema(),
+	Properties: map[string]*jsonschema.Schema{
+		"canMaxHistoryLength": {
+			Type:        "integer",
+			Title:       "ContinueAsNewMaxHistoryLength",
+			Description: "Allows you to test the Continue-As-New functionality by specifying the max history length before triggering.",
+		},
+		"scheduleWorkflowName": {
+			Type:        "string",
+			Title:       "ScheduleWorkflowName",
+			Description: "Set the workflow name to trigger - this will either be the document.name or the Do task",
+			MinLength:   utils.Ptr(1),
+		},
+		"scheduleId": {
+			Type:        "string",
+			Title:       "ScheduleID",
+			Description: "Set the schedule ID. If not set, this will to zigflow_<workflow.document.name>",
+		},
+		"scheduleInput": {
+			Type:        "array",
+			Title:       "ScheduleInput",
+			Description: "Set the input.",
 		},
 	},
 }
@@ -1232,6 +1351,10 @@ var taskBaseDefinition = &jsonschema.Schema{
 			Title:                "TaskBaseMetadata",
 			Description:          "Holds additional information about the task.",
 			AdditionalProperties: trueSchema(),
+			AllOf: []*jsonschema.Schema{
+				{Ref: SchemaRef("commonMetadata")},
+				{Ref: SchemaRef("taskMetadata")},
+			},
 		},
 	},
 }
@@ -1247,6 +1370,25 @@ var taskListDefinition = &jsonschema.Schema{
 		MaxProperties: utils.Ptr(1),
 		AdditionalProperties: &jsonschema.Schema{
 			Ref: SchemaRef("task"),
+		},
+	},
+}
+
+var taskMetadataDefinition = &jsonschema.Schema{
+	Type:                 "object",
+	Title:                "TaskMetadata",
+	AdditionalProperties: trueSchema(),
+	Properties: map[string]*jsonschema.Schema{
+		"__zigflow_id": {
+			Type:  "string",
+			Title: "ZigflowID",
+			Description: "A system-generated unique identifier for the task. " +
+				"This value is assigned automatically and should not be modified by users.",
+		},
+		"heartbeat": {
+			Ref:         SchemaRef("duration"),
+			Title:       "Heartbeat",
+			Description: "Heartbeats will be triggered after this time period.",
 		},
 	},
 }

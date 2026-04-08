@@ -96,8 +96,10 @@ func TestBuildDefinitionsKeys(t *testing.T) {
 
 	expected := []string{
 		"callTask",
+		"commonMetadata",
 		"containerLifetime",
 		"doTask",
+		"documentMetadata",
 		"duration",
 		"endpoint",
 		"error",
@@ -122,6 +124,7 @@ func TestBuildDefinitionsKeys(t *testing.T) {
 		"task",
 		"taskBase",
 		"taskList",
+		"taskMetadata",
 		"timeout",
 		"tryTask",
 		"uriTemplate",
