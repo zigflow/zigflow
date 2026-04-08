@@ -21,6 +21,7 @@ do:
             - env
           environment:
             hello: world
+            envvar: ${ $env.EXAMPLE_ENVVAR }
   - nodejs:
       export:
         as: '${ $context + { nodejs: . } }'

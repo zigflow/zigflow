@@ -149,8 +149,20 @@ func (r *Run) runDockerCommand(ctx context.Context, task *model.RunTask, state *
 	}
 
 	if envs := task.Run.Container.Environment; envs != nil {
+		enrichedState := state.Clone().AddActivityInfo(ctx)
+
 		for k, v := range envs {
-			cmd = append(cmd, fmt.Sprintf("--env=%s=%s", k, v))
+			parsedV, err := utils.EvaluateString(v, nil, enrichedState)
+			if err != nil {
+				return nil, temporal.NewNonRetryableApplicationError("Error parsing Docker container envvar", "container", err)
+			}
+			var value string
+			if parsedV == nil {
+				value = ""
+			} else {
+				value = fmt.Sprintf("%v", parsedV)
+			}
+			cmd = append(cmd, fmt.Sprintf("--env=%s=%s", k, value))
 		}
 	}
 
