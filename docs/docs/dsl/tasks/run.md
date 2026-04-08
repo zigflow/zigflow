@@ -197,9 +197,7 @@ workflow units.
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
-| name | `string` | `yes` | The name of the workflow to run |
-| namespace | `string` | `yes` | This is not used and only exists to maintain compatability with the Serverless Workflow schema |
-| version | `string` | `yes` | This is not used and only exists to maintain compatability with the Serverless Workflow schema |
+| type | `string` | `yes` | The workflow type to run |
 | input | `any` | `no` | The data, if any, to pass as input to the workflow to execute. The value should be validated against the target workflow's input schema, if specified |
 
 ### Example {#workflow-example}
@@ -222,18 +220,14 @@ do:
         - callChildWorkflow1:
             run:
               workflow:
-                name: child-workflow1
-                namespace: default
-                version: 0.0.0
+                type: child-workflow1
         - wait:
             wait:
               seconds: 5
         - callChildWorkflow2:
             run:
               workflow:
-                name: child-workflow2
-                namespace: default
-                version: 0.0.0
+                type: child-workflow2
   - child-workflow1:
       do:
         - wait:

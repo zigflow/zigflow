@@ -109,6 +109,15 @@ func (t *RunTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	}, nil
 }
 
+func (t *RunTaskBuilder) PostLoad() error {
+	if w := t.task.Run.Workflow; w != nil {
+		t.task.Run.Workflow.Namespace = "default"
+		t.task.Run.Workflow.Version = "0.0.1"
+	}
+
+	return nil
+}
+
 func (t *RunTaskBuilder) executeCommand(ctx workflow.Context, activityFn, input any, state *utils.State) (any, error) {
 	logger := workflow.GetLogger(ctx)
 	logger.Debug("Executing a command", "task", t.GetTaskName())

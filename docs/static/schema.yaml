@@ -757,23 +757,12 @@ $defs:
                       workflow's input schema, if specified.
                     title: SubflowInput
                     type: object
-                  name:
-                    description: The name of the workflow to run.
-                    title: SubflowName
-                    type: string
-                  namespace:
-                    description: The namespace the workflow to run belongs to.
-                    title: SubflowNamespace
-                    type: string
-                  version:
-                    default: latest
-                    description: The version of the workflow to run. Defaults to latest.
-                    title: SubflowVersion
+                  type:
+                    description: The workflow type to run.
+                    title: SubflowType
                     type: string
                 required:
-                - namespace
-                - name
-                - version
+                - type
                 title: SubflowConfiguration
                 type: object
                 unevaluatedProperties: false
