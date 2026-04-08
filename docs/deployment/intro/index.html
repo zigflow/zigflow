@@ -15,8 +15,8 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/assets/css/styles.9482efbe.css">
-<script src="/assets/js/runtime~main.15d84454.js" defer="defer"></script>
-<script src="/assets/js/main.9a921947.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.8f0de8a1.js" defer="defer"></script>
+<script src="/assets/js/main.b12d933e.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -31,19 +31,23 @@
 <li class="">How to pass configuration via CLI flags or environment variables</li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="what-zigflow-deploys">What Zigflow deploys<a href="#what-zigflow-deploys" class="hash-link" aria-label="Direct link to What Zigflow deploys" title="Direct link to What Zigflow deploys" translate="no">​</a></h2>
-<p>Zigflow is a single Go binary. When you run <code>zigflow run</code>, it starts a
-<strong>Temporal worker</strong> that:</p>
+<p>Zigflow is a single Go binary. When you run <code>zigflow run</code>, it starts one or
+more <strong>Temporal workers</strong> that:</p>
 <ul>
-<li class="">Connects to a Temporal server</li>
-<li class="">Registers the compiled workflow</li>
-<li class="">Polls the task queue for executions</li>
+<li class="">Connect to a Temporal server</li>
+<li class="">Register one or more workflow definitions</li>
+<li class="">Poll task queues for executions</li>
 </ul>
+<p>A single Zigflow process can load multiple workflow definitions from separate
+files or a directory. Workflows that share a task queue (defined by
+<code>document.taskQueue</code>) run on the same worker. Each distinct task queue gets
+its own worker.</p>
 <p>There is no separate API server, no database and no persistent storage.
 All workflow state is held by Temporal.</p>
 <p>Your infrastructure requirements are:</p>
 <ol>
 <li class="">A running Temporal server (Cloud or self-hosted)</li>
-<li class="">A Zigflow worker process for each workflow definition</li>
+<li class="">One or more Zigflow worker processes</li>
 </ol>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="deployment-options">Deployment options<a href="#deployment-options" class="hash-link" aria-label="Direct link to Deployment options" title="Direct link to Deployment options" translate="no">​</a></h2>
@@ -76,7 +80,7 @@ baked in at build time rather than mounted at runtime.</p>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="runtime-ports">Runtime ports<a href="#runtime-ports" class="hash-link" aria-label="Direct link to Runtime ports" title="Direct link to Runtime ports" translate="no">​</a></h2>
 <p>A running Zigflow worker exposes two ports:</p>
-<table><thead><tr><th>Port</th><th>Default</th><th>Purpose</th></tr></thead><tbody><tr><td>Health</td><td><code>3000</code></td><td>HTTP <code>/health</code>: liveness and readiness</td></tr><tr><td>Metrics</td><td><code>9090</code></td><td>Prometheus metrics</td></tr></tbody></table>
+<table><thead><tr><th>Port</th><th>Default</th><th>Endpoints</th></tr></thead><tbody><tr><td>Health</td><td><code>3000</code></td><td><code>/livez</code> (liveness), <code>/readyz</code> (readiness), <code>/health</code> (alias for <code>/readyz</code>)</td></tr><tr><td>Metrics</td><td><code>9090</code></td><td>Prometheus metrics</td></tr></tbody></table>
 <p>Override with <code>--health-listen-address</code> and <code>--metrics-listen-address</code>.</p>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="connecting-to-temporal">Connecting to Temporal<a href="#connecting-to-temporal" class="hash-link" aria-label="Direct link to Connecting to Temporal" title="Direct link to Connecting to Temporal" translate="no">​</a></h2>

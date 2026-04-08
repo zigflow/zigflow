@@ -15,8 +15,8 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/assets/css/styles.9482efbe.css">
-<script src="/assets/js/runtime~main.15d84454.js" defer="defer"></script>
-<script src="/assets/js/main.9a921947.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.8f0de8a1.js" defer="defer"></script>
+<script src="/assets/js/main.b12d933e.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -41,13 +41,27 @@ ConfigMaps and no inline workflow configuration at runtime.</p>
 </ul>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="how-it-works">How it works<a href="#how-it-works" class="hash-link" aria-label="Direct link to How it works" title="Direct link to How it works" translate="no">​</a></h2>
-<p>The official Zigflow image sets the following environment variable:</p>
+<p>The official Zigflow image sets one environment variable by default:</p>
 <div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">WORKFLOW_FILE=/app/workflow.yaml</span><br></span></code></pre></div></div>
-<p>When Zigflow starts, it reads the workflow file from the path specified by
-<code>WORKFLOW_FILE</code>. Because this variable is already set in the base image, a
-container that provides a file at <code>/app/workflow.yaml</code> will start the worker
-immediately. No <code>-f</code> flag is required and no <code>WORKFLOW_FILE</code> override is needed.</p>
-<p>Copying your workflow file into the image at that path is sufficient.</p>
+<p>When Zigflow starts, it loads the file at the path specified by <code>WORKFLOW_FILE</code>.
+Because this is already set in the base image, a container that copies a workflow
+file to <code>/app/workflow.yaml</code> will start the worker immediately. No <code>-f</code> flag is
+required and no override is needed.</p>
+<p><strong>Single-file mode (default):</strong> copy one workflow file to <code>/app/workflow.yaml</code>.
+Zigflow loads it via <code>WORKFLOW_FILE</code>.</p>
+<p><strong>Multi-file mode:</strong> to load multiple workflow files from a directory, set
+<code>WORKFLOW_DIRECTORY</code> in your Dockerfile. If you do not want to load the default
+single file, also set <code>WORKFLOW_FILE=</code>:</p>
+<div class="language-dockerfile codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockTitle_OeMC">Dockerfile</div><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-dockerfile codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">FROM ghcr.io/zigflow/zigflow</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">ENV WORKFLOW_FILE=</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">ENV WORKFLOW_DIRECTORY=/app/workflows</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">COPY ./workflows /app/workflows</span><br></span></code></pre></div></div>
+<p>Each distinct <code>document.taskQueue</code> in those files gets its own Temporal worker
+and task queue.</p>
+<p>You can also combine both: set <code>WORKFLOW_FILE</code> and <code>WORKFLOW_DIRECTORY</code> together.
+All discovered files are merged and deduplicated before startup.</p>
+<div class="theme-admonition theme-admonition-warning admonition_xJq3 alert alert--warning"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.893 1.5c-.183-.31-.52-.5-.887-.5s-.703.19-.886.5L.138 13.499a.98.98 0 0 0 0 1.001c.193.31.53.501.886.501h13.964c.367 0 .704-.19.877-.5a1.03 1.03 0 0 0 .01-1.002L8.893 1.5zm.133 11.497H6.987v-2.003h2.039v2.003zm0-3.004H6.987V5.987h2.039v4.006z"></path></svg></span>warning</div><div class="admonitionContent_BuS1"><p>When using directory mode, the directory should contain workflow definitions
+only. Non-workflow YAML/JSON files will be treated as workflows and may cause
+startup errors.</p></div></div>
+<p>If a configured file does not exist, Zigflow will fail at startup. There is no
+implicit fallback or silent skip.</p>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="dockerfile">Dockerfile<a href="#dockerfile" class="hash-link" aria-label="Direct link to Dockerfile" title="Direct link to Dockerfile" translate="no">​</a></h2>
 <div class="language-dockerfile codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockTitle_OeMC">Dockerfile</div><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-dockerfile codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">FROM ghcr.io/zigflow/zigflow</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">COPY ./workflow.yaml /app/workflow.yaml</span><br></span></code></pre></div></div>

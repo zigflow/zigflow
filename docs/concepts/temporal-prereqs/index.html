@@ -15,8 +15,8 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/assets/css/styles.9482efbe.css">
-<script src="/assets/js/runtime~main.15d84454.js" defer="defer"></script>
-<script src="/assets/js/main.9a921947.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.8f0de8a1.js" defer="defer"></script>
+<script src="/assets/js/main.b12d933e.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -50,12 +50,12 @@ enforces retry policies. It is a separate process from Zigflow.</p>
 namespace is <code>default</code>.</p>
 <p>In Zigflow, the Temporal namespace is set at runtime with the
 <code>--temporal-namespace</code> flag, not in the YAML definition.</p>
-<p>Do not confuse this with <code>document.namespace</code>, which maps to the task queue.</p>
+<p>Do not confuse this with <code>document.taskQueue</code>, which sets the task queue name.</p>
 <hr>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="task-queue">Task queue<a href="#task-queue" class="hash-link" aria-label="Direct link to Task queue" title="Direct link to Task queue" translate="no">​</a></h3>
 <p>A task queue is a named channel between clients and workers. Workers poll a
 task queue for work. Clients start executions on a task queue.</p>
-<p>In Zigflow, <code>document.namespace</code> in your YAML sets the task queue name. When
+<p>In Zigflow, <code>document.taskQueue</code> in your YAML sets the task queue name. When
 you run <code>zigflow run</code>, the worker registers itself on that task queue.</p>
 <hr>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="workflow">Workflow<a href="#workflow" class="hash-link" aria-label="Direct link to Workflow" title="Direct link to Workflow" translate="no">​</a></h3>
@@ -74,7 +74,7 @@ Temporal activities.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="worker">Worker<a href="#worker" class="hash-link" aria-label="Direct link to Worker" title="Direct link to Worker" translate="no">​</a></h3>
 <p>A worker is a process that polls Temporal for tasks and executes them.</p>
 <p><code>zigflow run</code> starts a Temporal worker. The worker polls the task queue
-specified by <code>document.namespace</code> and executes workflow and activity tasks.</p>
+specified by <code>document.taskQueue</code> and executes workflow and activity tasks.</p>
 <hr>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="signal">Signal<a href="#signal" class="hash-link" aria-label="Direct link to Signal" title="Direct link to Signal" translate="no">​</a></h3>
 <p>A signal is a one-way message sent to a running workflow. The workflow can
@@ -117,7 +117,7 @@ into specific topics</li>
 The Temporal server will queue the execution, but it will not start until a
 worker is polling the task queue.</p>
 <p><strong>Using the wrong task queue name.</strong>
-Check that <code>document.namespace</code> in your YAML matches what your client uses as
+Check that <code>document.taskQueue</code> in your YAML matches what your client uses as
 the task queue.</p>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="related-pages">Related pages<a href="#related-pages" class="hash-link" aria-label="Direct link to Related pages" title="Direct link to Related pages" translate="no">​</a></h2>

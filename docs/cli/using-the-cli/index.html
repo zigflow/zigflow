@@ -15,8 +15,8 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/assets/css/styles.9482efbe.css">
-<script src="/assets/js/runtime~main.15d84454.js" defer="defer"></script>
-<script src="/assets/js/main.9a921947.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.8f0de8a1.js" defer="defer"></script>
+<script src="/assets/js/main.b12d933e.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -45,7 +45,7 @@ required.</p>
 <ul>
 <li class="">Connects to Temporal (default: <code>localhost:7233</code>)</li>
 <li class="">Registers the compiled workflow on the task queue defined by
-<code>document.namespace</code></li>
+<code>document.taskQueue</code></li>
 <li class="">Polls Temporal until interrupted</li>
 </ul>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="4-trigger-the-workflow">4. Trigger the workflow<a href="#4-trigger-the-workflow" class="hash-link" aria-label="Direct link to 4. Trigger the workflow" title="Direct link to 4. Trigger the workflow" translate="no">​</a></h3>
@@ -101,8 +101,8 @@ The task queue and workflow type must match what your client uses.
 Check:</p>
 <ul>
 <li class=""><code>--task-queue</code> in <code>temporal workflow start</code> matches
-<code>document.namespace</code> in your YAML</li>
-<li class=""><code>--type</code> matches <code>document.name</code></li>
+<code>document.taskQueue</code> in your YAML</li>
+<li class=""><code>--type</code> matches <code>document.workflowType</code></li>
 </ul>
 <p><strong>&quot;dial tcp: connection refused&quot; on startup.</strong>
 Temporal is not reachable. Check <code>--temporal-address</code> and confirm

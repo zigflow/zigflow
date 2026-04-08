@@ -15,8 +15,8 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/assets/css/styles.9482efbe.css">
-<script src="/assets/js/runtime~main.15d84454.js" defer="defer"></script>
-<script src="/assets/js/main.9a921947.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.8f0de8a1.js" defer="defer"></script>
+<script src="/assets/js/main.b12d933e.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -43,8 +43,8 @@ or JSON.</p>
 connection to Temporal is made.</p>
 <p>Validation checks:</p>
 <ul>
-<li class="">Required fields are present (<code>document.dsl</code>, <code>document.namespace</code>,
-<code>document.name</code>, <code>document.version</code>, <code>do</code>)</li>
+<li class="">Required fields are present (<code>document.dsl</code>, <code>document.taskQueue</code>,
+<code>document.workflowType</code>, <code>document.version</code>, <code>do</code>)</li>
 <li class="">All task types are recognised</li>
 <li class="">Input schema is valid JSON Schema, if provided</li>
 <li class="">All output and export expressions are syntactically correct</li>
@@ -58,10 +58,10 @@ No connection to Temporal is attempted.</p>
 <code>--temporal-address</code> (default <code>localhost:7233</code>).</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="4-register-the-workflow">4. Register the workflow<a href="#4-register-the-workflow" class="hash-link" aria-label="Direct link to 4. Register the workflow" title="Direct link to 4. Register the workflow" translate="no">​</a></h3>
 <p>Zigflow registers the compiled workflow and its activities with Temporal under
-the task queue specified by <code>document.namespace</code>.</p>
+the task queue specified by <code>document.taskQueue</code>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="5-start-polling">5. Start polling<a href="#5-start-polling" class="hash-link" aria-label="Direct link to 5. Start polling" title="Direct link to 5. Start polling" translate="no">​</a></h3>
 <p>The worker enters a poll loop. It asks Temporal: &quot;is there any work on the
-<code>&lt;namespace&gt;</code> task queue?&quot;</p>
+<code>&lt;taskQueue&gt;</code> task queue?&quot;</p>
 <p>The worker continues polling until it is interrupted (for example, with
 <code>Ctrl+C</code>).</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="6-execute-a-workflow">6. Execute a workflow<a href="#6-execute-a-workflow" class="hash-link" aria-label="Direct link to 6. Execute a workflow" title="Direct link to 6. Execute a workflow" translate="no">​</a></h3>
@@ -78,8 +78,8 @@ logic.</p>
 <!-- -->
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="what-the-worker-exposes">What the worker exposes<a href="#what-the-worker-exposes" class="hash-link" aria-label="Direct link to What the worker exposes" title="Direct link to What the worker exposes" translate="no">​</a></h2>
-<p>While running, the Zigflow worker exposes two HTTP endpoints:</p>
-<table><thead><tr><th>Endpoint</th><th>Port</th><th>Purpose</th></tr></thead><tbody><tr><td><code>/health</code></td><td><code>3000</code></td><td>Liveness and readiness probe</td></tr><tr><td>(Prometheus metrics)</td><td><code>9090</code></td><td>Runtime metrics</td></tr></tbody></table>
+<p>While running, the Zigflow worker exposes HTTP endpoints on two ports:</p>
+<table><thead><tr><th>Endpoint</th><th>Port</th><th>Purpose</th></tr></thead><tbody><tr><td><code>/livez</code></td><td><code>3000</code></td><td>Liveness probe</td></tr><tr><td><code>/readyz</code></td><td><code>3000</code></td><td>Readiness probe</td></tr><tr><td><code>/health</code></td><td><code>3000</code></td><td>Backwards-compatible alias for <code>/readyz</code></td></tr><tr><td>(Prometheus metrics)</td><td><code>9090</code></td><td>Runtime metrics</td></tr></tbody></table>
 <p>These ports can be changed with <code>--health-listen-address</code> and
 <code>--metrics-listen-address</code>.</p>
 <hr>

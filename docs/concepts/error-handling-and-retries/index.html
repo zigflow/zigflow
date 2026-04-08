@@ -15,8 +15,8 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/assets/css/styles.9482efbe.css">
-<script src="/assets/js/runtime~main.15d84454.js" defer="defer"></script>
-<script src="/assets/js/main.9a921947.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.8f0de8a1.js" defer="defer"></script>
+<script src="/assets/js/main.b12d933e.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -84,7 +84,7 @@ error propagates up. Wrap the task in a <code>try</code> block to handle this ca
 A <code>raise</code> inside the <code>try</code> block is caught by the <code>catch</code> block. Use this
 intentionally only if you want to normalise errors to a consistent format.</p>
 <p><strong>Not setting <code>startToCloseTimeout</code> for long-running activities.</strong>
-The default start-to-close timeout is 5 minutes. Long-running activities
+The default start-to-close timeout is 15 seconds. Long-running activities
 (such as container executions or waiting on external systems) should increase
 this via <code>metadata.activityOptions.startToCloseTimeout</code>.</p>
 <hr>
