@@ -1,1 +1,0 @@
-"use strict";(globalThis.webpackChunkzigflow=globalThis.webpackChunkzigflow||[]).push([[1903],{1912(a){a.exports=JSON.parse('{"blogBasePath":"/preview/sje-metadata-schema/articles","blogTitle":"Blog","authorsListPath":"/preview/sje-metadata-schema/articles/authors"}')}}]);
