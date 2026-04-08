@@ -5,9 +5,10 @@ document:
   version: 0.0.1
   title: Child Workflows
   summary: Define multiple workflows and call a child workflow from a parent
-timeout:
-  after:
-    minutes: 1
+  metadata:
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 do:
   - parentWorkflow:
       do:

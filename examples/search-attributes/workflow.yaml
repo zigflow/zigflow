@@ -5,6 +5,10 @@ document:
   version: 0.0.1
   title: Custom Search Attributes
   summary: How to add custom search attribute data into your Temporal workflows
+  metadata:
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 input:
   schema:
     format: json
@@ -15,9 +19,6 @@ input:
       properties:
         userId:
           type: number
-timeout:
-  after:
-    minutes: 1
 do:
   - wait:
       metadata:

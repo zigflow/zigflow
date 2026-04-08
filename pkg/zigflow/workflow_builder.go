@@ -23,6 +23,7 @@ import (
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/telemetry"
+	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
 	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
 	"go.temporal.io/sdk/worker"
@@ -41,6 +42,13 @@ func NewWorkflow(
 	maxHistoryLength, err := metadata.GetMaxHistoryLength(doc)
 	if err != nil {
 		return err
+	}
+
+	if doc.Timeout != nil && doc.Timeout.Timeout != nil && doc.Timeout.Timeout.After != nil {
+		log.Warn().
+			Str("docs", "https://zigflow.dev/docs/dsl/intro#timeout").
+			Dur("timeout", utils.ToDuration(doc.Timeout.Timeout.After)).
+			Msg("The top-level timeout field is deprecated; use document.metadata.activityOptions.startToCloseTimeout instead")
 	}
 
 	l.Debug().Msg("Creating new Do builder")

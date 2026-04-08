@@ -268,8 +268,7 @@ var commonMetadataDefinition = &jsonschema.Schema{
 			AdditionalProperties: trueSchema(),
 			Properties: map[string]*jsonschema.Schema{
 				"disableEagerExecution": {
-					Type:    "boolean",
-					Default: json.RawMessage("false"),
+					Type: "boolean",
 					Description: "If true, eager execution will not be requested, regardless of worker settings. " +
 						"If false, eager execution may still be disabled at the worker level or may not be requested due to lack of available slots.",
 				},
@@ -336,7 +335,6 @@ var commonMetadataDefinition = &jsonschema.Schema{
 				},
 				"summary": {
 					Type:        "string",
-					Default:     json.RawMessage(`"<taskName>"`),
 					Description: "Add a summary to the Temporal workflow UI.",
 				},
 			},
@@ -394,13 +392,13 @@ var documentMetadataDefinition = &jsonschema.Schema{
 		"scheduleWorkflowName": {
 			Type:        "string",
 			Title:       "ScheduleWorkflowName",
-			Description: "Set the workflow name to trigger - this will either be the document.name or the Do task",
+			Description: "Set the workflow name to trigger - this will either be the document.workflowType or the Do task",
 			MinLength:   utils.Ptr(1),
 		},
 		"scheduleId": {
 			Type:        "string",
 			Title:       "ScheduleID",
-			Description: "Set the schedule ID. If not set, this will to zigflow_<workflow.document.name>",
+			Description: "Set the schedule ID. If not set, this will to zigflow_<workflow.document.workflowType>",
 		},
 		"scheduleInput": {
 			Type:        "array",

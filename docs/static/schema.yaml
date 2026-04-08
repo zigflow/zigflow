@@ -169,7 +169,6 @@ $defs:
         additionalProperties: true
         properties:
           disableEagerExecution:
-            default: false
             description: If true, eager execution will not be requested, regardless
               of worker settings. If false, eager execution may still be disabled
               at the worker level or may not be requested due to lack of available
@@ -233,7 +232,6 @@ $defs:
             description: Maximum time of a single Activity execution attempt.
             title: StartToCloseTimeout
           summary:
-            default: <taskName>
             description: Add a summary to the Temporal workflow UI.
             type: string
         title: ActivityOptionsMetadata
@@ -279,7 +277,7 @@ $defs:
         title: ContinueAsNewMaxHistoryLength
         type: integer
       scheduleId:
-        description: Set the schedule ID. If not set, this will to zigflow_<workflow.document.name>
+        description: Set the schedule ID. If not set, this will to zigflow_<workflow.document.workflowType>
         title: ScheduleID
         type: string
       scheduleInput:
@@ -287,7 +285,7 @@ $defs:
         title: ScheduleInput
         type: array
       scheduleWorkflowName:
-        description: Set the workflow name to trigger - this will either be the document.name
+        description: Set the workflow name to trigger - this will either be the document.workflowType
           or the Do task
         minLength: 1
         title: ScheduleWorkflowName

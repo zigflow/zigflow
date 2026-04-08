@@ -24,9 +24,10 @@ document:
   taskQueue: zigflow
   workflowType: example
   version: 0.0.1
-timeout:
-  after:
-    minutes: 1
+  metadata:
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 do:
   - wait:
       wait:

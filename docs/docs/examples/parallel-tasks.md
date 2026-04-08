@@ -21,9 +21,10 @@ document:
   taskQueue: zigflow
   workflowType: competing-tasks
   version: 0.0.1
-timeout:
-  after:
-    minutes: 1
+  metadata:
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 do:
   - state:
       export:

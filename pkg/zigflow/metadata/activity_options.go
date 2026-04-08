@@ -137,7 +137,7 @@ func SetActivityOptions(ctx workflow.Context, wf *model.Workflow, task *model.Ta
 	ao.RetryPolicy = defaultRetryPolicy
 	ao.StartToCloseTimeout = defaultWorkflowTimeout
 
-	// Convert the timeout
+	// @deprecated Convert the timeout
 	if wf.Timeout != nil && wf.Timeout.Timeout != nil && wf.Timeout.Timeout.After != nil {
 		ao.StartToCloseTimeout = utils.ToDuration(wf.Timeout.Timeout.After)
 	}

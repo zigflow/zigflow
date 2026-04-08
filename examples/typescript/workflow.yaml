@@ -7,6 +7,9 @@ document:
   summary: The basic example, but in TypeScript
   metadata:
     display: false
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 input:
   schema:
     format: json
@@ -17,9 +20,6 @@ input:
       properties:
         userId:
           type: number
-timeout:
-  after:
-    minutes: 1
 do:
   - baseData:
       export:

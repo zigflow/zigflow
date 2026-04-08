@@ -7,6 +7,9 @@ document:
   summary: Execute tasks conditionally
   metadata:
     display: false
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 input:
   schema:
     format: json
@@ -17,9 +20,6 @@ input:
       properties:
         integer:
           type: number
-timeout:
-  after:
-    minutes: 1
 do:
   # If input is even, wait 5 seconds
   - waitIfEven:

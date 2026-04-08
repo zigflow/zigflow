@@ -7,9 +7,9 @@ document:
   summary: How to execute code in NodeJS, Python and Shell
   metadata:
     display: false
-timeout:
-  after:
-    minutes: 1
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 do:
   - container:
       export:

@@ -5,6 +5,10 @@ document:
   version: 0.0.1
   title: Debugging
   summary: An example of how to use CloudEvents for debugging workflows
+  metadata:
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 # Optionally validate the input received
 input:
   schema:
@@ -16,9 +20,6 @@ input:
       properties:
         userId:
           type: number
-timeout:
-  after:
-    minutes: 1
 do:
   - baseData:
       export:

@@ -7,6 +7,9 @@ document:
   summary: Invoke an external Temporal activity from Zigflow
   metadata:
     display: false
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 input:
   schema:
     format: json
@@ -18,9 +21,6 @@ input:
         userId:
           type: string
           description: External user identifier
-timeout:
-  after:
-    minutes: 1
 do:
   - captureInput:
       set:

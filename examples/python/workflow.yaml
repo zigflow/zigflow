@@ -7,6 +7,9 @@ document:
   summary: The basic example, but in Python
   metadata:
     display: false
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 # Optionally validate the input received
 input:
   schema:
@@ -18,9 +21,6 @@ input:
       properties:
         userId:
           type: number
-timeout:
-  after:
-    minutes: 1
 do:
   - baseData:
       export:

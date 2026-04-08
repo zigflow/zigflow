@@ -187,9 +187,9 @@ document:
   summary: Temporal's world-famous Money Transfer Demo, in Zigflow form
   metadata:
     display: false
-timeout:
-  after:
-    minutes: 1
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 do:
   # Happy path
   - AccountTransferWorkflow:

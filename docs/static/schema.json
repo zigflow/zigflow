@@ -355,8 +355,7 @@
           "properties": {
             "disableEagerExecution": {
               "type": "boolean",
-              "description": "If true, eager execution will not be requested, regardless of worker settings. If false, eager execution may still be disabled at the worker level or may not be requested due to lack of available slots.",
-              "default": false
+              "description": "If true, eager execution will not be requested, regardless of worker settings. If false, eager execution may still be disabled at the worker level or may not be requested due to lack of available slots."
             },
             "heartbeatTimeout": {
               "$ref": "#/$defs/duration",
@@ -422,8 +421,7 @@
             },
             "summary": {
               "type": "string",
-              "description": "Add a summary to the Temporal workflow UI.",
-              "default": "\u003ctaskName\u003e"
+              "description": "Add a summary to the Temporal workflow UI."
             }
           },
           "title": "ActivityOptionsMetadata",
@@ -488,7 +486,7 @@
         "scheduleId": {
           "type": "string",
           "title": "ScheduleID",
-          "description": "Set the schedule ID. If not set, this will to zigflow_\u003cworkflow.document.name\u003e"
+          "description": "Set the schedule ID. If not set, this will to zigflow_\u003cworkflow.document.workflowType\u003e"
         },
         "scheduleInput": {
           "type": "array",
@@ -498,7 +496,7 @@
         "scheduleWorkflowName": {
           "type": "string",
           "title": "ScheduleWorkflowName",
-          "description": "Set the workflow name to trigger - this will either be the document.name or the Do task",
+          "description": "Set the workflow name to trigger - this will either be the document.workflowType or the Do task",
           "minLength": 1
         }
       },

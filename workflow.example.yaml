@@ -7,9 +7,10 @@ document:
   version: 0.0.1
   title: Example Workflow
   summary: An example of how to use Serverless Workflow to define Temporal Workflows
-timeout:
-  after:
-    minutes: 1
+  metadata:
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 # Validate the input schema
 input:
   schema:

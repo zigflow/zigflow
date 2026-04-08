@@ -16,9 +16,9 @@ document:
           - hello
           - world
         envvars: ${ $env.EXAMPLE_ENVVAR }
-timeout:
-  after:
-    minutes: 1
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 schedule:
   # Every is supported as a Temporal interval - https://pkg.go.dev/go.temporal.io/sdk/client#ScheduleIntervalSpec
   every:

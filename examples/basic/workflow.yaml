@@ -13,6 +13,8 @@ document:
     activityOptions:
       retryPolicy:
         maximumAttempts: 3
+      startToCloseTimeout:
+        minutes: 1
     display: false
 # Optionally validate the input received
 input:
@@ -25,9 +27,6 @@ input:
       properties:
         userId:
           type: number
-timeout:
-  after:
-    minutes: 1
 do:
   - baseData:
       export:

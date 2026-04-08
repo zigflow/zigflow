@@ -214,6 +214,12 @@ This expects the output to look something like this:
 
 ## Timeout
 
+:::warning
+The top-level `timeout` field is deprecated. Use `metadata.activityOptions.startToCloseTimeout`
+instead. See [`metadata.activityOptions`](./metadata/activity-options#types-activity-options)
+for details.
+:::
+
 Defines a workflow or task timeout.
 
 ### Properties {#timeout-properties}

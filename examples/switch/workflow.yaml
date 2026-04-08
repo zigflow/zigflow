@@ -7,9 +7,9 @@ document:
   summary: Perform a switch statement
   metadata:
     display: false
-timeout:
-  after:
-    minutes: 1
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 do:
   # This is the primary workflow, called "switch" from above
   - wait:

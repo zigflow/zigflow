@@ -198,6 +198,10 @@ document:
   taskQueue: zigflow
   workflowType: activity-call
   version: 0.0.1
+  metadata:
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
 input:
   schema:
     format: json
@@ -208,9 +212,6 @@ input:
       properties:
         userId:
           type: string
-timeout:
-  after:
-    minutes: 1
 do:
   - captureInput:
       set:
