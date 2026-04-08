@@ -417,7 +417,7 @@
               "title": "StartToCloseTimeout",
               "description": "Maximum time of a single Activity execution attempt.",
               "default": {
-                "minutes": 5
+                "seconds": 15
               }
             },
             "summary": {
@@ -498,7 +498,8 @@
         "scheduleWorkflowName": {
           "type": "string",
           "title": "ScheduleWorkflowName",
-          "description": "Set the workflow name to trigger - this will either be the document.name or the Do task"
+          "description": "Set the workflow name to trigger - this will either be the document.name or the Do task",
+          "minLength": 1
         }
       },
       "title": "DocumentMetadata",
