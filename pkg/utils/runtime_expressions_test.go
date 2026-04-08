@@ -467,6 +467,25 @@ func TestTraverseAndEvaluateObj(t *testing.T) {
 	}
 }
 
+func TestTraverseAndEvaluateObjMapStringString(t *testing.T) {
+	state := NewState()
+	state.Env["OPENAI_API_KEY"] = "secret-key"
+
+	obj := model.NewObjectOrRuntimeExpr(map[string]any{
+		"env": map[string]string{
+			"OPENAI_API_KEY": "${ $env.OPENAI_API_KEY }",
+		},
+	})
+
+	result, err := TraverseAndEvaluateObj(obj, nil, state)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{
+		"env": map[string]string{
+			"OPENAI_API_KEY": "secret-key",
+		},
+	}, result)
+}
+
 func TestTraverseAndEvaluateObjWithWrapper(t *testing.T) {
 	t.Run("wrapper is called for expression values in a map", func(t *testing.T) {
 		callCount := 0

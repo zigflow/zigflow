@@ -130,6 +130,13 @@ func (r *Run) runDockerCommand(ctx context.Context, task *model.RunTask, state *
 		return nil, temporal.NewNonRetryableApplicationError("Docker not installed", "container", err)
 	}
 
+	state = state.Clone().AddActivityInfo(ctx)
+
+	containerData, err := interpolateContainerConfig(task, state)
+	if err != nil {
+		return nil, err
+	}
+
 	cmd := []string{
 		"docker",
 		"run",
@@ -140,37 +147,151 @@ func (r *Run) runDockerCommand(ctx context.Context, task *model.RunTask, state *
 		fmt.Sprintf("--name=%s", task.Run.Container.Name),
 	}
 
-	if c := task.Run.Container.Command; c != "" {
-		cmd = append(cmd, fmt.Sprintf("--entrypoint=%s", c))
+	entrypoint, hasEntrypoint, err := dockerEntrypointFromInterpolated(containerData["command"])
+	if err != nil {
+		return nil, err
+	}
+	if hasEntrypoint {
+		cmd = append(cmd, fmt.Sprintf("--entrypoint=%s", entrypoint))
 	}
 
 	if task.Run.Container.Lifetime == nil || task.Run.Container.Lifetime.Cleanup == "always" {
 		cmd = append(cmd, "--rm")
 	}
 
-	if envs := task.Run.Container.Environment; envs != nil {
+	cmd = appendDockerEnvFlags(cmd, containerData["environment"])
+	cmd, err = appendDockerVolumeFlags(cmd, containerData["volumes"])
+	if err != nil {
+		return nil, err
+	}
+
+	image, err := dockerImageFromInterpolated(containerData["image"])
+	if err != nil {
+		return nil, err
+	}
+	cmd = append(cmd, image)
+
+	args, err := dockerArgsFromInterpolated(containerData["arguments"])
+	if err != nil {
+		return nil, err
+	}
+	cmd = append(cmd, args...)
+
+	return r.runExecCommand(ctx, []string{cmd[0]}, &model.RunArguments{Value: cmd[1:]}, nil, state, "", task.GetBase())
+}
+
+func interpolateContainerConfig(task *model.RunTask, state *utils.State) (map[string]any, error) {
+	interpolatedContainer, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(map[string]any{
+		"image":       task.Run.Container.Image,
+		"command":     task.Run.Container.Command,
+		"environment": swUtil.DeepCloneValue(task.Run.Container.Environment),
+		"volumes":     swUtil.DeepCloneValue(task.Run.Container.Volumes),
+		"arguments":   swUtil.DeepCloneValue(task.Run.Container.Arguments),
+	}), nil, state)
+	if err != nil {
+		return nil, fmt.Errorf("error traversing container parameters: %w", err)
+	}
+	return interpolatedContainer.(map[string]any), nil
+}
+
+func appendDockerEnvFlags(cmd []string, envsRaw any) []string {
+	switch envs := envsRaw.(type) {
+	case nil:
+		return cmd
+	case map[string]string:
 		for k, v := range envs {
 			cmd = append(cmd, fmt.Sprintf("--env=%s=%s", k, v))
 		}
-	}
-
-	if vols := task.Run.Container.Volumes; vols != nil {
-		for k, remote := range vols {
-			local, err := filepath.Abs(k)
-			if err != nil {
-				return nil, fmt.Errorf("error getting volume absolute path: %w", err)
-			}
-
-			cmd = append(cmd, fmt.Sprintf("--volume=%s:%s", local, remote))
+	case map[string]any:
+		for k, v := range envs {
+			cmd = append(cmd, fmt.Sprintf("--env=%s=%s", k, fmt.Sprint(v)))
 		}
 	}
-	// Add in the image
-	cmd = append(cmd, task.Run.Container.Image)
+	return cmd
+}
 
-	// Add in arguments
-	cmd = append(cmd, task.Run.Container.Arguments...)
+func appendDockerVolumeFlags(cmd []string, volsRaw any) ([]string, error) {
+	var vols map[string]string
+	switch data := volsRaw.(type) {
+	case nil:
+		return cmd, nil
+	case map[string]string:
+		vols = data
+	case map[string]any:
+		vols = map[string]string{}
+		for local, remoteRaw := range data {
+			if remoteRaw == nil {
+				return nil, fmt.Errorf("invalid container volume for %q: destination cannot be null", local)
+			}
+			remote, ok := remoteRaw.(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid container volume for %q: expected string destination, got %T", local, remoteRaw)
+			}
+			vols[local] = remote
+		}
+	default:
+		return nil, fmt.Errorf("invalid container volumes: expected map, got %T", volsRaw)
+	}
 
-	return r.runExecCommand(ctx, []string{cmd[0]}, &model.RunArguments{Value: cmd[1:]}, nil, state, "", task.GetBase())
+	for k, remote := range vols {
+		local, err := filepath.Abs(k)
+		if err != nil {
+			return nil, fmt.Errorf("error getting volume absolute path: %w", err)
+		}
+
+		cmd = append(cmd, fmt.Sprintf("--volume=%s:%s", local, remote))
+	}
+	return cmd, nil
+}
+
+func dockerEntrypointFromInterpolated(commandRaw any) (entrypoint string, hasEntrypoint bool, err error) {
+	if commandRaw == nil {
+		return "", false, nil
+	}
+	command, ok := commandRaw.(string)
+	if !ok {
+		return "", false, fmt.Errorf("invalid container command: expected string, got %T", commandRaw)
+	}
+	if command == "" {
+		return "", false, nil
+	}
+	return command, true, nil
+}
+
+func dockerImageFromInterpolated(imageRaw any) (string, error) {
+	if imageRaw == nil {
+		return "", fmt.Errorf("invalid container image: value is required and cannot be null")
+	}
+	image, ok := imageRaw.(string)
+	if !ok {
+		return "", fmt.Errorf("invalid container image: expected string, got %T", imageRaw)
+	}
+	if strings.TrimSpace(image) == "" {
+		return "", fmt.Errorf("invalid container image: value is required and cannot be empty")
+	}
+	return image, nil
+}
+
+func dockerArgsFromInterpolated(argsRaw any) ([]string, error) {
+	if argsRaw == nil {
+		return nil, nil
+	}
+
+	switch args := argsRaw.(type) {
+	case []string:
+		return args, nil
+	case []any:
+		containerArgs := make([]string, 0, len(args))
+		for i, arg := range args {
+			if arg == nil {
+				return nil, fmt.Errorf("invalid container argument at index %d: value cannot be null", i)
+			}
+			containerArgs = append(containerArgs, fmt.Sprint(arg))
+		}
+		return containerArgs, nil
+	default:
+		return nil, fmt.Errorf("invalid container arguments: expected array, got %T", argsRaw)
+	}
 }
 
 // runExecCommand a general purpose function to build and execute a command in an activity

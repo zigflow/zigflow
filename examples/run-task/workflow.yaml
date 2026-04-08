@@ -21,6 +21,7 @@ do:
             - env
           environment:
             hello: world
+            apikey: '${ $env.API_KEY }'
   - nodejs:
       export:
         as: '${ $context + { nodejs: . } }'

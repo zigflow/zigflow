@@ -166,6 +166,16 @@ func traverseAndEvaluate(node, ctx any, state *State, evaluationWrapper Expressi
 			v[key] = evaluatedValue
 		}
 		return v, nil
+	case map[string]string:
+		// Traverse map values for string-only maps (for example, run task environment vars).
+		for key, value := range v {
+			evaluatedValue, err := traverseAndEvaluate(value, ctx, state, evaluationWrapper)
+			if err != nil {
+				return nil, err
+			}
+			v[key] = fmt.Sprintf("%v", evaluatedValue)
+		}
+		return v, nil
 	case []any:
 		// Traverse an array
 		return traverseSlice(v, ctx, state, evaluationWrapper)
