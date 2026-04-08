@@ -1014,7 +1014,7 @@ var runTaskDefinition = &jsonschema.Schema{
 									Title:                 "SubflowConfiguration",
 									Description:           "The configuration of the workflow to run.",
 									UnevaluatedProperties: falseSchema(),
-									Required:              []string{"namespace", "name", "version"},
+									Required:              []string{"type"},
 									Properties: map[string]*jsonschema.Schema{
 										"input": {
 											Type:  "object",
@@ -1023,21 +1023,10 @@ var runTaskDefinition = &jsonschema.Schema{
 												"The value should be validated against the target workflow's input schema, if specified.",
 											AdditionalProperties: trueSchema(),
 										},
-										"name": {
+										"type": {
 											Type:        "string",
-											Title:       "SubflowName",
-											Description: "The name of the workflow to run.",
-										},
-										"namespace": {
-											Type:        "string",
-											Title:       "SubflowNamespace",
-											Description: "The namespace the workflow to run belongs to.",
-										},
-										"version": {
-											Type:        "string",
-											Title:       "SubflowVersion",
-											Description: "The version of the workflow to run. Defaults to latest.",
-											Default:     json.RawMessage(`"latest"`),
+											Title:       "SubflowType",
+											Description: "The workflow type to run.",
 										},
 									},
 								},

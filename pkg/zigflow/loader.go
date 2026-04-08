@@ -28,20 +28,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// zigflowDocFields holds the Zigflow-specific document fields that differ from
-// the upstream Serverless Workflow SDK. The SDK uses "name" and "namespace";
-// Zigflow uses "workflowType" and "taskQueue" to align with Temporal concepts.
-// This struct is used only to extract those fields after JSON unmarshal so that
-// they can be mapped onto the SDK's model.Document fields.
-type zigflowDocFields struct {
-	WorkflowType string `json:"workflowType"`
-	TaskQueue    string `json:"taskQueue"`
-}
-
-type zigflowRawDoc struct {
-	Document zigflowDocFields `json:"document"`
-}
-
 // LoadFromFile reads a workflow definition from file, maps Zigflow-specific
 // field names (workflowType, taskQueue) onto the SDK model, and returns a
 // parsed *model.Workflow. It does not perform schema validation.
@@ -59,23 +45,26 @@ func LoadFromFile(file string) (*model.Workflow, error) {
 		return nil, fmt.Errorf("error converting yaml to json: %w", err)
 	}
 
-	var wf *model.Workflow
-	if err := json.Unmarshal(jsonBytes, &wf); err != nil {
-		return nil, fmt.Errorf("error unmarshaling json to workflow: %w", err)
+	// normalise the Zigflow data structure to Serverless Workflow data structure
+	var raw map[string]any
+	if err := json.Unmarshal(jsonBytes, &raw); err != nil {
+		return nil, fmt.Errorf("error unmarshalling to zigflow raw workflow: %w", err)
 	}
 
-	// The SDK's Document struct uses json:"name" and json:"namespace", but
-	// Zigflow's schema uses "workflowType" and "taskQueue". Extract those
-	// fields from the raw JSON and map them to the SDK's fields so that all
-	// downstream code continues to work unchanged.
-	var raw zigflowRawDoc
-	if err := json.Unmarshal(jsonBytes, &raw); err == nil {
-		if raw.Document.WorkflowType != "" {
-			wf.Document.Name = raw.Document.WorkflowType
-		}
-		if raw.Document.TaskQueue != "" {
-			wf.Document.Namespace = raw.Document.TaskQueue
-		}
+	if err := normaliseWorkflowDocument(raw); err != nil {
+		return nil, fmt.Errorf("error normalising workflow document: %w", err)
+	}
+
+	// Convert back to JSON
+	normalisedJSON, err := json.Marshal(raw)
+	if err != nil {
+		return nil, fmt.Errorf("error marshalling raw workflow to json: %w", err)
+	}
+
+	// Now convert to Serverless Workflow's Workflow model
+	var wf *model.Workflow
+	if err := json.Unmarshal(normalisedJSON, &wf); err != nil {
+		return nil, fmt.Errorf("error unmarshaling json to workflow: %w", err)
 	}
 
 	if err := newWorkflowPostLoad(wf); err != nil {
@@ -130,4 +119,183 @@ func ValidateFile(file string) error {
 	}
 
 	return nil
+}
+
+func normaliseDoTask(task map[string]any) error {
+	raw, ok := task["do"]
+	if !ok {
+		return nil
+	}
+	return normaliseTaskList(raw)
+}
+
+func normaliseForTask(task map[string]any) error {
+	raw, ok := task["do"]
+	if !ok {
+		return nil
+	}
+	// for tasks also carry nested task list in top-level "do"
+	return normaliseTaskList(raw)
+}
+
+func normaliseForkTask(task map[string]any) error {
+	rawFork, ok := task["fork"]
+	if !ok {
+		return nil
+	}
+
+	fork, ok := rawFork.(map[string]any)
+	if !ok {
+		return fmt.Errorf("fork must be an object")
+	}
+
+	rawBranches, ok := fork["branches"]
+	if !ok {
+		return nil
+	}
+
+	return normaliseTaskList(rawBranches)
+}
+
+func normaliseRunTask(task map[string]any) error {
+	rawRun, ok := task["run"]
+	if !ok {
+		return nil
+	}
+
+	run, ok := rawRun.(map[string]any)
+	if !ok {
+		return fmt.Errorf("run must be an object")
+	}
+
+	rawWorkflow, ok := run["workflow"]
+	if !ok {
+		return nil
+	}
+
+	workflow, ok := rawWorkflow.(map[string]any)
+	if !ok {
+		return fmt.Errorf("run.workflow must be an object")
+	}
+
+	renameKey(workflow, "type", "name")
+
+	return nil
+}
+
+func normaliseTask(task map[string]any) error {
+	fns := []func(map[string]any) error{
+		// Tasks that can contain task lists
+		normaliseDoTask,
+		normaliseForTask,
+		normaliseForkTask,
+		normaliseTryTask,
+
+		// Tasks that need normalising
+		normaliseRunTask,
+	}
+
+	for _, fn := range fns {
+		if err := fn(task); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func normaliseTaskList(raw any) error {
+	taskList, ok := raw.([]any)
+	if !ok {
+		return nil
+	}
+
+	for i, task := range taskList {
+		namedTask, ok := task.(map[string]any)
+		if !ok {
+			return fmt.Errorf("task item %d must be an object", i)
+		}
+
+		for taskName, rawTask := range namedTask {
+			task, ok := rawTask.(map[string]any)
+			if !ok {
+				return fmt.Errorf("task %q must be an object", taskName)
+			}
+
+			if err := normaliseTask(task); err != nil {
+				return fmt.Errorf("normalise task %q: %w", taskName, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func normaliseTopLevelDocument(doc map[string]any) error {
+	rawDocument, ok := doc["document"]
+	if !ok {
+		return nil
+	}
+
+	document, ok := rawDocument.(map[string]any)
+	if !ok {
+		return fmt.Errorf("document must be an object")
+	}
+
+	renameKey(document, "workflowType", "name")
+	renameKey(document, "taskQueue", "namespace")
+
+	return nil
+}
+
+func normaliseTryTask(task map[string]any) error {
+	rawTry, ok := task["try"]
+	if ok {
+		if err := normaliseTaskList(rawTry); err != nil {
+			return err
+		}
+	}
+
+	rawCatch, ok := task["catch"]
+	if !ok {
+		return nil
+	}
+
+	catchObj, ok := rawCatch.(map[string]any)
+	if !ok {
+		return fmt.Errorf("catch must be an object")
+	}
+
+	rawCatchDo, ok := catchObj["do"]
+	if !ok {
+		return nil
+	}
+
+	return normaliseTaskList(rawCatchDo)
+}
+
+func normaliseWorkflowDocument(doc map[string]any) error {
+	if err := normaliseTopLevelDocument(doc); err != nil {
+		return err
+	}
+
+	rawTasks, ok := doc["do"]
+	if !ok {
+		return nil
+	}
+
+	return normaliseTaskList(rawTasks)
+}
+
+func renameKey(m map[string]any, oldKey, newKey string) {
+	val, ok := m[oldKey]
+	if !ok {
+		return
+	}
+
+	if _, exists := m[newKey]; !exists {
+		m[newKey] = val
+	}
+
+	delete(m, oldKey)
 }
