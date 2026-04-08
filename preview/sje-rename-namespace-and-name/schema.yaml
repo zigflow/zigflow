@@ -535,10 +535,6 @@ $defs:
     allOf:
     - $ref: '#/$defs/taskBase'
     - properties:
-        foreach:
-          $ref: '#/$defs/subscriptionIterator'
-          description: Configures the iterator, if any, for processing consumed event(s).
-          title: ListenIterator
         listen:
           description: The configuration of the listener to use.
           properties:
@@ -763,7 +759,7 @@ $defs:
                     type: object
                   type:
                     description: The workflow type to run.
-                    title: SubflowName
+                    title: SubflowType
                     type: string
                 required:
                 - type
@@ -1076,7 +1072,7 @@ properties:
       workflowType:
         description: The Temporal workflow type name.
         pattern: ^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$
-        title: WorkflowName
+        title: WorkflowType
         type: string
     required:
     - dsl

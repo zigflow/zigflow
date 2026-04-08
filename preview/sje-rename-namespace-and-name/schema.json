@@ -51,7 +51,7 @@
         },
         "workflowType": {
           "type": "string",
-          "title": "WorkflowName",
+          "title": "WorkflowType",
           "description": "The Temporal workflow type name.",
           "pattern": "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$"
         }
@@ -872,11 +872,6 @@
         },
         {
           "properties": {
-            "foreach": {
-              "$ref": "#/$defs/subscriptionIterator",
-              "title": "ListenIterator",
-              "description": "Configures the iterator, if any, for processing consumed event(s)."
-            },
             "listen": {
               "type": "object",
               "properties": {
@@ -1174,7 +1169,7 @@
                         },
                         "type": {
                           "type": "string",
-                          "title": "SubflowName",
+                          "title": "SubflowType",
                           "description": "The workflow type to run."
                         }
                       },
