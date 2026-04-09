@@ -17,12 +17,17 @@
 package telemetry
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -37,9 +42,11 @@ const (
 	// Project API keys (starting "phc_") are safe to be stored publicly
 	// @link https://posthog.com/docs/privacy
 	//nolint:gosec
-	apiKey           = "phc_aAZLi0FMmGUug73jLYdTIkFjns49I9YcpOUs6TztZ0B"
-	endpoint         = "https://cli.zigflow.dev"
-	heartbeatTimeout = time.Minute
+	apiKey            = "phc_aAZLi0FMmGUug73jLYdTIkFjns49I9YcpOUs6TztZ0B"
+	endpoint          = "https://cli.zigflow.dev"
+	heartbeatTimeout  = time.Minute
+	locationBodyLimit = 4 * 1024
+	locationEndpoint  = "https://www.cloudflare.com/cdn-cgi/trace"
 )
 
 type TelemetryEvents string
@@ -56,6 +63,7 @@ type Telemetry struct {
 	stopCh        chan struct{}
 
 	arch        string
+	country     string
 	distinctID  string
 	isContainer bool
 	os          string
@@ -83,7 +91,8 @@ func (t *Telemetry) StartWorker() {
 		return
 	}
 
-	if err := t.capture(StartWorkerEvent, t.baseProps()); err != nil {
+	props := t.baseProps().Set("country", t.country)
+	if err := t.capture(StartWorkerEvent, props); err != nil {
 		log.Trace().Err(err).Msg("Failed to send worker started")
 	}
 }
@@ -146,6 +155,38 @@ func (t *Telemetry) capture(event TelemetryEvents, properties posthog.Properties
 	return nil
 }
 
+// getCountryFromCloudflare fetches a coarse country code using Cloudflare's
+// trace endpoint. Returns an empty string on any failure.
+func getCountryFromCloudflare() string {
+	return fetchCountry(&http.Client{Timeout: time.Second}, locationEndpoint)
+}
+
+// fetchCountry performs the HTTP request and body parsing. Separated from
+// getCountryFromCloudflare to allow injection of client and URL in tests.
+func fetchCountry(client *http.Client, url string) string {
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, http.NoBody)
+	if err != nil {
+		return ""
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return ""
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, locationBodyLimit))
+	if err != nil {
+		return ""
+	}
+
+	return parseCloudflareTrace(string(body))
+}
+
 // Start a new worker's heartbeat. This is to avoid sending lots of duplicate
 // or zero data in the telemetry
 func (t *Telemetry) startHeartbeat() {
@@ -203,6 +244,7 @@ func New(version string, disabled bool) (*Telemetry, error) {
 
 	t.distinctID = distinctID
 	t.isContainer = isContainer
+	t.country = getCountryFromCloudflare()
 
 	return t, nil
 }
@@ -236,6 +278,28 @@ func getID() (string, error) {
 	}
 
 	return newID, nil
+}
+
+// parseCloudflareTrace extracts the two-letter country code from a Cloudflare
+// trace response body. Returns an empty string if the loc line is absent,
+// malformed, or does not match exactly two uppercase ASCII letters.
+func parseCloudflareTrace(body string) string {
+	countryRegex := regexp.MustCompile(`^[A-Z]{2}$`)
+
+	for line := range strings.SplitSeq(body, "\n") {
+		line = strings.TrimSpace(line)
+
+		if country, ok := strings.CutPrefix(line, "loc="); ok {
+			country = strings.TrimSpace(country)
+			if countryRegex.MatchString(country) {
+				return country
+			}
+
+			return ""
+		}
+	}
+
+	return ""
 }
 
 func resolveID() (distinctID string, isContainer bool, err error) {

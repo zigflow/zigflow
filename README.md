@@ -284,7 +284,7 @@ Also, the colours are based on the Ziggy Stardust lightning bolt.
 ## Telemetry
 
 Telemetry helps the maintainers understand whether Zigflow is being used in
-real production environments. No personal data is collected.
+real production environments. No personal or identifiable user data is collected.
 
 When a worker starts, Zigflow sends:
 
@@ -292,6 +292,10 @@ When a worker starts, Zigflow sends:
   the container hostname)
 - the Zigflow version
 - basic runtime information (OS, architecture, container detection)
+- approximate server country (2-letter code, derived once at startup)
+
+The country value is derived once at startup and is not tied to any identity. No
+IP addresses are stored.
 
 When workflows are executed, Zigflow sends a periodic heartbeat (once per minute)
 containing:
@@ -311,6 +315,7 @@ Zigflow does **not** collect:
 - hostnames
 - environment variable values
 - organisation identifiers
+- IP addresses or precise location data
 
 Telemetry exists solely to understand real-world adoption and usage.
 
