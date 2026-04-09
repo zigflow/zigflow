@@ -87,6 +87,56 @@ func TestParseCloudflareTrace(t *testing.T) {
 	}
 }
 
+func TestNormaliseHostname(t *testing.T) {
+	tests := []struct {
+		Name     string
+		Input    string
+		Expected string
+	}{
+		{
+			Name:     "Kubernetes pod with 10-char ReplicaSet hash",
+			Input:    "zigflow-worker-7f8c9d6b5f-abcde",
+			Expected: "zigflow-worker-7f8c9d6b5f",
+		},
+		{
+			Name:     "Kubernetes pod with 9-char ReplicaSet hash",
+			Input:    "zigflow-worker-7f8c9d6b5-abcde",
+			Expected: "zigflow-worker-7f8c9d6b5",
+		},
+		{
+			Name:     "non-Kubernetes hostname",
+			Input:    "my-server",
+			Expected: "my-server",
+		},
+		{
+			Name:     "Docker-style container ID",
+			Input:    "a1b2c3d4e5f6",
+			Expected: "a1b2c3d4e5f6",
+		},
+		{
+			Name:     "multiple dashes but not matching Kubernetes pattern",
+			Input:    "zigflow-worker-prod-eu-west",
+			Expected: "zigflow-worker-prod-eu-west",
+		},
+		{
+			Name:     "Kubernetes-like suffix with too-short pod suffix",
+			Input:    "zigflow-worker-7f8c9d6b5f-abcd",
+			Expected: "zigflow-worker-7f8c9d6b5f-abcd",
+		},
+		{
+			Name:     "uppercase characters in hash section",
+			Input:    "zigflow-worker-7F8C9D6B5F-abcde",
+			Expected: "zigflow-worker-7F8C9D6B5F-abcde",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			assert.Equal(t, test.Expected, normaliseHostname(test.Input))
+		})
+	}
+}
+
 func TestFetchCountry(t *testing.T) {
 	validBody := "fl=123abc\nh=www.cloudflare.com\nip=1.2.3.4\nts=1234567890.123\n" +
 		"visit_scheme=https\nuag=Go-http-client/1.1\ncolo=LHR\nsliver=none\n" +

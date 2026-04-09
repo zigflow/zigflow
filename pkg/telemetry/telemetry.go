@@ -280,6 +280,24 @@ func getID() (string, error) {
 	return newID, nil
 }
 
+// Normalise the hostname format in containers
+// This may be in Kubernetes format (eg, "<name>-<replicaSetID>-<random>")
+//
+// This exists to prevent containers always having a different value on restart,
+// negating the ability to link metrics
+func normaliseHostname(hostname string) string {
+	// Replicaset can be 9 or 10 characters long. Random at the end is always 5 alnum characters
+	k8sPodRegex := regexp.MustCompile(`^(.+)-([a-z0-9]{9,10})-([a-z0-9]{5})$`)
+
+	matches := k8sPodRegex.FindStringSubmatch(hostname)
+	if len(matches) == 4 {
+		// Kubernetes format detected - strip the final section as that's randomised
+		return fmt.Sprintf("%s-%s", matches[1], matches[2])
+	}
+
+	return hostname
+}
+
 // parseCloudflareTrace extracts the two-letter country code from a Cloudflare
 // trace response body. Returns an empty string if the loc line is absent,
 // malformed, or does not match exactly two uppercase ASCII letters.
@@ -306,7 +324,7 @@ func resolveID() (distinctID string, isContainer bool, err error) {
 	if id, ok := os.LookupEnv("HOSTNAME"); ok {
 		// If HOSTNAME envvar exists, assume it's a containerised environment
 		// Avoid spaffing anything sensitive from hostname
-		sum := sha256.Sum256([]byte(id))
+		sum := sha256.Sum256([]byte(normaliseHostname(id)))
 		distinctID = hex.EncodeToString(sum[:])
 		isContainer = true
 	} else {
