@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/assets/css/styles.9482efbe.css">
-<script src="/assets/js/runtime~main.8f0de8a1.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.8919ec38.js" defer="defer"></script>
 <script src="/assets/js/main.b12d933e.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -108,14 +108,17 @@ expressions as <code>${ $env.API_BASE_URL }</code>.</p>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="telemetry">Telemetry<a href="#telemetry" class="hash-link" aria-label="Direct link to Telemetry" title="Direct link to Telemetry" translate="no">​</a></h2>
 <p>Telemetry helps the maintainers understand whether Zigflow is being used in
-real production environments. No personal data is collected.</p>
+real production environments. No personal or identifiable user data is collected.</p>
 <p>When a worker starts, Zigflow sends:</p>
 <ul>
 <li class="">an anonymous installation ID (generated locally on first run, or derived from
 the container hostname)</li>
 <li class="">the Zigflow version</li>
 <li class="">basic runtime information (OS, architecture, container detection)</li>
+<li class="">approximate server country (2-letter code, derived once at startup)</li>
 </ul>
+<p>The country value is derived once at startup and is not tied to any identity. No
+IP addresses are stored.</p>
 <p>When workflows are executed, Zigflow sends a periodic heartbeat (once per minute)
 containing:</p>
 <ul>
@@ -133,6 +136,7 @@ emit repeated telemetry.</p>
 <li class="">hostnames</li>
 <li class="">environment variable values</li>
 <li class="">organisation identifiers</li>
+<li class="">IP addresses or precise location data</li>
 </ul>
 <p>Telemetry exists solely to understand real-world adoption and usage.</p>
 <p><strong>Opting out</strong> is straightforward:</p>
