@@ -16,7 +16,7 @@ require (
 	github.com/google/jsonschema-go v0.4.2
 	github.com/itchyny/gojq v0.12.19
 	github.com/matthewmueller/glob v0.1.1
-	github.com/mrsimonemms/golang-helpers v0.6.0
+	github.com/mrsimonemms/golang-helpers v0.6.1
 	github.com/mrsimonemms/temporal-codec-server/packages/golang v0.0.0-20260216220812-efae704c32dc
 	github.com/nexus-rpc/sdk-go v0.6.0
 	github.com/posthog/posthog-go v1.11.2

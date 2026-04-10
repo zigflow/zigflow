@@ -31,6 +31,7 @@ func TestNewRunCmd_Flags(t *testing.T) {
 	assert.NotNil(t, cmd.Flags().Lookup("validate"))
 	assert.NotNil(t, cmd.Flags().Lookup("temporal-address"))
 	assert.NotNil(t, cmd.Flags().Lookup("temporal-namespace"))
+	assert.NotNil(t, cmd.Flags().Lookup("temporal-server-name"))
 	assert.NotNil(t, cmd.Flags().Lookup("codec-endpoint"))
 	assert.NotNil(t, cmd.Flags().Lookup("codec-headers"))
 	assert.NotNil(t, cmd.Flags().Lookup("convert-data"))
@@ -44,6 +45,34 @@ func TestNewRunCmd_Flags(t *testing.T) {
 	assert.NotNil(t, cmd.Flags().Lookup("max-concurrent-activity-execution-size"))
 	assert.NotNil(t, cmd.Flags().Lookup("max-concurrent-workflow-task-execution-size"))
 	assert.NotNil(t, cmd.Flags().Lookup("task-queue-activities-per-second"))
+}
+
+// ---- --temporal-server-name flag ----
+
+func TestNewRunCmd_TemporalServerNameFlag(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	flag := cmd.Flags().Lookup("temporal-server-name")
+	require.NotNil(t, flag)
+	assert.Equal(t, "", flag.DefValue)
+}
+
+func TestNewRunCmd_TemporalServerNameFlagBoundToOpts(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	require.NoError(t, cmd.Flags().Set("temporal-server-name", "my-namespace.tmprl.cloud"))
+
+	flag := cmd.Flags().Lookup("temporal-server-name")
+	assert.Equal(t, "my-namespace.tmprl.cloud", flag.Value.String())
+}
+
+func TestNewRunCmd_TemporalServerNameFlagDefaultIsEmpty(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	flag := cmd.Flags().Lookup("temporal-server-name")
+	require.NotNil(t, flag)
+	// When omitted the flag is empty so existing connection behaviour is unchanged.
+	assert.Equal(t, "", flag.Value.String())
 }
 
 // ---- --watch flags ----

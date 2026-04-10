@@ -19,9 +19,98 @@ package run
 import (
 	"testing"
 
+	"github.com/mrsimonemms/golang-helpers/temporal"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/codec"
+	"go.temporal.io/sdk/client"
 )
+
+// applyOptions applies a slice of temporal.Options to a fresh client.Options
+// and returns the result. Each option is applied inside a deferred recover so
+// that options which register global HTTP handlers (e.g. Prometheus) do not
+// panic when called more than once across tests. TLS options are pure
+// in-memory and always succeed.
+func applyOptions(options []temporal.Options) client.Options {
+	opts := &client.Options{}
+	for _, o := range options {
+		func() {
+			defer func() { _ = recover() }()
+			_ = o(opts)
+		}()
+	}
+	return *opts
+}
+
+// stubTemporalConnection replaces newTemporalConnection with a test double that
+// captures the options it receives. It returns a restore function that must be
+// deferred by the caller.
+func stubTemporalConnection(captured *client.Options, called *bool) func() {
+	original := newTemporalConnection
+	newTemporalConnection = func(options ...temporal.Options) (client.Client, error) {
+		*called = true
+		*captured = applyOptions(options)
+		return nil, nil
+	}
+	return func() { newTemporalConnection = original }
+}
+
+// ---- initTemporalClient: TLS server name propagation ----
+
+func TestInitTemporalClient_ServerNamePropagation(t *testing.T) {
+	tests := []struct {
+		name           string
+		tlsEnabled     bool
+		serverName     string
+		expectTLSBlock bool
+		expectSNI      string
+	}{
+		{
+			name:           "server name is propagated when TLS is enabled",
+			tlsEnabled:     true,
+			serverName:     "your-namespace.tmprl.cloud",
+			expectTLSBlock: true,
+			expectSNI:      "your-namespace.tmprl.cloud",
+		},
+		{
+			name:           "empty server name leaves SNI unset when TLS is enabled",
+			tlsEnabled:     true,
+			serverName:     "",
+			expectTLSBlock: true,
+			expectSNI:      "",
+		},
+		{
+			name:           "no TLS block when TLS is disabled, even with server name set",
+			tlsEnabled:     false,
+			serverName:     "your-namespace.tmprl.cloud",
+			expectTLSBlock: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var captured client.Options
+			called := false
+			defer stubTemporalConnection(&captured, &called)()
+
+			opts := &runOptions{
+				TemporalTLSEnabled: test.tlsEnabled,
+				TemporalServerName: test.serverName,
+			}
+
+			_, err := initTemporalClient(opts)
+			require.NoError(t, err)
+			require.True(t, called, "newTemporalConnection was not invoked")
+
+			if test.expectTLSBlock {
+				require.NotNil(t, captured.ConnectionOptions.TLS, "expected TLS config to be set")
+				assert.Equal(t, test.expectSNI, captured.ConnectionOptions.TLS.ServerName)
+			} else {
+				assert.Nil(t, captured.ConnectionOptions.TLS, "expected no TLS config")
+			}
+		})
+	}
+}
 
 func TestBuildWorkersByTaskQueue(t *testing.T) {
 	tests := []struct {

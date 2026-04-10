@@ -96,6 +96,7 @@ All deployment methods share the same connection flags:
 | `--temporal-namespace` | `TEMPORAL_NAMESPACE` | `default` | Temporal namespace |
 | `--temporal-tls` | `TEMPORAL_TLS` | `false` | Enable TLS. Required when connecting to Temporal Cloud |
 | `--temporal-api-key` | `TEMPORAL_API_KEY` | (none) | API key for Temporal Cloud |
+| `--temporal-server-name` | `TEMPORAL_SERVER_NAME` | (none) | Override the TLS server name for SNI and certificate validation |
 | `--tls-client-cert-path` | `TEMPORAL_TLS_CLIENT_CERT_PATH` | (none) | Path to mTLS client certificate |
 | `--tls-client-key-path` | `TEMPORAL_TLS_CLIENT_KEY_PATH` | (none) | Path to mTLS client key |
 
@@ -133,6 +134,29 @@ zigflow run \
   --tls-client-cert-path /path/to/cert \
   --tls-client-key-path /path/to/key
 ```
+
+### Private connectivity (AWS PrivateLink, VPC endpoints)
+
+When connecting to Temporal Cloud through a VPC endpoint or AWS PrivateLink, the
+dial address (for example `vpce-*.amazonaws.com:7233`) does not match the
+hostname on the Temporal Cloud certificate (for example `*.tmprl.cloud`). TLS
+validation will fail unless you tell Zigflow which hostname to validate against.
+
+Use `--temporal-server-name` to set the expected certificate hostname independently
+of the dial address:
+
+```sh
+zigflow run \
+  -f workflow.yaml \
+  --temporal-address vpce-0123456789abcdef0.vpce-svc-0123456789abcdef0.us-east-1.vpce.amazonaws.com:7233 \
+  --temporal-namespace your-namespace \
+  --temporal-tls \
+  --temporal-server-name your-namespace.tmprl.cloud \
+  --temporal-api-key your-api-key
+```
+
+`--temporal-server-name` only takes effect when `--temporal-tls` is also set.
+When omitted, the server name is derived from the dial address as normal.
 
 ---
 

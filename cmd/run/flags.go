@@ -86,6 +86,13 @@ func registerTemporalConnectionFlags(cmd *cobra.Command, opts *runOptions) {
 		viper.GetString("temporal_namespace"), "Temporal namespace to use",
 	)
 
+	cmd.Flags().StringVar(
+		&opts.TemporalServerName, "temporal-server-name",
+		viper.GetString("temporal_server_name"),
+		"Override the TLS server name (SNI) used for certificate validation. "+
+			"Required when the endpoint address does not match the certificate hostname, for example AWS PrivateLink.",
+	)
+
 	cmd.Flags().BoolVar(
 		&opts.TemporalTLSEnabled, "temporal-tls",
 		viper.GetBool("temporal_tls"), "Enable TLS Temporal connection",

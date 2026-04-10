@@ -31,6 +31,11 @@ import (
 	"go.temporal.io/sdk/worker"
 )
 
+// newTemporalConnection is the function used to establish a Temporal client. It
+// is a package-level variable so tests can substitute a test double without
+// spinning up a real Temporal server.
+var newTemporalConnection = temporal.NewConnection
+
 // runScheduleUpdates updates Temporal schedules for all workflow registrations
 // before any worker is started.
 func runScheduleUpdates(
@@ -192,10 +197,10 @@ func initTemporalClient(opts *runOptions) (client.Client, error) {
 	}
 
 	log.Trace().Msg("Connecting to Temporal")
-	tc, err := temporal.NewConnection(
+	tc, err := newTemporalConnection(
 		temporal.WithHostPort(opts.TemporalAddress),
 		temporal.WithNamespace(opts.TemporalNamespace),
-		temporal.WithTLS(opts.TemporalTLSEnabled),
+		temporal.WithTLS(opts.TemporalTLSEnabled, temporal.WithTLSServerName(opts.TemporalServerName)),
 		temporal.WithAuthDetection(
 			opts.TemporalAPIKey,
 			opts.TemporalMTLSCertPath,

@@ -49,8 +49,9 @@ type runOptions struct {
 	TemporalAPIKey                         string
 	TemporalMTLSCertPath                   string
 	TemporalMTLSKeyPath                    string
-	TemporalTLSEnabled                     bool
 	TemporalNamespace                      string
+	TemporalServerName                     string
+	TemporalTLSEnabled                     bool
 	Validate                               bool
 	Watch                                  bool
 	WatchDebounce                          time.Duration

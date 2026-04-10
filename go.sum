@@ -219,8 +219,8 @@ github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742/go.mod h1:bx2lN
 github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
 github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
-github.com/mrsimonemms/golang-helpers v0.6.0 h1:MwX0AQjD8598EvWxCdSlkS9jHHEI3lHivLErx7hNBow=
-github.com/mrsimonemms/golang-helpers v0.6.0/go.mod h1:YkaFTvGtLb1U8W4DQC9MrnBxTTFL3cajUNWAI5yY8bI=
+github.com/mrsimonemms/golang-helpers v0.6.1 h1:+tmmXinZyp9JxRfxfmdi6T9b1LPXbUyc9hIbfjterRo=
+github.com/mrsimonemms/golang-helpers v0.6.1/go.mod h1:YkaFTvGtLb1U8W4DQC9MrnBxTTFL3cajUNWAI5yY8bI=
 github.com/mrsimonemms/temporal-codec-server/packages/golang v0.0.0-20260216220812-efae704c32dc h1:n53V1AA31gDA3o+hoyl7ZMRnpZSofiRIV2IVhjWAM9A=
 github.com/mrsimonemms/temporal-codec-server/packages/golang v0.0.0-20260216220812-efae704c32dc/go.mod h1:rKdqSHa7xT4ly0nhnzsbQEOEHSpOgynK9Xaz/uqFaIk=
 github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 h1:ZK8zHtRHOkbHy6Mmr5D264iyp3TiX5OmNcI5cIARiQI=
