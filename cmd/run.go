@@ -21,8 +21,10 @@ import (
 	"fmt"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/matthewmueller/glob"
 	gh "github.com/mrsimonemms/golang-helpers"
 	"github.com/mrsimonemms/golang-helpers/temporal"
@@ -62,6 +64,8 @@ type runOptions struct {
 	TemporalTLSEnabled      bool
 	TemporalNamespace       string
 	Validate                bool
+	Watch                   bool
+	WatchDebounce           time.Duration
 
 	Telemetry *telemetry.Telemetry
 }
@@ -442,6 +446,272 @@ func prepareRegistrations(opts *runOptions) ([]*workflowRegistration, error) {
 	return registrations, nil
 }
 
+// launchWorkers prepares registrations, builds workers, and starts them.
+// On any error it stops any workers that were partially started before returning.
+func launchWorkers(
+	temporalClient client.Client,
+	opts *runOptions,
+	envvars map[string]any,
+) ([]worker.Worker, error) {
+	registrations, err := prepareRegistrations(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	workers, err := buildWorkersByTaskQueue(temporalClient, registrations, envvars, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return startAllWorkers(workers)
+}
+
+// stopWorkerList stops each worker in the slice.
+func stopWorkerList(workers []worker.Worker) {
+	log.Info().Int("count", len(workers)).Msg("Watch: stopping workers")
+	for _, w := range workers {
+		w.Stop()
+	}
+}
+
+// newStoppedTimer creates a timer and immediately stops it, draining any
+// pending tick. Use timer.Reset(d) to arm it for the first time.
+func newStoppedTimer(d time.Duration) *time.Timer {
+	t := time.NewTimer(d)
+	if !t.Stop() {
+		<-t.C
+	}
+	return t
+}
+
+// resetDebounce safely stops t and resets it to d, draining any pending tick
+// so the timer fires exactly once after d has elapsed.
+func resetDebounce(t *time.Timer, d time.Duration) {
+	if !t.Stop() {
+		select {
+		case <-t.C:
+		default:
+		}
+	}
+	t.Reset(d)
+}
+
+// isWatchableEvent reports whether the fsnotify event should trigger a reload.
+// Write covers in-place saves; Create and Rename cover atomic editor patterns
+// such as vim's rename-over-original approach.
+func isWatchableEvent(e fsnotify.Event) bool {
+	return e.Has(fsnotify.Write) || e.Has(fsnotify.Create) || e.Has(fsnotify.Rename)
+}
+
+// handleDebounce executes a reload cycle after the debounce timer fires.
+// It logs the changed files, attempts to rebuild workers, swaps them on success,
+// and always refreshes the watcher to recover inodes lost by rename-style saves.
+// It returns the updated current workers and a fresh (empty) changedFiles map.
+func handleDebounce(
+	watcher *fsnotify.Watcher,
+	temporalClient client.Client,
+	opts *runOptions,
+	envvars map[string]any,
+	changedFiles map[string]struct{},
+	current []worker.Worker,
+) (nextWorkers []worker.Worker, remainingChanges map[string]struct{}) {
+	if len(changedFiles) == 0 {
+		return current, changedFiles
+	}
+
+	names := make([]string, 0, len(changedFiles))
+	for f := range changedFiles {
+		names = append(names, filepath.Base(f))
+	}
+	sort.Strings(names)
+	log.Warn().Str("files", strings.Join(names, ", ")).Msg("Watch: reloading workers")
+
+	next, loadErr := launchWorkers(temporalClient, opts, envvars)
+	if loadErr != nil {
+		log.Error().Err(loadErr).Msg("Watch: reload failed, keeping existing workers")
+	} else {
+		stopWorkerList(current)
+		current = next
+		log.Info().Int("count", len(current)).Msg("Watch: workers reloaded successfully")
+	}
+	if err := refreshWatcher(watcher, opts); err != nil {
+		log.Error().Err(err).Msg("Watch: failed to refresh file watches")
+	}
+	return current, make(map[string]struct{})
+}
+
+// refreshWatcher removes all currently watched paths and re-adds the resolved
+// workflow files. This is called after every debounce-triggered reload (whether
+// it succeeded or failed) to recover watches that were lost because an editor
+// replaced a file via a temp-file rename, which causes fsnotify to silently
+// drop the watch on the original inode.
+//
+// Refresh is two-phase: all target files are added first (fsnotify.Add is
+// idempotent for already-watched paths), and stale paths are only removed after
+// every add succeeds. This means a failed add leaves the previous watch set
+// intact rather than leaving watch mode partially disabled.
+func refreshWatcher(w *fsnotify.Watcher, opts *runOptions) error {
+	// Discover files first. If discovery fails, leave the watcher unchanged so
+	// subsequent events can still be received.
+	files, err := discoverWorkflowFiles(opts)
+	if err != nil {
+		return err
+	}
+
+	// Phase 1: add all target files. fsnotify.Add is idempotent for paths that
+	// are already watched, so this also refreshes inodes lost by rename-style
+	// saves. On any failure, return before touching the existing watch list.
+	target := make(map[string]struct{}, len(files))
+	for _, f := range files {
+		target[f] = struct{}{}
+		if err := w.Add(f); err != nil {
+			return fmt.Errorf("watch: re-add %s: %w", f, err)
+		}
+	}
+
+	// Phase 2: remove paths that are no longer in the target set.
+	for _, p := range w.WatchList() {
+		if _, ok := target[p]; !ok {
+			_ = w.Remove(p)
+		}
+	}
+	return nil
+}
+
+// runWatchMode watches files for changes and reloads workers on each change.
+// It blocks until ctx is cancelled or an interrupt signal is received.
+// On reload failure it logs the error and keeps the existing workers running
+// so the system is never left with zero workers.
+func runWatchMode(
+	ctx context.Context,
+	files []string,
+	temporalClient client.Client,
+	opts *runOptions,
+	envvars map[string]any,
+	current []worker.Worker,
+) error {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return fmt.Errorf("watch: create watcher: %w", err)
+	}
+	defer func() { _ = watcher.Close() }()
+
+	for _, f := range files {
+		if err := watcher.Add(f); err != nil {
+			return fmt.Errorf("watch: add %s: %w", f, err)
+		}
+	}
+	log.Info().
+		Int("count", len(files)).
+		Dur("debounce", opts.WatchDebounce).
+		Msg("Watch: watching workflow files for changes")
+
+	defer func() { stopWorkerList(current) }()
+
+	debounce := newStoppedTimer(opts.WatchDebounce)
+
+	// List of changed files - use map to autodedupe
+	changedFiles := make(map[string]struct{})
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-worker.InterruptCh():
+			log.Info().Msg("Watch: received interrupt signal")
+			return nil
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return nil
+			}
+			if isWatchableEvent(event) {
+				changedFiles[event.Name] = struct{}{}
+
+				log.Debug().
+					Str("file", event.Name).
+					Str("op", event.Op.String()).
+					Msg("Watch: file change detected, debouncing")
+				resetDebounce(debounce, opts.WatchDebounce)
+			}
+		case watchErr, ok := <-watcher.Errors:
+			if !ok {
+				return nil
+			}
+			log.Error().Err(watchErr).Msg("Watch: watcher error")
+		case <-debounce.C:
+			current, changedFiles = handleDebounce(watcher, temporalClient, opts, envvars, changedFiles, current)
+		}
+	}
+}
+
+// initTemporalClient creates the codec data converter and the Temporal client.
+// The caller is responsible for closing the returned client.
+func initTemporalClient(opts *runOptions) (client.Client, error) {
+	codecType, _ := codec.ParseCodecType(opts.ConvertData)
+	dataConverter, err := codec.NewDataConverter(codecType, opts.CodecEndpoint, opts.ConvertKeyPath, opts.CodecHeaders)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Trace().Msg("Connecting to Temporal")
+	tc, err := temporal.NewConnection(
+		temporal.WithHostPort(opts.TemporalAddress),
+		temporal.WithNamespace(opts.TemporalNamespace),
+		temporal.WithTLS(opts.TemporalTLSEnabled),
+		temporal.WithAuthDetection(
+			opts.TemporalAPIKey,
+			opts.TemporalMTLSCertPath,
+			opts.TemporalMTLSKeyPath,
+		),
+		temporal.WithDataConverter(dataConverter),
+		temporal.WithZerolog(&log.Logger),
+		temporal.WithPrometheusMetrics(opts.MetricsListenAddress, opts.MetricsPrefix, nil),
+	)
+	if err != nil {
+		return nil, gh.FatalError{Cause: err, Msg: "Unable to create client"}
+	}
+	return tc, nil
+}
+
+// startInitialWorkers builds workers from registrations, registers the health
+// check, starts telemetry, and starts all workers. It is the single call that
+// takes the process from validated registrations to running workers.
+func startInitialWorkers(
+	ctx context.Context,
+	tc client.Client,
+	registrations []*workflowRegistration,
+	envvars map[string]any,
+	opts *runOptions,
+) ([]worker.Worker, error) {
+	workers, err := buildWorkersByTaskQueue(tc, registrations, envvars, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	taskQueues := make([]string, 0, len(workers))
+	for tq := range workers {
+		taskQueues = append(taskQueues, tq)
+	}
+	temporal.NewHealthCheck(ctx, taskQueues, opts.HealthListenAddress, tc)
+
+	if opts.Telemetry != nil {
+		opts.Telemetry.StartWorker()
+	}
+
+	return startAllWorkers(workers)
+}
+
+// waitForShutdown blocks until the process receives an interrupt signal or the
+// context is cancelled.
+func waitForShutdown(ctx context.Context) {
+	select {
+	case <-worker.InterruptCh():
+		log.Info().Msg("Received interrupt signal")
+	case <-ctx.Done():
+		log.Info().Msg("Context cancelled")
+	}
+}
+
 func runRunCmd(ctx context.Context, opts *runOptions) error {
 	defer func() {
 		if r := recover(); r != nil {
@@ -457,32 +727,9 @@ func runRunCmd(ctx context.Context, opts *runOptions) error {
 		return err
 	}
 
-	codecType, _ := codec.ParseCodecType(opts.ConvertData)
-	dataConverter, err := codec.NewDataConverter(codecType, opts.CodecEndpoint, opts.ConvertKeyPath, opts.CodecHeaders)
+	temporalClient, err := initTemporalClient(opts)
 	if err != nil {
 		return err
-	}
-
-	// The Temporal client is a heavyweight object created once per process.
-	log.Trace().Msg("Connecting to Temporal")
-	temporalClient, err := temporal.NewConnection(
-		temporal.WithHostPort(opts.TemporalAddress),
-		temporal.WithNamespace(opts.TemporalNamespace),
-		temporal.WithTLS(opts.TemporalTLSEnabled),
-		temporal.WithAuthDetection(
-			opts.TemporalAPIKey,
-			opts.TemporalMTLSCertPath,
-			opts.TemporalMTLSKeyPath,
-		),
-		temporal.WithDataConverter(dataConverter),
-		temporal.WithZerolog(&log.Logger),
-		temporal.WithPrometheusMetrics(opts.MetricsListenAddress, opts.MetricsPrefix, nil),
-	)
-	if err != nil {
-		return gh.FatalError{
-			Cause: err,
-			Msg:   "Unable to create client",
-		}
 	}
 	// Registered first, runs last (LIFO). The client is closed only after all
 	// workers have been stopped by the defer below.
@@ -500,26 +747,30 @@ func runRunCmd(ctx context.Context, opts *runOptions) error {
 		return err
 	}
 
-	workers, err := buildWorkersByTaskQueue(temporalClient, registrations, envvars, opts)
+	startedWorkers, err := startInitialWorkers(ctx, temporalClient, registrations, envvars, opts)
 	if err != nil {
 		return err
 	}
 
-	taskQueues := make([]string, 0)
-	for taskQueue := range workers {
-		taskQueues = append(taskQueues, taskQueue)
-	}
+	if opts.Watch {
+		watchFiles, err := discoverWorkflowFiles(opts)
+		if err != nil {
+			for _, w := range startedWorkers {
+				w.Stop()
+			}
+			return err
+		}
 
-	temporal.NewHealthCheck(ctx, taskQueues, opts.HealthListenAddress, temporalClient)
-	if opts.Telemetry != nil {
-		opts.Telemetry.StartWorker()
-	}
+		log.Info().Strs("files", watchFiles).Msg("Watch mode enabled. Not recommended for production use.")
 
-	// startAllWorkers handles its own partial cleanup on failure, so no
-	// started workers leak if one fails to start.
-	startedWorkers, err := startAllWorkers(workers)
-	if err != nil {
-		return err
+		// runWatchMode owns worker lifecycle; only telemetry needs cleanup here.
+		defer func() {
+			if opts.Telemetry != nil {
+				opts.Telemetry.Shutdown()
+			}
+		}()
+
+		return runWatchMode(ctx, watchFiles, temporalClient, opts, envvars, startedWorkers)
 	}
 
 	// Registered second, runs first (LIFO). Workers are stopped before the
@@ -535,13 +786,7 @@ func runRunCmd(ctx context.Context, opts *runOptions) error {
 	}()
 
 	// Block until SIGINT/SIGTERM or context cancellation.
-	select {
-	case <-worker.InterruptCh():
-		log.Info().Msg("Received interrupt signal")
-	case <-ctx.Done():
-		log.Info().Msg("Context cancelled")
-	}
-
+	waitForShutdown(ctx)
 	return nil
 }
 
@@ -669,6 +914,17 @@ func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
 	cmd.Flags().BoolVar(
 		&opts.Validate, "validate",
 		viper.GetBool("validate"), "Run workflow validation",
+	)
+
+	cmd.Flags().BoolVar(
+		&opts.Watch, "watch",
+		viper.GetBool("watch"), "Reload workers automatically when workflow files change (for development use)",
+	)
+
+	viper.SetDefault("watch_debounce", 300*time.Millisecond)
+	cmd.Flags().DurationVar(
+		&opts.WatchDebounce, "watch-debounce",
+		viper.GetDuration("watch_debounce"), "Debounce duration for file change events when using --watch",
 	)
 }
 
