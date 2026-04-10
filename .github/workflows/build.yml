@@ -162,6 +162,7 @@ jobs:
           curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64
           chmod +x skaffold
           sudo mv skaffold /usr/local/bin/
+          skaffold version
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
