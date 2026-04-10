@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkzigflow=globalThis.webpackChunkzigflow||[]).push([[1311],{10273(e){e.exports=JSON.parse('{"metadata":{"permalink":"/preview/sje-run-cmd-refactor/articles","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
