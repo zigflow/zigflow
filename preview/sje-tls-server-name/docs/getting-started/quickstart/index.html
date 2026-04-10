@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/preview/sje-tls-server-name/assets/css/styles.945a182a.css">
-<script src="/preview/sje-tls-server-name/assets/js/runtime~main.4dcd2391.js" defer="defer"></script>
+<script src="/preview/sje-tls-server-name/assets/js/runtime~main.80ce4b5b.js" defer="defer"></script>
 <script src="/preview/sje-tls-server-name/assets/js/main.a123e726.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -38,12 +38,11 @@
 </ul>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="step-1-install-zigflow">Step 1: Install Zigflow<a href="#step-1-install-zigflow" class="hash-link" aria-label="Direct link to Step 1: Install Zigflow" title="Direct link to Step 1: Install Zigflow" translate="no">​</a></h2>
-<p>Download the binary for your platform from the
-<a href="https://github.com/zigflow/zigflow/releases" target="_blank" rel="noopener noreferrer" class="">releases page</a>.</p>
-<div class="language-sh codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-sh codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain"># Make it executable</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">chmod +x ./zigflow</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"># Optionally move it to your PATH</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">mv ./zigflow /usr/local/bin/zigflow</span><br></span></code></pre></div></div>
+<div class="language-sh codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-sh codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">brew tap zigflow/tap</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">brew install --cask zigflow</span><br></span></code></pre></div></div>
 <p>Verify it is working:</p>
 <div class="language-sh codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-sh codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">zigflow version</span><br></span></code></pre></div></div>
 <p>You should see the version number and commit hash.</p>
+<div class="theme-admonition theme-admonition-tip admonition_xJq3 alert alert--success"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 12 16"><path fill-rule="evenodd" d="M6.5 0C3.48 0 1 2.19 1 5c0 .92.55 2.25 1 3 1.34 2.25 1.78 2.78 2 4v1h5v-1c.22-1.22.66-1.75 2-4 .45-.75 1-2.08 1-3 0-2.81-2.48-5-5.5-5zm3.64 7.48c-.25.44-.47.8-.67 1.11-.86 1.41-1.25 2.06-1.45 3.23-.02.05-.02.11-.02.17H5c0-.06 0-.13-.02-.17-.2-1.17-.59-1.83-1.45-3.23-.2-.31-.42-.67-.67-1.11C2.44 6.78 2 5.65 2 5c0-2.2 2.02-4 4.5-4 1.22 0 2.36.42 3.22 1.19C10.55 2.94 11 3.94 11 5c0 .66-.44 1.78-.86 2.48zM4 14h5c-.23 1.14-1.3 2-2.5 2s-2.27-.86-2.5-2z"></path></svg></span>tip</div><div class="admonitionContent_BuS1"><p>For other installation options, see <a class="" href="/preview/sje-tls-server-name/docs/getting-started/installation">Installation</a>.</p></div></div>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="step-2-start-a-temporal-server">Step 2: Start a Temporal server<a href="#step-2-start-a-temporal-server" class="hash-link" aria-label="Direct link to Step 2: Start a Temporal server" title="Direct link to Step 2: Start a Temporal server" translate="no">​</a></h2>
 <p>Zigflow requires a Temporal server. For local development, use the development
