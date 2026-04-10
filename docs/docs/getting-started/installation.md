@@ -11,6 +11,23 @@ Zigflow is a single Go binary with prebuilt options.
 - How to run Zigflow from a Docker image
 - How to install from source
 
+## Homebrew
+
+Install Zigflow using Homebrew:
+
+```sh
+brew tap zigflow/tap
+brew install --cask zigflow
+```
+
+Verify the installation:
+
+```sh
+zigflow version
+```
+
+If you prefer not to use Homebrew, download binaries from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
+
 ## Binary Releases
 
 Every [release](https://github.com/zigflow/zigflow/releases) of Zigflow provides
