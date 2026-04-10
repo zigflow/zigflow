@@ -22,7 +22,8 @@ jobs:
     permissions:
       contents: read
     outputs:
-      final_message: ${{ steps.run_codex.outputs.final-message }}
+      final_message: ${{ steps.run_codex.outputs['final-message'] }}
+      codex_succeeded: ${{ steps.run_codex.outcome == 'success' }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -37,6 +38,7 @@ jobs:
 
       - name: Run Codex review
         id: run_codex
+        continue-on-error: true
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
@@ -86,7 +88,9 @@ jobs:
   post_review_comment:
     runs-on: ubuntu-latest
     needs: codex_review
-    if: needs.codex_review.outputs.final_message != ''
+    if: |
+      needs.codex_review.outputs.codex_succeeded == 'true' &&
+      needs.codex_review.outputs.final_message != ''
     permissions:
       pull-requests: write
     steps:
