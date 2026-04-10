@@ -22,15 +22,9 @@ Get Zigflow installed and run your first workflow in under five minutes.
 
 ## Step 1: Install Zigflow
 
-Download the binary for your platform from the
-[releases page](https://github.com/zigflow/zigflow/releases).
-
 ```sh
-# Make it executable
-chmod +x ./zigflow
-
-# Optionally move it to your PATH
-mv ./zigflow /usr/local/bin/zigflow
+brew tap zigflow/tap
+brew install --cask zigflow
 ```
 
 Verify it is working:
@@ -40,6 +34,10 @@ zigflow version
 ```
 
 You should see the version number and commit hash.
+
+:::tip
+For other installation options, see [Installation](/docs/getting-started/installation).
+:::
 
 ---
 
