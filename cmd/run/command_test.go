@@ -14,14 +14,42 @@
  * limitations under the License.
  */
 
-package cmd
+package run
 
 import (
-	"github.com/spf13/cobra"
-	runcmd "github.com/zigflow/zigflow/cmd/run"
-	"github.com/zigflow/zigflow/pkg/telemetry"
+	"errors"
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func newRunCmd() *cobra.Command {
-	return runcmd.New(func() *telemetry.Telemetry { return app.Telemetry })
+func TestPanicMessage(t *testing.T) {
+	tests := []struct {
+		Name     string
+		Input    any
+		Expected string
+	}{
+		{
+			Name:     "error value",
+			Input:    errors.New("something went wrong"),
+			Expected: "something went wrong",
+		},
+		{
+			Name:     "string value",
+			Input:    "a plain string",
+			Expected: "a plain string",
+		},
+		{
+			Name:     "other value",
+			Input:    42,
+			Expected: fmt.Sprintf("%+v", 42),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			assert.Equal(t, test.Expected, panicMessage(test.Input))
+		})
+	}
 }
