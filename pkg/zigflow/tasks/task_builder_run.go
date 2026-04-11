@@ -111,8 +111,12 @@ func (t *RunTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 func (t *RunTaskBuilder) PostLoad() error {
 	if w := t.task.Run.Workflow; w != nil {
-		t.task.Run.Workflow.Namespace = "default"
-		t.task.Run.Workflow.Version = "0.0.1"
+		if w.Namespace == "" {
+			w.Namespace = "default"
+		}
+		if w.Version == "" {
+			w.Version = "0.0.1"
+		}
 	}
 
 	return nil
