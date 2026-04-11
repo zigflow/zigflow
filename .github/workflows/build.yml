@@ -455,7 +455,7 @@ jobs:
         uses: actions/create-github-app-token@v3
         if: needs.metadata.outputs.is_tag == 'true'
         with:
-          app-id: ${{ secrets.GORELEASER_APP_ID }}
+          client-id: ${{ secrets.GORELEASER_APP_ID }}
           private-key: ${{ secrets.GORELEASER_APP_PRIVATE_KEY }}
           owner: zigflow
           repositories: |
