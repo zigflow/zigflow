@@ -177,18 +177,21 @@ func traverseAndEvaluate(node, ctx any, state *State, evaluationWrapper Expressi
 		return v, nil
 	case map[string]string:
 		// Traverse map values for string-only maps (for example, run task environment vars).
+		// DeepCloneValue does not clone map[string]string, so allocate a fresh map here
+		// to avoid mutating the original, which may be shared across workflow executions.
+		clone := make(map[string]string, len(v))
 		for key, value := range v {
 			evaluatedValue, err := traverseAndEvaluate(value, ctx, state, evaluationWrapper)
 			if err != nil {
 				return nil, err
 			}
 			if evaluatedValue == nil {
-				v[key] = ""
+				clone[key] = ""
 			} else {
-				v[key] = fmt.Sprintf("%v", evaluatedValue)
+				clone[key] = fmt.Sprintf("%v", evaluatedValue)
 			}
 		}
-		return v, nil
+		return clone, nil
 	case []any:
 		// Traverse an array
 		return traverseSlice(v, ctx, state, evaluationWrapper)

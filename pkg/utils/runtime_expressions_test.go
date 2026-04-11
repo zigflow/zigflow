@@ -19,6 +19,7 @@ package utils
 import (
 	"fmt"
 	"regexp"
+	"sync"
 	"testing"
 
 	"github.com/serverlessworkflow/sdk-go/v3/model"
@@ -503,6 +504,53 @@ func TestTraverseAndEvaluateObjMapStringString(t *testing.T) {
 			"OPENAI_API_KEY": "secret-key",
 		},
 	}, result)
+}
+
+func TestTraverseAndEvaluateObjDoesNotMutateMapStringString(t *testing.T) {
+	env := map[string]string{
+		"HOST": "${ .host }",
+		"PORT": "8080",
+	}
+	obj := model.NewObjectOrRuntimeExpr(map[string]any{"env": env})
+
+	result, err := TraverseAndEvaluateObj(obj, map[string]any{"host": "localhost"}, NewState())
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{
+		"env": map[string]string{
+			"HOST": "localhost",
+			"PORT": "8080",
+		},
+	}, result)
+
+	// Original map[string]string must not be mutated.
+	// DeepCloneValue does not clone map[string]string, so traverseAndEvaluate
+	// must allocate its own copy before writing evaluated values.
+	assert.Equal(t, "${ .host }", env["HOST"], "original map[string]string was mutated")
+	assert.Equal(t, "8080", env["PORT"])
+}
+
+func TestTraverseAndEvaluateObjMapStringStringConcurrent(t *testing.T) {
+	// Run many goroutines against the same shared ObjectOrRuntimeExpr containing
+	// a map[string]string. The race detector will catch any concurrent writes to
+	// the original map if the clone is missing.
+	env := map[string]string{
+		"HOST": "${ .host }",
+		"PORT": "8080",
+	}
+	obj := model.NewObjectOrRuntimeExpr(map[string]any{"env": env})
+
+	const goroutines = 200
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	for range goroutines {
+		go func() {
+			defer wg.Done()
+			_, _ = TraverseAndEvaluateObj(obj, map[string]any{"host": "localhost"}, NewState())
+		}()
+	}
+	wg.Wait()
+
+	assert.Equal(t, "${ .host }", env["HOST"], "original map[string]string was mutated")
 }
 
 func TestTraverseAndEvaluateObjDoesNotMutateOriginal(t *testing.T) {
