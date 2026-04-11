@@ -24,6 +24,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/itchyny/gojq"
 	"github.com/rs/zerolog/log"
+	swUtil "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"go.temporal.io/sdk/temporal"
 )
@@ -151,7 +152,15 @@ func TraverseAndEvaluateObj(
 		wrapperFn = evaluationWrapper[0]
 	}
 
-	return traverseAndEvaluate(runtimeExpr.AsStringOrMap(), ctx, state, wrapperFn)
+	// The workflow/task definition objects are shared across workflow executions.
+	// traverseAndEvaluate mutates maps/slices in place while replacing runtime
+	// expressions with their evaluated values, so traversing the original value
+	// will mutate shared workflow definition state. Under load this shows up as
+	// `fatal error: concurrent map writes` when many workflows evaluate the same
+	// export/output definitions at once.
+	//
+	// Clone the value first so each evaluation works on an isolated copy.
+	return traverseAndEvaluate(swUtil.DeepCloneValue(runtimeExpr.AsStringOrMap()), ctx, state, wrapperFn)
 }
 
 func traverseAndEvaluate(node, ctx any, state *State, evaluationWrapper ExpressionWrapperFunc) (any, error) {

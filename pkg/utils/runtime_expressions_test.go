@@ -505,6 +505,36 @@ func TestTraverseAndEvaluateObjMapStringString(t *testing.T) {
 	}, result)
 }
 
+func TestTraverseAndEvaluateObjDoesNotMutateOriginal(t *testing.T) {
+	obj := model.NewObjectOrRuntimeExpr(map[string]any{
+		"greeting": "${ .msg }",
+		"nested": map[string]any{
+			"items": []any{"${ .a }", "plain"},
+		},
+	})
+
+	result, err := TraverseAndEvaluateObj(obj, map[string]any{
+		"msg": "hi",
+		"a":   1,
+	}, NewState())
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{
+		"greeting": "hi",
+		"nested": map[string]any{
+			"items": []any{1, "plain"},
+		},
+	}, result)
+
+	// The original workflow definition object should be unchanged so it can be
+	// safely reused by concurrent workflow executions.
+	assert.Equal(t, map[string]any{
+		"greeting": "${ .msg }",
+		"nested": map[string]any{
+			"items": []any{"${ .a }", "plain"},
+		},
+	}, obj.AsStringOrMap())
+}
+
 func TestTraverseAndEvaluateObjWithWrapper(t *testing.T) {
 	t.Run("wrapper is called for expression values in a map", func(t *testing.T) {
 		callCount := 0
