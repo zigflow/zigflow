@@ -53,19 +53,8 @@ type RunTaskBuilder struct {
 }
 
 func (t *RunTaskBuilder) Build() (TemporalWorkflowFunc, error) {
-	if t.task.Run.Await == nil {
-		// Default to true
-		t.task.Run.Await = utils.Ptr(true)
-	}
-
 	var factory TemporalWorkflowFunc
 	if t.task.Run.Container != nil {
-		if t.task.Run.Container.Lifetime == nil {
-			t.task.Run.Container.Lifetime = &model.ContainerLifetime{
-				Cleanup: "always",
-			}
-		}
-
 		if len(t.task.Run.Container.Ports) > 0 {
 			return nil, fmt.Errorf("ports are not allowed on containers")
 		}
@@ -110,6 +99,19 @@ func (t *RunTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 }
 
 func (t *RunTaskBuilder) PostLoad() error {
+	// Default await to true: the returned closure and script validation in Build()
+	// both dereference this field, so it must be non-nil before Build() runs.
+	if t.task.Run.Await == nil {
+		t.task.Run.Await = utils.Ptr(true)
+	}
+
+	// Default container lifetime: the container activity treats nil Lifetime the
+	// same as Cleanup:"always", but setting it here makes the intent explicit.
+	if t.task.Run.Container != nil && t.task.Run.Container.Lifetime == nil {
+		t.task.Run.Container.Lifetime = &model.ContainerLifetime{Cleanup: "always"}
+	}
+
+	// Default run.workflow fields.
 	if w := t.task.Run.Workflow; w != nil {
 		if w.Namespace == "" {
 			w.Namespace = "default"

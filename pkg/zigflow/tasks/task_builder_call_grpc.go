@@ -47,14 +47,17 @@ type CallGRPCTaskBuilder struct {
 	builder[*model.CallGRPC]
 }
 
-func (t *CallGRPCTaskBuilder) Build() (TemporalWorkflowFunc, error) {
+func (t *CallGRPCTaskBuilder) PostLoad() error {
 	if t.task.With.Service.Host == "" {
 		t.task.With.Service.Host = "localhost"
 	}
 	if t.task.With.Service.Port == 0 {
 		t.task.With.Service.Port = 50051
 	}
+	return nil
+}
 
+func (t *CallGRPCTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	return func(ctx workflow.Context, input any, state *utils.State) (output any, err error) {
 		return t.executeActivity(ctx, (*activities.CallGRPC).CallGRPCActivity, input, state)
 	}, nil

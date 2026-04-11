@@ -72,6 +72,12 @@ func NewWorkflow(
 		return fmt.Errorf("error creating do builder: %w", err)
 	}
 
+	l.Debug().Msg("Post-loading workflow")
+	if err := doBuilder.PostLoad(); err != nil {
+		l.Error().Err(err).Msg("Error post-loading workflow")
+		return fmt.Errorf("error post-loading workflow: %w", err)
+	}
+
 	l.Debug().Msg("Building workflow")
 	if _, err := doBuilder.Build(); err != nil {
 		l.Debug().Err(err).Msg("Error building workflow")

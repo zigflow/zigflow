@@ -29,7 +29,7 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-func TestRunTaskBuilderBuildSetsAwaitDefault(t *testing.T) {
+func TestRunTaskBuilderPostLoadSetsAwaitDefault(t *testing.T) {
 	task := &model.RunTask{
 		Run: model.RunTaskConfiguration{
 			Workflow: &model.RunWorkflow{
@@ -42,6 +42,9 @@ func TestRunTaskBuilderBuildSetsAwaitDefault(t *testing.T) {
 
 	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
 	assert.NoError(t, err)
+
+	// PostLoad must run before Build in production; tests must reflect the same order.
+	assert.NoError(t, builder.PostLoad())
 
 	fn, err := builder.Build()
 	assert.NoError(t, err)
@@ -195,6 +198,10 @@ func TestRunTaskBuilderRunScriptValidation(t *testing.T) {
 			builder, err := NewRunTaskBuilder(nil, tc.task, "script-task", nil, testEvents)
 			assert.NoError(t, err)
 
+			// PostLoad must precede Build in the production lifecycle; replicate that here
+			// so Build() can safely dereference Await without a nil-pointer panic.
+			assert.NoError(t, builder.PostLoad())
+
 			_, err = builder.Build()
 			assert.EqualError(t, err, tc.assertErr)
 		})
@@ -217,6 +224,7 @@ func TestRunTaskBuilderRunScriptExecutesActivity(t *testing.T) {
 
 	builder, err := NewRunTaskBuilder(nil, task, "script-task", nil, testEvents)
 	assert.NoError(t, err)
+	assert.NoError(t, builder.PostLoad())
 
 	fn, err := builder.Build()
 	assert.NoError(t, err)
@@ -243,6 +251,72 @@ func TestRunTaskBuilderRunScriptExecutesActivity(t *testing.T) {
 	assert.Equal(t, "script-success", result)
 
 	assert.Equal(t, "script-success", state.Data["script-task"])
+}
+
+func TestRunTaskBuilderPostLoadSetsAwaitToTrueWhenNil(t *testing.T) {
+	task := &model.RunTask{
+		Run: model.RunTaskConfiguration{
+			Shell: &model.Shell{Command: "echo"},
+			// Await intentionally omitted
+		},
+	}
+
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	assert.NoError(t, err)
+	assert.NoError(t, builder.PostLoad())
+
+	assert.NotNil(t, task.Run.Await, "Await must not be nil after PostLoad")
+	assert.True(t, *task.Run.Await, "Await must default to true")
+}
+
+func TestRunTaskBuilderPostLoadPreservesExplicitAwait(t *testing.T) {
+	task := &model.RunTask{
+		Run: model.RunTaskConfiguration{
+			Shell: &model.Shell{Command: "echo"},
+			Await: utils.Ptr(false),
+		},
+	}
+
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	assert.NoError(t, err)
+	assert.NoError(t, builder.PostLoad())
+
+	assert.False(t, *task.Run.Await, "explicit Await=false must not be overwritten")
+}
+
+func TestRunTaskBuilderPostLoadSetsContainerLifetimeDefault(t *testing.T) {
+	task := &model.RunTask{
+		Run: model.RunTaskConfiguration{
+			Container: &model.Container{
+				Image: "alpine",
+				// Lifetime intentionally omitted
+			},
+		},
+	}
+
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	assert.NoError(t, err)
+	assert.NoError(t, builder.PostLoad())
+
+	assert.NotNil(t, task.Run.Container.Lifetime, "Lifetime must not be nil after PostLoad")
+	assert.Equal(t, "always", task.Run.Container.Lifetime.Cleanup)
+}
+
+func TestRunTaskBuilderPostLoadPreservesExplicitContainerLifetime(t *testing.T) {
+	task := &model.RunTask{
+		Run: model.RunTaskConfiguration{
+			Container: &model.Container{
+				Image:    "alpine",
+				Lifetime: &model.ContainerLifetime{Cleanup: "never"},
+			},
+		},
+	}
+
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	assert.NoError(t, err)
+	assert.NoError(t, builder.PostLoad())
+
+	assert.Equal(t, "never", task.Run.Container.Lifetime.Cleanup, "explicit Cleanup must not be overwritten")
 }
 
 func TestRunTaskBuilderPostLoadPreservesExplicitNamespaceAndVersion(t *testing.T) {
@@ -310,6 +384,7 @@ func TestRunTaskBuilderRunShellExecutesActivity(t *testing.T) {
 
 	builder, err := NewRunTaskBuilder(nil, task, "shell-task", nil, testEvents)
 	assert.NoError(t, err)
+	assert.NoError(t, builder.PostLoad())
 
 	fn, err := builder.Build()
 	assert.NoError(t, err)
