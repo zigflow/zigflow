@@ -379,8 +379,7 @@
                   "type": "integer",
                   "title": "PriorityKey",
                   "description": "A positive integer from 1 to n, where smaller integers correspond to higher priorities (tasks run sooner)",
-                  "minimum": 1,
-                  "maximum": 5
+                  "minimum": 1
                 }
               },
               "title": "Priority",
