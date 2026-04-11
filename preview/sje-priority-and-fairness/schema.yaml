@@ -195,6 +195,8 @@ $defs:
               priorityKey:
                 description: A positive integer from 1 to n, where smaller integers
                   correspond to higher priorities (tasks run sooner)
+                maximum: 5
+                minimum: 1
                 title: PriorityKey
                 type: integer
             title: Priority
