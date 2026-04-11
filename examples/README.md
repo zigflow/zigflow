@@ -35,6 +35,7 @@ A collection of examples
 | [Money Transfer Demo](./money-transfer) | Temporal's world-famous Money Transfer Demo, in Zigflow form |
 | [Multiple Workflow Files](./multiple-workflow-files) | Run multiple workflow definitions from separate YAML files in a single Zigflow worker |
 | [Multiple Workflows](./multiple-workflows) | Define and run multiple workflows within a single YAML file |
+| [Priority and Fairness](./priority-and-fairness) | Using Temporal's Priority and Fairness features with Zigflow |
 | [Python](./python) | The basic example, but in Python |
 | [Query Listeners](./query) | Listen for Temporal query events |
 | [Throw an error](./raise) | Throw an error from a Temporal workflow |

@@ -4,7 +4,7 @@
     {
       "label": "Run Temporal server",
       "type": "shell",
-      "command": "temporal server start-dev",
+      "command": "temporal server start-dev --dynamic-config-value \"matching.useNewMatcher=true\" --dynamic-config-value \"matching.enableFairness=true\" --dynamic-config-value \"matching.enableMigration=true\"",
       "group": "none",
       "presentation": {
         "reveal": "always",

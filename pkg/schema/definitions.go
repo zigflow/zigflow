@@ -277,6 +277,30 @@ var commonMetadataDefinition = &jsonschema.Schema{
 					Title:       "HeartbeatTimeout",
 					Description: "Heartbeat interval. A heartbeat must be set and be called before the interval passes.",
 				},
+				"priority": {
+					Type:                 "object",
+					Title:                "Priority",
+					Description:          "Configure an activity's priority and fairness",
+					AdditionalProperties: falseSchema(),
+					Properties: map[string]*jsonschema.Schema{
+						"fairnessKey": {
+							Type:        "string",
+							Title:       "FairnessKey",
+							Description: "A short string that's used as a key for a fairness balancing mechanism",
+						},
+						"fairnessWeight": {
+							Type:        "number",
+							Title:       "FairnessWeight",
+							Description: "Weight of a task can come from multiple sources for flexibility",
+						},
+						"priorityKey": {
+							Type:        "integer",
+							Title:       "PriorityKey",
+							Description: "A positive integer from 1 to n, where smaller integers correspond to higher priorities (tasks run sooner)",
+							Minimum:     utils.Ptr[float64](1),
+						},
+					},
+				},
 				"retryPolicy": {
 					Type:                 "object",
 					Title:                "RetryPolicy",

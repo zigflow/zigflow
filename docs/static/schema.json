@@ -362,6 +362,30 @@
               "title": "HeartbeatTimeout",
               "description": "Heartbeat interval. A heartbeat must be set and be called before the interval passes."
             },
+            "priority": {
+              "type": "object",
+              "properties": {
+                "fairnessKey": {
+                  "type": "string",
+                  "title": "FairnessKey",
+                  "description": "A short string that's used as a key for a fairness balancing mechanism"
+                },
+                "fairnessWeight": {
+                  "type": "number",
+                  "title": "FairnessWeight",
+                  "description": "Weight of a task can come from multiple sources for flexibility"
+                },
+                "priorityKey": {
+                  "type": "integer",
+                  "title": "PriorityKey",
+                  "description": "A positive integer from 1 to n, where smaller integers correspond to higher priorities (tasks run sooner)",
+                  "minimum": 1
+                }
+              },
+              "title": "Priority",
+              "description": "Configure an activity's priority and fairness",
+              "additionalProperties": false
+            },
             "retryPolicy": {
               "type": "object",
               "properties": {

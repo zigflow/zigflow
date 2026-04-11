@@ -1,0 +1,44 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: priority-fairness
+  version: 0.0.1
+  title: Priority and Fairness
+  summary: Using Temporal's Priority and Fairness features with Zigflow
+  metadata:
+    display: false
+input:
+  schema:
+    format: json
+    document:
+      type: object
+      required:
+        - priorityKey
+        - fairnessKey
+        - fairnessWeight
+      properties:
+        priorityKey:
+          type: integer
+        fairnessKey:
+          type: string
+        fairnessWeight:
+          type: number
+do:
+  - set:
+      export:
+        as:
+          data: ${ . }
+      set:
+        priorityKey: ${ $input.priorityKey }
+        fairnessKey: ${ $input.fairnessKey }
+        fairnessWeight: ${ $input.fairnessWeight }
+        message: Priority and Fairness demo
+  # Simulate a long running activity
+  - shell:
+      output:
+        as: '${ $context }'
+      run:
+        shell:
+          command: sleep
+          arguments:
+            - "5"

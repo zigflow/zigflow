@@ -36,7 +36,7 @@ cases. In most scenarios, you probably won't need to configure this.
 | retryPolicy | [`RetryPolicy`](#types-retry-policy) | `no` | - | Specifies how to retry an Activity if an error occurs |
 | disableEagerExecution | `boolean` | `no` | `false` | If `true`, eager execution will not be requested, regardless of worker settings. If `false`, eager execution may still be disabled at the worker level or may not be requested due to lack of available slots. |
 | summary | `string` | `no` | The task's name | Add a summary to the Temporal workflow UI |
-| priority | [`ActivityPriority`](#types-activity-priority) | `no` | - | Configure an activity's priority and fairness (pre-release) |
+| priority | [`ActivityPriority`](#types-activity-priority) | `no` | - | Configure an activity's priority and fairness |
 
 ### ActivityPriority {#types-activity-priority}
 
