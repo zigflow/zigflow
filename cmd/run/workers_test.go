@@ -23,6 +23,51 @@ import (
 	"github.com/zigflow/zigflow/pkg/codec"
 )
 
+func TestBuildWorkersByTaskQueue(t *testing.T) {
+	tests := []struct {
+		name          string
+		maxWorkflowTx int
+		wantErr       bool
+		errContains   string
+	}{
+		{
+			name:          "max concurrent workflow task size of 1 is rejected",
+			maxWorkflowTx: 1,
+			wantErr:       true,
+			errContains:   "cannot be set to 1",
+		},
+		{
+			name:          "zero (disabled) is accepted",
+			maxWorkflowTx: 0,
+		},
+		{
+			name:          "value greater than 1 is accepted",
+			maxWorkflowTx: 2,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := &runOptions{
+				MaxConcurrentWorkflowTaskExecutionSize: tc.maxWorkflowTx,
+			}
+			// nil client and empty registrations: validation fires before the
+			// client is used, and the registration loop is skipped when empty.
+			workers, err := buildWorkersByTaskQueue(nil, []*workflowRegistration{}, nil, opts)
+			if tc.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, workers)
+				if tc.errContains != "" {
+					assert.ErrorContains(t, err, tc.errContains)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, workers)
+			}
+		})
+	}
+}
+
 func TestBuildDataConverter(t *testing.T) {
 	tests := []struct {
 		Name         string

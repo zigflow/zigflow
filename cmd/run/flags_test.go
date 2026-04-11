@@ -41,6 +41,9 @@ func TestNewRunCmd_Flags(t *testing.T) {
 	assert.NotNil(t, cmd.Flags().Lookup("metrics-listen-address"))
 	assert.NotNil(t, cmd.Flags().Lookup("dir"))
 	assert.NotNil(t, cmd.Flags().Lookup("glob"))
+	assert.NotNil(t, cmd.Flags().Lookup("max-concurrent-activity-execution-size"))
+	assert.NotNil(t, cmd.Flags().Lookup("max-concurrent-workflow-task-execution-size"))
+	assert.NotNil(t, cmd.Flags().Lookup("task-queue-activities-per-second"))
 }
 
 // ---- --watch flags ----
@@ -68,4 +71,34 @@ func TestNewRunCmd_WatchFlagsBoundToOpts(t *testing.T) {
 
 	debounceFlag := cmd.Flags().Lookup("watch-debounce")
 	assert.Equal(t, "500ms", debounceFlag.Value.String())
+}
+
+// ---- worker tuning flags ----
+
+func TestNewRunCmd_WorkerTuningFlags(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	actFlag := cmd.Flags().Lookup("max-concurrent-activity-execution-size")
+	require.NotNil(t, actFlag)
+	assert.Equal(t, "0", actFlag.DefValue)
+
+	wfFlag := cmd.Flags().Lookup("max-concurrent-workflow-task-execution-size")
+	require.NotNil(t, wfFlag)
+	assert.Equal(t, "0", wfFlag.DefValue)
+
+	tqFlag := cmd.Flags().Lookup("task-queue-activities-per-second")
+	require.NotNil(t, tqFlag)
+	assert.Equal(t, "0", tqFlag.DefValue)
+}
+
+func TestNewRunCmd_WorkerTuningFlagsBoundToOpts(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	require.NoError(t, cmd.Flags().Set("max-concurrent-activity-execution-size", "10"))
+	require.NoError(t, cmd.Flags().Set("max-concurrent-workflow-task-execution-size", "5"))
+	require.NoError(t, cmd.Flags().Set("task-queue-activities-per-second", "2.5"))
+
+	assert.Equal(t, "10", cmd.Flags().Lookup("max-concurrent-activity-execution-size").Value.String())
+	assert.Equal(t, "5", cmd.Flags().Lookup("max-concurrent-workflow-task-execution-size").Value.String())
+	assert.Equal(t, "2.5", cmd.Flags().Lookup("task-queue-activities-per-second").Value.String())
 }

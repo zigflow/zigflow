@@ -99,6 +99,12 @@ func buildWorkersByTaskQueue(
 	envvars map[string]any,
 	opts *runOptions,
 ) (map[string]worker.Worker, error) {
+	if opts.MaxConcurrentWorkflowTaskExecutionSize == 1 {
+		return nil, gh.FatalError{
+			Msg: "Max concurrent workflow task execution size cannot be set to 1",
+		}
+	}
+
 	workers := make(map[string]worker.Worker)
 
 	for _, reg := range registrations {
@@ -106,10 +112,13 @@ func buildWorkersByTaskQueue(
 		if !ok {
 			pollerAutoscaler := worker.NewPollerBehaviorAutoscaling(worker.PollerBehaviorAutoscalingOptions{})
 			w = worker.New(temporalClient, reg.TaskQueue, worker.Options{
-				WorkflowTaskPollerBehavior: pollerAutoscaler,
-				ActivityTaskPollerBehavior: pollerAutoscaler,
-				NexusTaskPollerBehavior:    pollerAutoscaler,
-				WorkerStopTimeout:          opts.GracefulShutdownTimeout,
+				WorkflowTaskPollerBehavior:             pollerAutoscaler,
+				ActivityTaskPollerBehavior:             pollerAutoscaler,
+				NexusTaskPollerBehavior:                pollerAutoscaler,
+				WorkerStopTimeout:                      opts.GracefulShutdownTimeout,
+				MaxConcurrentActivityExecutionSize:     opts.MaxConcurrentActivityExecutionSize,
+				MaxConcurrentWorkflowTaskExecutionSize: opts.MaxConcurrentWorkflowTaskExecutionSize,
+				TaskQueueActivitiesPerSecond:           opts.TaskQueueActivitiesPerSecond,
 			})
 			workers[reg.TaskQueue] = w
 			log.Debug().Str("task-queue", reg.TaskQueue).Msg("Created worker for task queue")

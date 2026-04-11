@@ -29,28 +29,31 @@ import (
 )
 
 type runOptions struct {
-	CloudEventsConfig       string
-	CodecEndpoint           string
-	CodecHeaders            map[string]string
-	ConvertData             string
-	ConvertKeyPath          string
-	EnvPrefix               string
-	DirectoryGlob           string
-	DirectoryPath           string
-	Files                   []string
-	GracefulShutdownTimeout time.Duration
-	HealthListenAddress     string
-	MetricsListenAddress    string
-	MetricsPrefix           string
-	TemporalAddress         string
-	TemporalAPIKey          string
-	TemporalMTLSCertPath    string
-	TemporalMTLSKeyPath     string
-	TemporalTLSEnabled      bool
-	TemporalNamespace       string
-	Validate                bool
-	Watch                   bool
-	WatchDebounce           time.Duration
+	CloudEventsConfig                      string
+	CodecEndpoint                          string
+	CodecHeaders                           map[string]string
+	ConvertData                            string
+	ConvertKeyPath                         string
+	EnvPrefix                              string
+	DirectoryGlob                          string
+	DirectoryPath                          string
+	Files                                  []string
+	GracefulShutdownTimeout                time.Duration
+	HealthListenAddress                    string
+	MaxConcurrentActivityExecutionSize     int
+	MaxConcurrentWorkflowTaskExecutionSize int
+	MetricsListenAddress                   string
+	MetricsPrefix                          string
+	TaskQueueActivitiesPerSecond           float64
+	TemporalAddress                        string
+	TemporalAPIKey                         string
+	TemporalMTLSCertPath                   string
+	TemporalMTLSKeyPath                    string
+	TemporalTLSEnabled                     bool
+	TemporalNamespace                      string
+	Validate                               bool
+	Watch                                  bool
+	WatchDebounce                          time.Duration
 
 	Telemetry *telemetry.Telemetry
 }

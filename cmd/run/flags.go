@@ -136,6 +136,18 @@ func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
 		viper.GetString("health_listen_address"), "Address of health server",
 	)
 
+	cmd.Flags().IntVar(
+		&opts.MaxConcurrentActivityExecutionSize, "max-concurrent-activity-execution-size",
+		viper.GetInt("max_concurrent_activity_execution_size"),
+		"Sets the maximum concurrent activity executions this worker can have.",
+	)
+
+	cmd.Flags().IntVar(
+		&opts.MaxConcurrentWorkflowTaskExecutionSize, "max-concurrent-workflow-task-execution-size",
+		viper.GetInt("max_concurrent_workflow_task_execution_size"),
+		"Sets the maximum concurrent workflow task executions this worker can have.",
+	)
+
 	viper.SetDefault("metrics_listen_address", "0.0.0.0:9090")
 	cmd.Flags().StringVar(
 		&opts.MetricsListenAddress, "metrics-listen-address",
@@ -145,6 +157,12 @@ func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
 	cmd.Flags().StringVar(
 		&opts.MetricsPrefix, "metrics-prefix",
 		viper.GetString("metrics_prefix"), "Prefix for metrics",
+	)
+
+	cmd.Flags().Float64Var(
+		&opts.TaskQueueActivitiesPerSecond, "task-queue-activities-per-second",
+		viper.GetFloat64("task_queue_activities_per_second"),
+		"Sets the rate limiting on number of activities that can be executed per second.",
 	)
 
 	viper.SetDefault("validate", true)
