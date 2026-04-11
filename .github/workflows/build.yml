@@ -57,6 +57,25 @@ jobs:
 
       - uses: pre-commit/action@v3.0.1
 
+  race:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Go generate
+        run: go generate ./...
+
+      - name: Install dependencies
+        run: go install ./...
+
+      - name: go-test-race
+        run: go test -race -v ./...
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -231,6 +250,7 @@ jobs:
       - e2e
       - helm
       - pre-commit
+      - race
       - test
     outputs:
       is_tag: ${{ steps.branch-name.outputs.is_tag }}
