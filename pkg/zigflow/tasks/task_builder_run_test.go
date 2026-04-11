@@ -245,6 +245,56 @@ func TestRunTaskBuilderRunScriptExecutesActivity(t *testing.T) {
 	assert.Equal(t, "script-success", state.Data["script-task"])
 }
 
+func TestRunTaskBuilderPostLoadPreservesExplicitNamespaceAndVersion(t *testing.T) {
+	task := &model.RunTask{
+		Run: model.RunTaskConfiguration{
+			Workflow: &model.RunWorkflow{
+				Name:      "child-workflow",
+				Namespace: "production",
+				Version:   "2.3.0",
+			},
+		},
+	}
+
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	assert.NoError(t, err)
+	assert.NoError(t, builder.PostLoad())
+
+	assert.Equal(t, "production", task.Run.Workflow.Namespace, "explicit namespace must not be overwritten")
+	assert.Equal(t, "2.3.0", task.Run.Workflow.Version, "explicit version must not be overwritten")
+}
+
+func TestRunTaskBuilderPostLoadDefaultsEmptyNamespaceAndVersion(t *testing.T) {
+	task := &model.RunTask{
+		Run: model.RunTaskConfiguration{
+			Workflow: &model.RunWorkflow{
+				Name: "child-workflow",
+				// Namespace and Version intentionally omitted
+			},
+		},
+	}
+
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	assert.NoError(t, err)
+	assert.NoError(t, builder.PostLoad())
+
+	assert.Equal(t, "default", task.Run.Workflow.Namespace, "empty namespace should receive default")
+	assert.Equal(t, "0.0.1", task.Run.Workflow.Version, "empty version should receive default")
+}
+
+func TestRunTaskBuilderPostLoadNilWorkflowIsNoop(t *testing.T) {
+	task := &model.RunTask{
+		Run: model.RunTaskConfiguration{
+			Shell: &model.Shell{Command: "echo"},
+			// Workflow is nil — PostLoad must not panic
+		},
+	}
+
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	assert.NoError(t, err)
+	assert.NoError(t, builder.PostLoad())
+}
+
 func TestRunTaskBuilderRunShellExecutesActivity(t *testing.T) {
 	var s testsuite.WorkflowTestSuite
 	env := s.NewTestWorkflowEnvironment()
