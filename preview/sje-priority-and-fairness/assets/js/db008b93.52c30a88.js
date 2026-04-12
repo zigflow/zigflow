@@ -1,1 +1,0 @@
-"use strict";(globalThis.webpackChunkzigflow=globalThis.webpackChunkzigflow||[]).push([[1043],{9372(e){e.exports=JSON.parse('{"metadata":{"permalink":"/preview/sje-priority-and-fairness/articles","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
