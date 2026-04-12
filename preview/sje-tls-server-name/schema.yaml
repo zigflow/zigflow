@@ -179,6 +179,27 @@ $defs:
             description: Heartbeat interval. A heartbeat must be set and be called
               before the interval passes.
             title: HeartbeatTimeout
+          priority:
+            additionalProperties: false
+            description: Configure an activity's priority and fairness
+            properties:
+              fairnessKey:
+                description: A short string that's used as a key for a fairness balancing
+                  mechanism
+                title: FairnessKey
+                type: string
+              fairnessWeight:
+                description: Weight of a task can come from multiple sources for flexibility
+                title: FairnessWeight
+                type: number
+              priorityKey:
+                description: A positive integer from 1 to n, where smaller integers
+                  correspond to higher priorities (tasks run sooner)
+                minimum: 1
+                title: PriorityKey
+                type: integer
+            title: Priority
+            type: object
           retryPolicy:
             additionalProperties: false
             description: Specifies how to retry an Activity if an error occurs
