@@ -66,6 +66,7 @@ func LoadFromFile(file string) (*model.Workflow, error) {
 	if err := json.Unmarshal(normalisedJSON, &wf); err != nil {
 		return nil, fmt.Errorf("error unmarshaling json to workflow: %w", err)
 	}
+	fmt.Printf("%+v\n", wf.Use)
 
 	if err := newWorkflowPostLoad(wf); err != nil {
 		return nil, fmt.Errorf("error preparing workflow: %w", err)
