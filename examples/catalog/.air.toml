@@ -5,7 +5,8 @@ tmp_dir = "tmp"
 [build]
   args_bin = [
     "run",
-    "--file ./workflow.yaml"
+    "--file ./workflow.yaml",
+    "--dir ''"
   ]
   bin = "./tmp/main"
   cmd = "go build -o ./tmp/main ../.."

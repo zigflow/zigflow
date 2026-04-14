@@ -46,7 +46,9 @@ func exec() error {
 	}
 
 	ctx := context.Background()
-	we, err := c.ExecuteWorkflow(ctx, workflowOptions, "hello-world")
+	we, err := c.ExecuteWorkflow(ctx, workflowOptions, "catalog", map[string]any{
+		"message": "Would you like some toast?",
+	})
 	if err != nil {
 		return gh.FatalError{
 			Cause: err,

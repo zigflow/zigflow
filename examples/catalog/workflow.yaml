@@ -7,15 +7,29 @@ document:
   summary: Reuse workflows from external sources
   metadata:
     display: false
+input:
+  schema:
+    format: json
+    document:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
 use:
-  catalogu:
+  catalogs:
     some-catalog:
       endpoint:
         uri: https://raw.githubusercontent.com/zigflow/catalog/refs/heads/main/workflows/hello-world/0.0.1/workflow.yaml
 do:
-  - catalog:
-      do:
-        - workflow:
-            run:
-              workflow:
-                type: some-catalog
+  - exec-catalog:
+      run:
+        workflow:
+          type: some-catalog
+  # - catalog:
+  #     do:
+  #       - workflow:
+  #           run:
+  #             workflow:
+  #               type: some-catalog

@@ -17,6 +17,7 @@
 package zigflow
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/rs/zerolog/log"
@@ -83,6 +84,14 @@ func NewWorkflow(
 		l.Debug().Err(err).Msg("Error building workflow")
 		return fmt.Errorf("error building workflow: %w", err)
 	}
+
+	l.Debug().Msg("Loading catalogs")
+	if err := loadCatalogs(doc); err != nil {
+		return fmt.Errorf("error loading catalog files: %w", err)
+	}
+
+	f, _ := json.MarshalIndent(doc, "", "  ")
+	fmt.Println(string(f))
 
 	return nil
 }
