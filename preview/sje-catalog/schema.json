@@ -120,15 +120,7 @@
           "title": "UseCatalogs",
           "description": "The workflow's reusable catalogs",
           "additionalProperties": {
-            "$ref": "#/$defs/catalogue"
-          }
-        },
-        "catalogues": {
-          "type": "object",
-          "title": "UseCatalogs",
-          "description": "The workflow's reusable catalogues",
-          "additionalProperties": {
-            "$ref": "#/$defs/catalogue"
+            "$ref": "#/$defs/catalog"
           }
         }
       }
@@ -367,17 +359,17 @@
         }
       ]
     },
-    "catalogue": {
+    "catalog": {
       "type": "object",
       "properties": {
         "endpoint": {
           "$ref": "#/$defs/endpoint",
           "title": "CatalogEndpoint",
-          "description": "The root URL where the catalogue is hosted."
+          "description": "The root URL where the catalog is hosted."
         }
       },
-      "title": "Catalogue",
-      "description": "The definition of a resource catalogue.",
+      "title": "Catalog",
+      "description": "The definition of a resource catalog.",
       "required": [
         "endpoint"
       ],

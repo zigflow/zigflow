@@ -162,17 +162,17 @@ $defs:
       type: object
       unevaluatedProperties: false
     title: CallTask
-  catalogue:
+  catalog:
     additionalProperties: false
-    description: The definition of a resource catalogue.
+    description: The definition of a resource catalog.
     properties:
       endpoint:
         $ref: '#/$defs/endpoint'
-        description: The root URL where the catalogue is hosted.
+        description: The root URL where the catalog is hosted.
         title: CatalogEndpoint
     required:
     - endpoint
-    title: Catalogue
+    title: Catalog
     type: object
   commonMetadata:
     additionalProperties: true
@@ -1273,14 +1273,8 @@ properties:
     properties:
       catalogs:
         additionalProperties:
-          $ref: '#/$defs/catalogue'
+          $ref: '#/$defs/catalog'
         description: The workflow's reusable catalogs
-        title: UseCatalogs
-        type: object
-      catalogues:
-        additionalProperties:
-          $ref: '#/$defs/catalogue'
-        description: The workflow's reusable catalogues
         title: UseCatalogs
         type: object
 required:
