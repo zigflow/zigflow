@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "zigflow.fullname" . }}-test-smoke"
+  labels:
+    {{- include "zigflow.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  containers:
+    - name: smoke
+      image: busybox
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          set -eu
+
+          echo "Checking liveness endpoint"
+          wget -qO- "http://{{ include "zigflow.fullname" . }}:{{ .Values.service.health.port }}/livez" >/dev/null
+
+          echo "Checking readiness endpoint"
+          wget -qO- "http://{{ include "zigflow.fullname" . }}:{{ .Values.service.health.port }}/readyz" >/dev/null
+
+          echo "Checking metrics endpoint"
+          wget -qO- "http://{{ include "zigflow.fullname" . }}:{{ .Values.service.metrics.port }}/metrics" >/dev/null
+
+          echo "All smoke tests passed"
+  restartPolicy: Never
