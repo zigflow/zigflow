@@ -35,7 +35,8 @@
   "postCreateCommand": {
     "go-generate": "go generate ./...",
     "helm-plugin-unittest": "helm plugin install --verify=false https://github.com/helm-unittest/helm-unittest",
-    "install-air": "go install github.com/air-verse/air@latest"
+    "install-air": "go install github.com/air-verse/air@latest",
+    "task-completion": "task --completion bash | sudo tee -a /etc/bash_completion.d/task > /dev/null"
   },
   "containerEnv": {
     "CLOUDEVENTS_CONFIG": "/workspaces/zigflow/cloudevents.example.yaml",
