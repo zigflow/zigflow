@@ -23,7 +23,7 @@ Replace `${ZIGFLOW_VERSION}` with a
 [published version](https://github.com/zigflow/zigflow/pkgs/container/charts%2Fzigflow):
 
 ```sh
-helm install my-workflow oci://ghcr.io/zigflow/charts/zigflow@${ZIGFLOW_VERSION}
+helm install zigflow oci://ghcr.io/zigflow/charts/zigflow@${ZIGFLOW_VERSION}
 ```
 
 ---
@@ -57,7 +57,7 @@ workflow:
 Install with custom values:
 
 ```sh
-helm install my-workflow oci://ghcr.io/zigflow/charts/zigflow@${ZIGFLOW_VERSION} \
+helm install zigflow oci://ghcr.io/zigflow/charts/zigflow@${ZIGFLOW_VERSION} \
   -f values.yaml
 ```
 
@@ -264,6 +264,27 @@ image:
 
 See the [Helm chart README](https://github.com/zigflow/zigflow/tree/main/charts/zigflow)
 for the complete values reference.
+
+---
+
+## Smoke tests
+
+The Helm chart includes basic smoke tests using Helm test hooks. These
+confirm that the Zigflow worker pod starts successfully and is reachable.
+
+Run the tests with:
+
+```sh
+helm test zigflow
+```
+
+If the tests fail, check the pod logs for more details:
+
+```sh
+kubectl logs -l app.kubernetes.io/instance=zigflow
+```
+
+The test definitions can be found under `templates/tests` in the chart.
 
 ---
 

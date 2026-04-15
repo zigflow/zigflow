@@ -223,6 +223,9 @@ jobs:
       - name: Wait for Zigflow deployment
         run: kubectl rollout status -n zigflow deployment/zigflow --timeout=30s
 
+      - name: Run Helm smoke tests
+        run: helm test -n zigflow zigflow
+
       - name: Port forward Temporal
         run: kubectl port-forward svc/temporal -n temporal 7233:7233 &
 
