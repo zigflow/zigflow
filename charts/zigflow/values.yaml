@@ -168,3 +168,31 @@ tolerations: []
 
 # -- Node affinity
 affinity: {}
+
+# -- Deploy with <a href="https://github.com/temporalio/temporal-worker-controller" target="_blank">Temporal Worker Controller</a>
+controller:
+  enabled: false
+
+  connection:
+    hostPort: temporal.temporal.svc.cluster.local:7233
+    # It's your responsiblity to create your connection secrets
+    mutualTLSSecretRef:
+      name: ""
+    apiKeySecretRef:
+      name: ""
+      key: api-key
+
+  rollout:
+    strategy: Progressive
+    steps:
+      - rampPercentage: 10
+        pauseDuration: 5m
+      - rampPercentage: 50
+        pauseDuration: 10m
+
+  sunset:
+    scaledownDelay: 1h
+    deleteDelay: 24h
+
+  workerOptions:
+    temporalNamespace: default

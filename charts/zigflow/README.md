@@ -92,6 +92,47 @@ false
 			<td>Accepts any of the command line arguments</td>
 		</tr>
 		<tr>
+			<td>controller</td>
+			<td>object</td>
+			<td><pre lang="json">
+{
+  "connection": {
+    "apiKeySecretRef": {
+      "key": "api-key",
+      "name": ""
+    },
+    "hostPort": "temporal.temporal.svc.cluster.local:7233",
+    "mutualTLSSecretRef": {
+      "name": ""
+    }
+  },
+  "enabled": false,
+  "rollout": {
+    "steps": [
+      {
+        "pauseDuration": "5m",
+        "rampPercentage": 10
+      },
+      {
+        "pauseDuration": "10m",
+        "rampPercentage": 50
+      }
+    ],
+    "strategy": "Progressive"
+  },
+  "sunset": {
+    "deleteDelay": "24h",
+    "scaledownDelay": "1h"
+  },
+  "workerOptions": {
+    "temporalNamespace": "default"
+  }
+}
+</pre>
+</td>
+			<td>Deploy with <a href="https://github.com/temporalio/temporal-worker-controller" target="_blank">Temporal Worker Controller</a></td>
+		</tr>
+		<tr>
 			<td>envvars</td>
 			<td>string</td>
 			<td><pre lang="json">
