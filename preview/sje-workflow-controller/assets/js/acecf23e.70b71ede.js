@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkzigflow=globalThis.webpackChunkzigflow||[]).push([[1903],{1912(l){l.exports=JSON.parse('{"blogBasePath":"/preview/sje-workflow-controller/articles","blogTitle":"Blog","authorsListPath":"/preview/sje-workflow-controller/articles/authors"}')}}]);
