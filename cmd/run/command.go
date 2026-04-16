@@ -26,7 +26,23 @@ import (
 	"github.com/zigflow/zigflow/pkg/codec"
 	"github.com/zigflow/zigflow/pkg/telemetry"
 	"github.com/zigflow/zigflow/pkg/utils"
+	"go.temporal.io/sdk/workflow"
 )
+
+// Maps to workflow.VersioningBehavior as these uses iota
+type versioningBehaviour string
+
+const (
+	versioningBehaviourUnspecified versioningBehaviour = "unspecified"
+	versioningBehaviourPinned      versioningBehaviour = "pinned"
+	versioningBehaviourAutoUpgrade versioningBehaviour = "autoupgrade"
+)
+
+var versioningBehaviours = map[versioningBehaviour]workflow.VersioningBehavior{
+	versioningBehaviourAutoUpgrade: workflow.VersioningBehaviorAutoUpgrade,
+	versioningBehaviourPinned:      workflow.VersioningBehaviorPinned,
+	versioningBehaviourUnspecified: workflow.VersioningBehaviorUnspecified,
+}
 
 type runOptions struct {
 	CloudEventsConfig                      string
@@ -34,6 +50,10 @@ type runOptions struct {
 	CodecHeaders                           map[string]string
 	ConvertData                            string
 	ConvertKeyPath                         string
+	DefaultVersioningBehaviour             string
+	DeploymentBuildID                      string
+	DeploymentName                         string
+	EnableVersioning                       bool
 	EnvPrefix                              string
 	DirectoryGlob                          string
 	DirectoryPath                          string
@@ -56,7 +76,8 @@ type runOptions struct {
 	Watch                                  bool
 	WatchDebounce                          time.Duration
 
-	Telemetry *telemetry.Telemetry
+	Telemetry                  *telemetry.Telemetry
+	defaultVersioningBehaviour workflow.VersioningBehavior
 }
 
 func panicMessage(r any) string {
@@ -177,6 +198,24 @@ from local development to production.`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if _, err := codec.ParseCodecType(opts.ConvertData); err != nil {
 				return err
+			}
+
+			if opts.EnableVersioning {
+				log.Debug().Msg("Versioning enabled - verifying input")
+
+				normalised := versioningBehaviour(opts.DefaultVersioningBehaviour)
+				if t, ok := versioningBehaviours[normalised]; ok {
+					// Set as a private variable to opts
+					opts.defaultVersioningBehaviour = t
+				} else {
+					return fmt.Errorf(
+						"invalid default versioning behaviour type %q (must be %q, %q or %q)",
+						opts.DefaultVersioningBehaviour,
+						versioningBehaviourAutoUpgrade,
+						versioningBehaviourPinned,
+						versioningBehaviourUnspecified,
+					)
+				}
 			}
 
 			return nil

@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/codec"
 	"go.temporal.io/sdk/client"
+	sdkworker "go.temporal.io/sdk/worker"
 )
 
 // applyOptions applies a slice of temporal.Options to a fresh client.Options
@@ -112,6 +113,27 @@ func TestInitTemporalClient_ServerNamePropagation(t *testing.T) {
 	}
 }
 
+// capturedWorker records the arguments passed to newWorker by a single call.
+type capturedWorker struct {
+	taskQueue string
+	opts      sdkworker.Options
+}
+
+// stubNewWorker replaces newWorker with a test double that records every call
+// into captures. It creates the real worker using a lazy client (which satisfies
+// the SDK's non-nil client check without opening a real connection) so that
+// subsequent RegisterActivity and RegisterWorkflow calls succeed. It returns a
+// restore function that must be deferred by the caller.
+func stubNewWorker(captures *[]capturedWorker) func() {
+	orig := newWorker
+	newWorker = func(_ client.Client, taskQueue string, opts sdkworker.Options) sdkworker.Worker {
+		*captures = append(*captures, capturedWorker{taskQueue: taskQueue, opts: opts})
+		lazyClient, _ := client.NewLazyClient(client.Options{})
+		return orig(lazyClient, taskQueue, opts)
+	}
+	return func() { newWorker = orig }
+}
+
 func TestBuildWorkersByTaskQueue(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -155,6 +177,100 @@ func TestBuildWorkersByTaskQueue(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ---- versioning identity errors ----
+
+func TestBuildWorkersByTaskQueue_VersioningMissingIdentity(t *testing.T) {
+	// A single minimal registration is enough to enter the per-worker creation
+	// path; the error is returned before worker.New or zigflow.NewWorkflow are
+	// called, so the definition content does not matter here.
+	reg := &workflowRegistration{
+		TaskQueue:    "test-queue",
+		WorkflowType: "test-workflow",
+	}
+
+	tests := []struct {
+		name        string
+		opts        *runOptions
+		errContains string
+	}{
+		{
+			name: "missing build ID returns error",
+			opts: &runOptions{
+				EnableVersioning: true,
+				DeploymentName:   "my-deploy",
+			},
+			errContains: "temporal-worker-build-id required",
+		},
+		{
+			name: "missing deployment name returns error",
+			opts: &runOptions{
+				EnableVersioning:  true,
+				DeploymentBuildID: "my-build-id",
+			},
+			errContains: "temporal-deployment-name required",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			workers, err := buildWorkersByTaskQueue(nil, []*workflowRegistration{reg}, nil, tc.opts)
+			assert.Error(t, err)
+			assert.Nil(t, workers)
+			assert.ErrorContains(t, err, tc.errContains)
+		})
+	}
+}
+
+// ---- DeploymentOptions population ----
+
+func TestBuildWorkersByTaskQueue_VersioningDeploymentOptions(t *testing.T) {
+	dir := t.TempDir()
+	file := writeTempWorkflow(t, dir, "test-queue", "test-workflow")
+	regs, err := loadWorkflows([]string{file}, "", newTestValidator(t), false)
+	require.NoError(t, err)
+
+	var captured []capturedWorker
+	defer stubNewWorker(&captured)()
+
+	// defaultVersioningBehaviour mirrors what PreRunE sets: use the package
+	// map so the test does not import go.temporal.io/sdk/workflow directly.
+	opts := &runOptions{
+		EnableVersioning:           true,
+		DeploymentBuildID:          "test-build-id",
+		DeploymentName:             "test-deploy",
+		defaultVersioningBehaviour: versioningBehaviours[versioningBehaviourAutoUpgrade],
+	}
+	ws, err := buildWorkersByTaskQueue(nil, regs, nil, opts)
+	require.NoError(t, err)
+	require.NotNil(t, ws)
+	require.Len(t, captured, 1, "expected exactly one worker to be created")
+
+	c := captured[0]
+	assert.Equal(t, "test-queue", c.taskQueue)
+	assert.True(t, c.opts.DeploymentOptions.UseVersioning)
+	assert.Equal(t, "test-build-id", c.opts.DeploymentOptions.Version.BuildID)
+	assert.Equal(t, "test-deploy", c.opts.DeploymentOptions.Version.DeploymentName)
+	assert.Equal(t, versioningBehaviours[versioningBehaviourAutoUpgrade], c.opts.DeploymentOptions.DefaultVersioningBehavior)
+}
+
+func TestBuildWorkersByTaskQueue_VersioningDisabledNoDeploymentOptions(t *testing.T) {
+	var captured []capturedWorker
+	defer stubNewWorker(&captured)()
+
+	dir := t.TempDir()
+	file := writeTempWorkflow(t, dir, "test-queue", "test-workflow")
+	regs, err := loadWorkflows([]string{file}, "", newTestValidator(t), false)
+	require.NoError(t, err)
+
+	opts := &runOptions{EnableVersioning: false}
+	ws, err := buildWorkersByTaskQueue(nil, regs, nil, opts)
+	require.NoError(t, err)
+	require.NotNil(t, ws)
+	require.Len(t, captured, 1)
+
+	assert.False(t, captured[0].opts.DeploymentOptions.UseVersioning)
 }
 
 func TestBuildDataConverter(t *testing.T) {
