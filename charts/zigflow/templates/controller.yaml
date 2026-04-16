@@ -1,0 +1,52 @@
+{{- if .Values.controller.enabled }}
+
+{{- $controller := .Values.controller }}
+{{- $connection := $controller.connection }}
+
+{{- if and $connection.mutualTLSSecretRef.name $connection.apiKeySecretRef.name }}
+{{- fail "controller.connection.mutualTLSSecretRef.name and controller.connection.apiKeySecretRef.name cannot both be set" }}
+{{- end }}
+
+apiVersion: temporal.io/v1alpha1
+kind: TemporalConnection
+metadata:
+  name: {{ include "zigflow.fullname" . }}
+  labels:
+    {{- include "zigflow.labels" . | nindent 4 }}
+spec:
+  hostPort: {{ $connection.hostPort | quote }}
+  {{- with $connection.mutualTLSSecretRef.name }}
+  mutualTLSSecretRef:
+    name: {{ . | quote }}
+  {{- end }}
+  {{- with $connection.apiKeySecretRef.name }}
+  apiKeySecretRef:
+    name: {{ . | quote }}
+    key: {{ default "api-key" $connection.apiKeySecretRef.key | quote }}
+  {{- end }}
+---
+apiVersion: temporal.io/v1alpha1
+kind: TemporalWorkerDeployment
+metadata:
+  name: {{ include "zigflow.fullname" . }}
+  labels:
+    {{- include "zigflow.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  workerOptions:
+    connectionRef:
+      name: {{ include "zigflow.fullname" . }}
+    temporalNamespace: {{ $controller.workerOptions.temporalNamespace | quote }}
+  rollout:
+    strategy: {{ $controller.rollout.strategy | quote }}
+    {{- with $controller.rollout.steps }}
+    steps:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  sunset:
+    scaledownDelay: {{ $controller.sunset.scaledownDelay | quote }}
+    deleteDelay: {{ $controller.sunset.deleteDelay | quote }}
+  {{- include "zigflow.podTemplate" . | nindent 2 }}
+{{- end }}

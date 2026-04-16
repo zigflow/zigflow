@@ -29,17 +29,25 @@ deploy:
         namespace: zigflow
         createNamespace: true
         setValueTemplates:
+          autoscaling.enabled: "{{default false .AUTOSCALING_ENABLED}}"
+          autoscaling.minReplicas: "{{default 2 .AUTOSCALING_MIN_REPLICAS}}"
+          autoscaling.maxReplicas: "{{default 10 .AUTOSCALING_MAX_REPLICAS}}"
+          config.log-level: "{{default \"info\" .LOG_LEVEL}}"
+          controller.enabled: "{{default false .CONTROLLER_ENABLED}}"
           image.repository: "{{.IMAGE_REPO_zigflow}}"
           image.tag: "{{.IMAGE_TAG_zigflow}}"
         setValues:
           image:
             pullPolicy: Never
           config:
-            temporal-address: temporal.temporal.svc.cluster.local:7233
+            temporal-address: temporal.temporal.svc.cluster.local:7233 # Same as controller.connection.hostPort
           securityContext:
             readOnlyRootFilesystem: false
           tmpVolume:
             medium: ""
+          controller:
+            connection:
+              hostPort: temporal.temporal.svc.cluster.local:7233 # Same as config.temporal-address
 
 portForward:
   - resourceType: Service

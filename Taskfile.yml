@@ -88,6 +88,36 @@ tasks:
       - |
         minikube profile list | grep minikube | grep OK || minikube start
       - kubectl apply -f ./dev/k8s/
+      # Install Temporal Worker Controler - https://github.com/temporalio/temporal-worker-controller
+      - helm upgrade
+          --cleanup-on-fail
+          --create-namespace
+          --install
+          --namespace cert-manager
+          --rollback-on-failure
+          --set crds.enabled=true
+          --version ^v1.20.0
+          --wait
+          cert-manager oci://quay.io/jetstack/charts/cert-manager
+      - helm upgrade
+          --cleanup-on-fail
+          --create-namespace
+          --install
+          --namespace zigflow
+          --rollback-on-failure
+          --version ^0.24.0
+          --wait
+          temporal-worker-controller-crds oci://docker.io/temporalio/temporal-worker-controller-crds
+      - helm upgrade
+          --cleanup-on-fail
+          --create-namespace
+          --install
+          --namespace zigflow
+          --rollback-on-failure
+          --set replicas=1
+          --version ^0.24.0
+          --wait
+          temporal-worker-controller oci://docker.io/temporalio/temporal-worker-controller
 
   scan:
     desc: Scan for vulnerabilities
