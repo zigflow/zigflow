@@ -22,7 +22,60 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/zigflow/zigflow/pkg/telemetry"
 )
+
+// ---- PreRunE: versioning validation ----
+
+func TestPreRunE_VersioningValidation(t *testing.T) {
+	tests := []struct {
+		name             string
+		enableVersioning string
+		versioningType   string
+		wantErr          bool
+		errContains      string
+	}{
+		{
+			name:             "invalid versioning type returns error when versioning enabled",
+			enableVersioning: "true",
+			versioningType:   "not-a-valid-type",
+			wantErr:          true,
+			errContains:      "invalid default versioning behaviour type",
+		},
+		{
+			name:             "valid pinned type succeeds",
+			enableVersioning: "true",
+			versioningType:   "pinned",
+		},
+		{
+			name:             "valid autoupgrade type succeeds",
+			enableVersioning: "true",
+			versioningType:   "autoupgrade",
+		},
+		{
+			name:             "invalid type is ignored when versioning is disabled",
+			enableVersioning: "false",
+			versioningType:   "not-a-valid-type",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := New(func() *telemetry.Telemetry { return nil })
+			require.NoError(t, cmd.Flags().Set("enable-versioning", tc.enableVersioning))
+			require.NoError(t, cmd.Flags().Set("default-versioning-type", tc.versioningType))
+
+			err := cmd.PreRunE(cmd, []string{})
+			if tc.wantErr {
+				assert.Error(t, err)
+				assert.ErrorContains(t, err, tc.errContains)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
 
 func TestPanicMessage(t *testing.T) {
 	tests := []struct {

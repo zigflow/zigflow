@@ -18,6 +18,7 @@ package run
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
 	gh "github.com/mrsimonemms/golang-helpers"
@@ -35,6 +36,12 @@ import (
 // is a package-level variable so tests can substitute a test double without
 // spinning up a real Temporal server.
 var newTemporalConnection = temporal.NewConnection
+
+// newWorker is the function used to create a Temporal worker. It is a
+// package-level variable so tests can substitute a test double to capture
+// worker.Options (including DeploymentOptions) without spinning up a real
+// Temporal server.
+var newWorker = worker.New
 
 // runScheduleUpdates updates Temporal schedules for all workflow registrations
 // before any worker is started.
@@ -116,7 +123,36 @@ func buildWorkersByTaskQueue(
 		w, ok := workers[reg.TaskQueue]
 		if !ok {
 			pollerAutoscaler := worker.NewPollerBehaviorAutoscaling(worker.PollerBehaviorAutoscalingOptions{})
-			w = worker.New(temporalClient, reg.TaskQueue, worker.Options{
+
+			var deploymentOptions worker.DeploymentOptions
+			if opts.EnableVersioning {
+				buildID := opts.DeploymentBuildID
+				deployName := opts.DeploymentName
+
+				if buildID == "" {
+					return nil, fmt.Errorf("temporal-worker-build-id required when versioning enabled")
+				}
+				if deployName == "" {
+					return nil, fmt.Errorf("temporal-deployment-name required when versioning enabled")
+				}
+
+				log.Debug().
+					Str("buildId", buildID).
+					Str("deploymentName", deployName).
+					Str("defaultVersioningBehaviour", opts.DefaultVersioningBehaviour). // Use the text version
+					Msg("Versioning enabled")
+
+				deploymentOptions = worker.DeploymentOptions{
+					UseVersioning:             opts.EnableVersioning,
+					DefaultVersioningBehavior: opts.defaultVersioningBehaviour,
+					Version: worker.WorkerDeploymentVersion{
+						BuildID:        buildID,
+						DeploymentName: deployName,
+					},
+				}
+			}
+
+			w = newWorker(temporalClient, reg.TaskQueue, worker.Options{
 				WorkflowTaskPollerBehavior:             pollerAutoscaler,
 				ActivityTaskPollerBehavior:             pollerAutoscaler,
 				NexusTaskPollerBehavior:                pollerAutoscaler,
@@ -124,6 +160,7 @@ func buildWorkersByTaskQueue(
 				MaxConcurrentActivityExecutionSize:     opts.MaxConcurrentActivityExecutionSize,
 				MaxConcurrentWorkflowTaskExecutionSize: opts.MaxConcurrentWorkflowTaskExecutionSize,
 				TaskQueueActivitiesPerSecond:           opts.TaskQueueActivitiesPerSecond,
+				DeploymentOptions:                      deploymentOptions,
 			})
 			workers[reg.TaskQueue] = w
 			log.Debug().Str("task-queue", reg.TaskQueue).Msg("Created worker for task queue")

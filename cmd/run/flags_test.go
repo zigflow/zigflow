@@ -45,6 +45,10 @@ func TestNewRunCmd_Flags(t *testing.T) {
 	assert.NotNil(t, cmd.Flags().Lookup("max-concurrent-activity-execution-size"))
 	assert.NotNil(t, cmd.Flags().Lookup("max-concurrent-workflow-task-execution-size"))
 	assert.NotNil(t, cmd.Flags().Lookup("task-queue-activities-per-second"))
+	assert.NotNil(t, cmd.Flags().Lookup("enable-versioning"))
+	assert.NotNil(t, cmd.Flags().Lookup("default-versioning-type"))
+	assert.NotNil(t, cmd.Flags().Lookup("temporal-worker-build-id"))
+	assert.NotNil(t, cmd.Flags().Lookup("temporal-deployment-name"))
 }
 
 // ---- --temporal-server-name flag ----
@@ -130,4 +134,40 @@ func TestNewRunCmd_WorkerTuningFlagsBoundToOpts(t *testing.T) {
 	assert.Equal(t, "10", cmd.Flags().Lookup("max-concurrent-activity-execution-size").Value.String())
 	assert.Equal(t, "5", cmd.Flags().Lookup("max-concurrent-workflow-task-execution-size").Value.String())
 	assert.Equal(t, "2.5", cmd.Flags().Lookup("task-queue-activities-per-second").Value.String())
+}
+
+// ---- versioning flags ----
+
+func TestNewRunCmd_VersioningFlagDefaults(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	enableFlag := cmd.Flags().Lookup("enable-versioning")
+	require.NotNil(t, enableFlag)
+	assert.Equal(t, "false", enableFlag.DefValue)
+
+	typeFlag := cmd.Flags().Lookup("default-versioning-type")
+	require.NotNil(t, typeFlag)
+	assert.Equal(t, string(versioningBehaviourAutoUpgrade), typeFlag.DefValue)
+
+	buildIDFlag := cmd.Flags().Lookup("temporal-worker-build-id")
+	require.NotNil(t, buildIDFlag)
+	assert.Equal(t, "", buildIDFlag.DefValue)
+
+	deployNameFlag := cmd.Flags().Lookup("temporal-deployment-name")
+	require.NotNil(t, deployNameFlag)
+	assert.Equal(t, "", deployNameFlag.DefValue)
+}
+
+func TestNewRunCmd_VersioningFlagsBoundToOpts(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	require.NoError(t, cmd.Flags().Set("enable-versioning", "true"))
+	require.NoError(t, cmd.Flags().Set("default-versioning-type", "pinned"))
+	require.NoError(t, cmd.Flags().Set("temporal-worker-build-id", "my-build-id"))
+	require.NoError(t, cmd.Flags().Set("temporal-deployment-name", "my-deploy"))
+
+	assert.Equal(t, "true", cmd.Flags().Lookup("enable-versioning").Value.String())
+	assert.Equal(t, "pinned", cmd.Flags().Lookup("default-versioning-type").Value.String())
+	assert.Equal(t, "my-build-id", cmd.Flags().Lookup("temporal-worker-build-id").Value.String())
+	assert.Equal(t, "my-deploy", cmd.Flags().Lookup("temporal-deployment-name").Value.String())
 }

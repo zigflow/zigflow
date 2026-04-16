@@ -99,9 +99,38 @@ func registerTemporalConnectionFlags(cmd *cobra.Command, opts *runOptions) {
 	)
 }
 
+func registerVersioningFlags(cmd *cobra.Command, opts *runOptions) {
+	viper.SetDefault("default_versioning_type", versioningBehaviourAutoUpgrade)
+	cmd.Flags().StringVar(
+		&opts.DefaultVersioningBehaviour, "default-versioning-type",
+		viper.GetString("default_versioning_type"), fmt.Sprintf(
+			"Default versioning type: %q, %q, or %q",
+			versioningBehaviourUnspecified,
+			versioningBehaviourPinned,
+			versioningBehaviourAutoUpgrade,
+		),
+	)
+
+	cmd.Flags().StringVar(
+		&opts.DeploymentBuildID, "temporal-worker-build-id",
+		viper.GetString("temporal_worker_build_id"), "The build id specific to this worker",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.DeploymentName, "temporal-deployment-name",
+		viper.GetString("temporal_deployment_name"), "The name of the deployment this worker version belongs to",
+	)
+
+	cmd.Flags().BoolVar(
+		&opts.EnableVersioning, "enable-versioning",
+		viper.GetBool("enable_versioning"), "Enable Temporal worker versioning",
+	)
+}
+
 func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
 	registerWorkflowSourceFlags(cmd, opts)
 	registerTemporalConnectionFlags(cmd, opts)
+	registerVersioningFlags(cmd, opts)
 
 	cmd.Flags().StringVar(
 		&opts.CodecEndpoint, "codec-endpoint",
