@@ -116,6 +116,13 @@ the workflow into the image removes that dependency.
 **Simpler CI/CD.** The build pipeline produces a single artefact. Deployment
 consists of updating the image reference. There is nothing to synchronise.
 
+**Temporal Worker Controller compatibility.** When deploying with
+[Temporal Worker Controller](/docs/deployment/kubernetes#temporal-worker-controller),
+each image tag is treated as a distinct worker deployment version. Changing the
+image tag during an upgrade triggers a new versioned rollout rather than a
+standard rolling update. Dedicated images pair well with TWC because the build
+artefact and the versioning unit are the same thing.
+
 ---
 
 ## Security posture

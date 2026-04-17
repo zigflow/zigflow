@@ -47,6 +47,20 @@ For Docker and Kubernetes deployments, you can also
 [build a dedicated image](/docs/deployment/dedicated-image) with the workflow
 baked in at build time rather than mounted at runtime.
 
+### Kubernetes deployment modes
+
+The Kubernetes deployment supports two modes:
+
+| Mode | When to use |
+| --- | --- |
+| Standard Deployment | Default. Kubernetes manages scaling and rolling updates independently of Temporal. |
+| [Temporal Worker Controller](/docs/deployment/kubernetes#temporal-worker-controller) | Advanced. Temporal-native versioned rollouts. Requires TWC installed in the cluster. |
+
+Standard Deployment is appropriate for most production deployments.
+Temporal Worker Controller (TWC) is an advanced mode that integrates with the
+Temporal control plane to provide versioned, traffic-ramped rollouts and
+automatic sunset of old worker versions.
+
 ---
 
 ## Assumptions

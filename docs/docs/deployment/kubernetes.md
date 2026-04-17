@@ -12,6 +12,8 @@ Zigflow provides an official Helm chart for deploying to Kubernetes.
 - How to deliver a workflow definition via inline YAML or Kubernetes Secret
 - How to connect the worker to Temporal and configure environment variables
 - How to scale workers and configure horizontal pod autoscaling
+- How to deploy using Temporal Worker Controller for versioned rollouts
+- How to configure worker versioning and deployment options
 
 ## Helm chart
 
@@ -229,6 +231,11 @@ endpoint remains available as a backwards-compatible alias for `/readyz`.
 
 ## Replicas and scaling
 
+:::tip
+When using Temporal Worker Controller, autoscaling uses a `WorkerResourceTemplate`
+instead of a `HorizontalPodAutoscaler`. See [Temporal Worker Controller](#temporal-worker-controller).
+:::
+
 Workers are stateless. You can run multiple replicas of the same worker
 against the same Temporal task queue. Temporal distributes executions across
 available workers.
@@ -257,6 +264,175 @@ image:
   pullPolicy: IfNotPresent
   tag: "0.1.0"  # Defaults to chart version if not set
 ```
+
+---
+
+## Temporal Worker Controller
+
+:::info
+Temporal Worker Controller is an advanced deployment mode. Standard Deployment
+is the default and is appropriate for most use cases.
+:::
+
+[Temporal Worker Controller (TWC)](https://github.com/temporalio/temporal-worker-controller)
+is a Kubernetes operator that manages worker lifecycle, rollouts and versioning
+natively within the Temporal control plane. When `controller.enabled: true`, the
+Helm chart renders TWC custom resources instead of a standard Kubernetes `Deployment`.
+
+Use TWC when you need:
+
+- Controlled, traffic-ramped rollouts for new worker versions
+- Temporal-native versioning of worker deployments
+- Automatic sunset of outdated worker versions
+
+For standard production deployments, the default `Deployment` mode is sufficient.
+
+### Prerequisites
+
+Zigflow does not install Temporal Worker Controller, its CRDs or cert-manager.
+You must install and manage these yourself before enabling TWC in the chart:
+
+- Temporal Worker Controller and its CRDs
+- [cert-manager](https://cert-manager.io/) (required by TWC)
+
+Zigflow only renders the CRDs that TWC consumes. It does not install or manage TWC.
+
+### Enabling TWC
+
+Set `controller.enabled: true`:
+
+```yaml title="values.yaml"
+controller:
+  enabled: true
+  connection:
+    hostPort: temporal.temporal.svc.cluster.local:7233
+  workerOptions:
+    temporalNamespace: default
+```
+
+When enabled, the chart renders:
+
+- `TemporalConnection`: connection configuration consumed by TWC
+- `TemporalWorkerDeployment`: worker definition with rollout and sunset settings
+
+No standard Kubernetes `Deployment` is created.
+
+### Connection and authentication
+
+The `TemporalConnection` resource configures how TWC connects to Temporal.
+This is separate from the `config` map used for Zigflow's own connection settings.
+
+**No authentication (cluster-local Temporal):**
+
+```yaml title="values.yaml"
+controller:
+  connection:
+    hostPort: temporal.temporal.svc.cluster.local:7233
+```
+
+**mTLS:**
+
+```yaml title="values.yaml"
+controller:
+  connection:
+    hostPort: temporal.temporal.svc.cluster.local:7233
+    mutualTLSSecretRef:
+      name: temporal-mtls
+```
+
+**API key:**
+
+```yaml title="values.yaml"
+controller:
+  connection:
+    hostPort: your-namespace.tmprl.cloud:7233
+    apiKeySecretRef:
+      name: temporal-api-key
+      key: api-key
+```
+
+`mutualTLSSecretRef` and `apiKeySecretRef` cannot both be set. Helm rendering
+fails with a validation error if both are provided.
+
+### Rollout strategy
+
+Configure how TWC ramps traffic to new worker versions:
+
+```yaml title="values.yaml"
+controller:
+  rollout:
+    strategy: Progressive
+    steps:
+      - rampPercentage: 10
+        pauseDuration: 5m
+      - rampPercentage: 50
+        pauseDuration: 10m
+```
+
+TWC applies each step in sequence. The example above ramps to 10% of traffic,
+pauses for 5 minutes, ramps to 50%, pauses for 10 minutes, then promotes fully.
+
+### Sunset behaviour
+
+Old worker versions are retired according to the sunset configuration:
+
+```yaml title="values.yaml"
+controller:
+  sunset:
+    scaledownDelay: 1h
+    deleteDelay: 24h
+```
+
+`scaledownDelay` controls how long to wait before scaling down an old version
+once a new version is fully ramped. `deleteDelay` controls how long to keep
+the old resource before deleting it.
+
+### Autoscaling
+
+When `autoscaling.enabled: true` and `controller.enabled: true`, the chart
+renders a `WorkerResourceTemplate` instead of a `HorizontalPodAutoscaler`. TWC
+uses this template to scale each worker version independently.
+
+```yaml title="values.yaml"
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+controller:
+  enabled: true
+```
+
+In standard mode (controller disabled), the same `autoscaling` values render a
+`HorizontalPodAutoscaler` targeting the `Deployment` directly.
+
+### Worker versioning
+
+When `controller.enabled: true`, the chart sets `ENABLE_VERSIONING=true` on the
+worker container automatically. This activates Temporal worker deployment versioning.
+
+TWC injects the following environment variables at runtime:
+
+| Environment variable | Purpose | CLI flag equivalent |
+| --- | --- | --- |
+| `TEMPORAL_WORKER_BUILD_ID` | Build ID for this worker version | `--temporal-worker-build-id` |
+| `TEMPORAL_DEPLOYMENT_NAME` | Deployment name for this worker version | `--temporal-deployment-name` |
+
+Environment variables take precedence over CLI flag values. These values are
+required when versioning is enabled.
+
+You can also control versioning independently of TWC using the following flags
+when running outside Kubernetes:
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--enable-versioning` | `false` | Enable Temporal worker deployment versioning |
+| `--default-versioning-type` | `autoupgrade` | Default versioning type: `unspecified`, `pinned` or `autoupgrade` |
+| `--temporal-worker-build-id` | (none) | Build ID for this worker |
+| `--temporal-deployment-name` | (none) | Deployment name for this worker |
+
+See [zigflow run](/docs/cli/commands/zigflow_run) for the full CLI reference.
 
 ---
 
@@ -302,6 +478,15 @@ Verify the version tag exists in
 **Workflow not updating after a values change.**
 The chart renders the inline workflow into a ConfigMap. After a `helm
 upgrade`, the pod must be restarted to pick up the new workflow.
+
+**TWC resources not applied because prerequisites are missing.**
+If Temporal Worker Controller and its CRDs are not installed in the cluster,
+applying the chart with `controller.enabled: true` will fail. Install TWC and
+cert-manager before enabling TWC in the chart.
+
+**Both `mutualTLSSecretRef` and `apiKeySecretRef` set.**
+Helm rendering fails if both `controller.connection.mutualTLSSecretRef.name` and
+`controller.connection.apiKeySecretRef.name` are non-empty. Use one or the other.
 
 ---
 
