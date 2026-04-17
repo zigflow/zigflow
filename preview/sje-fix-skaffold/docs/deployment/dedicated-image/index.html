@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BC2274WN5W"></script>
 <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-BC2274WN5W",{anonymize_ip:!0})</script><link rel="stylesheet" href="/preview/sje-fix-skaffold/assets/css/styles.5931bf73.css">
-<script src="/preview/sje-fix-skaffold/assets/js/runtime~main.9a76c192.js" defer="defer"></script>
+<script src="/preview/sje-fix-skaffold/assets/js/runtime~main.ab9394fe.js" defer="defer"></script>
 <script src="/preview/sje-fix-skaffold/assets/js/main.aebdbc62.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -92,6 +92,12 @@ a dependency between the running container and external configuration. Baking
 the workflow into the image removes that dependency.</p>
 <p><strong>Simpler CI/CD.</strong> The build pipeline produces a single artefact. Deployment
 consists of updating the image reference. There is nothing to synchronise.</p>
+<p><strong>Temporal Worker Controller compatibility.</strong> When deploying with
+<a class="" href="/preview/sje-fix-skaffold/docs/deployment/kubernetes#temporal-worker-controller">Temporal Worker Controller</a>,
+each image tag is treated as a distinct worker deployment version. Changing the
+image tag during an upgrade triggers a new versioned rollout rather than a
+standard rolling update. Dedicated images pair well with TWC because the build
+artefact and the versioning unit are the same thing.</p>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="security-posture">Security posture<a href="#security-posture" class="hash-link" aria-label="Direct link to Security posture" title="Direct link to Security posture" translate="no">​</a></h2>
 <p>The official <code>ghcr.io/zigflow/zigflow</code> image is built on
