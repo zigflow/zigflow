@@ -82,7 +82,8 @@ executing user-defined scripts written in various programming languages.
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
 | language | `string` | `yes` | The language of the script to run.<br />*Supported values are: [`js` and `python`](#supported-languages).* |
-| code | `string` | `yes` | The script's code. |
+| code | `string` | `no` | The inline script code. Required if `source` is not set. |
+| source | [`externalResource`](#external-source) | `no` | An external resource from which the script is fetched at execution time. Required if `code` is not set. |
 | arguments | `string[]` | `no` | A list of the arguments, if any, to the script as argv |
 | environment | `map` | `no` | A key/value mapping of the environment variables, if any, to use when running the configured script process |
 
@@ -101,7 +102,65 @@ This is a list of available languages and the command that is called.
 | `js` | `node` |
 | `python` | `python` |
 
-### Example {#script-example}
+### External source {#external-source}
+
+When `source` is used instead of `code`, Zigflow fetches the script from an
+external resource before execution. The resource is identified by its `endpoint`.
+
+#### Properties {#external-source-properties}
+
+| Name | Type | Required | Description |
+| --- | :---: | :---: | --- |
+| endpoint | `string` or runtime expression | `yes` | The URL of the external script. |
+
+#### Supported schemes
+
+| Scheme | Example |
+| --- | --- |
+| `https://` | `https://example.com/script.js` |
+| `http://` | `http://internal-host/script.py` |
+| `file://` | `file:///scripts/run.js` |
+
+Any other scheme (for example `ftp://`) will cause the task to fail.
+
+#### Runtime expressions
+
+The `endpoint` value can be a [runtime expression](/docs/concepts/data-and-expressions),
+evaluated using the workflow state at execution time. The expression is resolved
+before the script is fetched and must produce a valid URL with a supported scheme.
+
+```yaml
+run:
+  script:
+    language: js
+    source:
+      endpoint: ${ $env.SCRIPT_URL }
+```
+
+Expressions have access to `$env`, `$input`, `$context` and `$data`.
+
+:::warning
+The `endpoint` field also accepts an object form with a `uri` property:
+
+```yaml
+source:
+  endpoint:
+    uri: https://example.com/script.js
+```
+
+Runtime expressions are **not** supported within the `uri` field of this object
+form. Use a top-level expression (`endpoint: ${ ... }`) instead.
+:::
+
+#### Size limit
+
+Scripts fetched over HTTP or HTTPS are limited to **10 MiB**. Requests that
+exceed this limit will fail, whether the size is declared in a `Content-Length`
+header or detected during streaming.
+
+### Examples {#script-examples}
+
+#### Inline script {#script-example-inline}
 
 ```yaml
 document:
@@ -150,6 +209,62 @@ do:
           environment:
             NAME: python
 ```
+
+#### External file script {#script-example-file}
+
+```yaml
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: example
+  version: 0.0.1
+do:
+  - runScript:
+      run:
+        script:
+          language: js
+          source:
+            endpoint: file:///scripts/run.js
+```
+
+#### External HTTP script {#script-example-http}
+
+```yaml
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: example
+  version: 0.0.1
+do:
+  - runScript:
+      run:
+        script:
+          language: python
+          source:
+            endpoint: https://example.com/scripts/run.py
+```
+
+#### Expression-based endpoint {#script-example-expression}
+
+The endpoint URL can be resolved from workflow state at execution time.
+
+```yaml
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: example
+  version: 0.0.1
+do:
+  - runScript:
+      run:
+        script:
+          language: js
+          source:
+            endpoint: ${ $env.SCRIPT_URL }
+```
+
+The worker must have `SCRIPT_URL` set in its environment. The expression is
+evaluated before the script is fetched.
 
 ## Shell
 
@@ -250,6 +365,14 @@ is Docker only at this time; other runtimes are not yet supported.
 **Script execution requires the language runtime in the worker image.** The
 official Docker image includes Node.js and Python. For other languages or
 specific versions, build a custom image.
+
+**External scripts are limited to 10 MiB.** Scripts fetched over HTTP or HTTPS
+will fail if the response body exceeds this limit. File sources are not subject
+to this limit.
+
+**Only `http`, `https` and `file` schemes are supported for external scripts.**
+Using any other scheme (for example `ftp://`) will cause the task to fail with
+an unsupported scheme error.
 
 **`namespace` and `version` in `run.workflow` are not used.** These fields
 exist for Serverless Workflow specification compatibility only. The target

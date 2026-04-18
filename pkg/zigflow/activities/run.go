@@ -74,7 +74,9 @@ func (r *Run) CallScriptActivity(ctx context.Context, task *model.RunTask, input
 		}
 	}()
 
-	lang := task.Run.Script.Language
+	script := task.Run.Script
+
+	lang := script.Language
 	logger.Debug("Detecting script language", "language", lang)
 	switch lang {
 	case "js":
@@ -91,7 +93,13 @@ func (r *Run) CallScriptActivity(ctx context.Context, task *model.RunTask, input
 	fname := filepath.Join(dir, file)
 	logger.Debug("Writing script to disk", "file", fname)
 	command = append(command, fname)
-	if err := os.WriteFile(fname, []byte(*task.Run.Script.InlineCode), 0o600); err != nil {
+
+	contents, err := r.resolveScriptContents(ctx, script, state)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := os.WriteFile(fname, contents, 0o600); err != nil {
 		logger.Error("Error writing script to disk", "file", fname, "error", err)
 		return nil, fmt.Errorf("error writing code to script: %w", err)
 	}
@@ -99,12 +107,42 @@ func (r *Run) CallScriptActivity(ctx context.Context, task *model.RunTask, input
 	return r.runExecCommand(
 		ctx,
 		command,
-		task.Run.Script.Arguments,
-		task.Run.Script.Environment,
+		script.Arguments,
+		script.Environment,
 		state,
 		dir,
 		task.GetBase(),
 	)
+}
+
+func (r *Run) resolveScriptContents(ctx context.Context, script *model.Script, state *utils.State) ([]byte, error) {
+	if ext := script.External; ext != nil {
+		if ext.Endpoint == nil {
+			return nil, fmt.Errorf("external script source has no endpoint")
+		}
+		logger := activity.GetLogger(ctx)
+		enrichedState := state.Clone().AddActivityInfo(ctx)
+		rawEndpoint := ext.Endpoint.String()
+		logger.Debug("Evaluating script source endpoint", "raw", rawEndpoint)
+
+		evaluated, err := utils.EvaluateString(rawEndpoint, nil, enrichedState)
+		if err != nil {
+			return nil, fmt.Errorf("error evaluating script source endpoint: %w", err)
+		}
+		endpoint, ok := evaluated.(string)
+		if !ok || endpoint == "" {
+			return nil, fmt.Errorf("script source endpoint evaluated to empty or non-string value")
+		}
+
+		logger.Debug("Reading file contents from endpoint", "endpoint", endpoint)
+		c, err := utils.ReadURLContents(ctx, endpoint)
+		if err != nil {
+			logger.Error("Error reading file from endpoint", "endpoint", endpoint, "error", err)
+			return nil, fmt.Errorf("error reading file: %w", err)
+		}
+		return c, nil
+	}
+	return []byte(*script.InlineCode), nil
 }
 
 func (r *Run) CallShellActivity(ctx context.Context, task *model.RunTask, input any, state *utils.State) (any, error) {

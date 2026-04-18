@@ -801,6 +801,15 @@ $defs:
                   - code
                   title: InlineScript
                   type: object
+                - description: The script's resource.
+                  properties:
+                    source:
+                      $ref: '#/$defs/externalResource'
+                      title: ExternalScriptResource
+                  required:
+                  - source
+                  title: ExternalScript
+                  type: object
                 properties:
                   arguments:
                     description: A list of the arguments, if any, to the script as

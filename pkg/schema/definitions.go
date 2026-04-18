@@ -1078,6 +1078,18 @@ var runTaskDefinition = &jsonschema.Schema{
 												},
 											},
 										},
+										{
+											Title:       "ExternalScript",
+											Type:        "object",
+											Description: "The script's resource.",
+											Required:    []string{"source"},
+											Properties: map[string]*jsonschema.Schema{
+												"source": {
+													Ref:   SchemaRef("externalResource"),
+													Title: "ExternalScriptResource",
+												},
+											},
+										},
 									},
 									Properties: map[string]*jsonschema.Schema{
 										"arguments": {

@@ -22,6 +22,14 @@ do:
           environment:
             hello: world
             envvar: ${ $env.EXAMPLE_ENVVAR }
+  - nodejs_file:
+      export:
+        as: '${ $context + { nodejs_file: . } }'
+      run:
+        script:
+          language: js
+          source:
+            endpoint: file://./script.js # Allow http://, https:// and file://
   - nodejs:
       export:
         as: '${ $context + { nodejs: . } }'
@@ -38,6 +46,14 @@ do:
             - Hello
           environment:
             NAME: js
+  - python_file:
+      export:
+        as: '${ $context + { python_file: . } }'
+      run:
+        script:
+          language: python
+          source:
+            endpoint: ${ "file://./script.py" } # Can also use Runtime Expressions
   - python:
       export:
         as: '${ $context + { python: . } }'
@@ -61,6 +77,14 @@ do:
             - Hello
           environment:
             NAME: python
+  - shell_file:
+      export:
+        as: '${ $context + { shell_file: . } }'
+      run:
+        shell:
+          command: bash
+          arguments:
+            - ./script.sh
   - shell:
       output:
         as: '${ $context + { shell: . } }'

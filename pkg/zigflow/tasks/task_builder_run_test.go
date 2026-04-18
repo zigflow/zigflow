@@ -174,7 +174,7 @@ func TestRunTaskBuilderRunScriptValidation(t *testing.T) {
 					},
 				},
 			},
-			assertErr: "run script has no code defined: script-task",
+			assertErr: "run script has no inline or external code defined: script-task",
 		},
 		{
 			name: "await disabled",
@@ -189,7 +189,58 @@ func TestRunTaskBuilderRunScriptValidation(t *testing.T) {
 			},
 			assertErr: "run scripts must be run with await: script-task",
 		},
+		{
+			name: "both inline code and external source set",
+			task: &model.RunTask{
+				Run: model.RunTaskConfiguration{
+					Script: &model.Script{
+						Language:   "python",
+						InlineCode: utils.Ptr(inline),
+						External: &model.ExternalResource{
+							Endpoint: model.NewEndpoint("file:///scripts/run.py"),
+						},
+					},
+				},
+			},
+			assertErr: "run script must not set both inline code and external source: script-task",
+		},
+		{
+			name: "external source with nil endpoint",
+			task: &model.RunTask{
+				Run: model.RunTaskConfiguration{
+					Script: &model.Script{
+						Language: "python",
+						External: &model.ExternalResource{
+							// Endpoint intentionally nil
+						},
+					},
+				},
+			},
+			assertErr: "run script external source has no endpoint: script-task",
+		},
 	}
+
+	// Verify that Build succeeds when an external source is provided and
+	// inline code is absent — the validation path must accept this as valid.
+	t.Run("valid when external source set and inline code absent", func(t *testing.T) {
+		t.Parallel()
+		task := &model.RunTask{
+			Run: model.RunTaskConfiguration{
+				Script: &model.Script{
+					Language: "python",
+					External: &model.ExternalResource{
+						Endpoint: model.NewEndpoint("file:///scripts/run.py"),
+					},
+				},
+			},
+		}
+		builder, err := NewRunTaskBuilder(nil, task, "script-task", nil, testEvents)
+		assert.NoError(t, err)
+		assert.NoError(t, builder.PostLoad())
+		fn, err := builder.Build()
+		assert.NoError(t, err)
+		assert.NotNil(t, fn)
+	})
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

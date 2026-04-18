@@ -61,14 +61,8 @@ func (t *RunTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 		factory = t.runContainer
 	} else if s := t.task.Run.Script; s != nil {
-		if !slices.Contains([]string{"js", "python"}, s.Language) {
-			return nil, fmt.Errorf("unknown script language '%s' for task: %s", s.Language, t.GetTaskName())
-		}
-		if !*t.task.Run.Await {
-			return nil, fmt.Errorf("run scripts must be run with await: %s", t.GetTaskName())
-		}
-		if s.InlineCode == nil || *s.InlineCode == "" {
-			return nil, fmt.Errorf("run script has no code defined: %s", t.GetTaskName())
+		if err := t.validateScriptConfig(s); err != nil {
+			return nil, err
 		}
 		factory = t.runScript
 	} else if t.task.Run.Shell != nil {
@@ -96,6 +90,25 @@ func (t *RunTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 		return res, nil
 	}, nil
+}
+
+func (t *RunTaskBuilder) validateScriptConfig(s *model.Script) error {
+	if !slices.Contains([]string{"js", "python"}, s.Language) {
+		return fmt.Errorf("unknown script language '%s' for task: %s", s.Language, t.GetTaskName())
+	}
+	if !*t.task.Run.Await {
+		return fmt.Errorf("run scripts must be run with await: %s", t.GetTaskName())
+	}
+	if (s.InlineCode == nil || *s.InlineCode == "") && s.External == nil {
+		return fmt.Errorf("run script has no inline or external code defined: %s", t.GetTaskName())
+	}
+	if s.InlineCode != nil && *s.InlineCode != "" && s.External != nil {
+		return fmt.Errorf("run script must not set both inline code and external source: %s", t.GetTaskName())
+	}
+	if s.External != nil && s.External.Endpoint == nil {
+		return fmt.Errorf("run script external source has no endpoint: %s", t.GetTaskName())
+	}
+	return nil
 }
 
 func (t *RunTaskBuilder) PostLoad() error {

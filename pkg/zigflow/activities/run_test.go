@@ -19,6 +19,10 @@ package activities
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"os/exec"
 	"testing"
 
@@ -260,6 +264,156 @@ func TestRunExecCommandRespectsWorkingDirectory(t *testing.T) {
 	var output string
 	require.NoError(t, val.Get(&output))
 	assert.Equal(t, dir, output)
+}
+
+// TestCallScriptActivityExternalSource covers the external-script fetch path:
+// file sources, HTTP sources, unsupported schemes, and runtime-expression endpoints.
+func TestCallScriptActivityExternalSource(t *testing.T) {
+	tests := []struct {
+		name      string
+		binary    string
+		want      string
+		wantErr   bool
+		errSubstr string
+		makeTask  func(t *testing.T) (*model.RunTask, *utils.State)
+	}{
+		{
+			name:   "external file source is fetched and executed",
+			binary: "node",
+			want:   "hello from file",
+			makeTask: func(t *testing.T) (*model.RunTask, *utils.State) {
+				f, err := os.CreateTemp("", "*.js")
+				require.NoError(t, err)
+				t.Cleanup(func() { _ = os.Remove(f.Name()) })
+				_, err = fmt.Fprint(f, `process.stdout.write("hello from file")`)
+				require.NoError(t, err)
+				require.NoError(t, f.Close())
+				return &model.RunTask{
+					Run: model.RunTaskConfiguration{
+						Script: &model.Script{
+							Language: "js",
+							External: &model.ExternalResource{
+								Endpoint: model.NewEndpoint("file://" + f.Name()),
+							},
+						},
+					},
+				}, utils.NewState()
+			},
+		},
+		{
+			name:   "external HTTP source is fetched and executed",
+			binary: "node",
+			want:   "hello from http",
+			makeTask: func(t *testing.T) (*model.RunTask, *utils.State) {
+				srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					_, _ = fmt.Fprint(w, `process.stdout.write("hello from http")`)
+				}))
+				t.Cleanup(srv.Close)
+				return &model.RunTask{
+					Run: model.RunTaskConfiguration{
+						Script: &model.Script{
+							Language: "js",
+							External: &model.ExternalResource{
+								Endpoint: model.NewEndpoint(srv.URL + "/script.js"),
+							},
+						},
+					},
+				}, utils.NewState()
+			},
+		},
+		{
+			name:      "unsupported scheme returns clear error",
+			wantErr:   true,
+			errSubstr: "error reading file",
+			makeTask: func(t *testing.T) (*model.RunTask, *utils.State) {
+				return &model.RunTask{
+					Run: model.RunTaskConfiguration{
+						Script: &model.Script{
+							Language: "js",
+							External: &model.ExternalResource{
+								Endpoint: &model.Endpoint{
+									URITemplate: &model.LiteralUri{Value: "ftp://example.com/script.js"},
+								},
+							},
+						},
+					},
+				}, utils.NewState()
+			},
+		},
+		{
+			// The endpoint is a runtime expression that resolves to the test server URL
+			// via $env.SCRIPT_URL. Verifies EvaluateString is called before ReadURLContents.
+			name:   "runtime-expression endpoint is evaluated before fetching",
+			binary: "node",
+			want:   "hello from expression",
+			makeTask: func(t *testing.T) (*model.RunTask, *utils.State) {
+				srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					_, _ = fmt.Fprint(w, `process.stdout.write("hello from expression")`)
+				}))
+				t.Cleanup(srv.Close)
+				state := utils.NewState()
+				state.Env["SCRIPT_URL"] = srv.URL + "/script.js"
+				return &model.RunTask{
+					Run: model.RunTaskConfiguration{
+						Script: &model.Script{
+							Language: "js",
+							External: &model.ExternalResource{
+								Endpoint: &model.Endpoint{
+									RuntimeExpression: model.NewExpr("${ $env.SCRIPT_URL }"),
+								},
+							},
+						},
+					},
+				}, state
+			},
+		},
+		{
+			name:      "nil endpoint returns clean error without panic",
+			wantErr:   true,
+			errSubstr: "external script source has no endpoint",
+			makeTask: func(t *testing.T) (*model.RunTask, *utils.State) {
+				return &model.RunTask{
+					Run: model.RunTaskConfiguration{
+						Script: &model.Script{
+							Language: "js",
+							External: &model.ExternalResource{
+								// Endpoint intentionally nil
+							},
+						},
+					},
+				}, utils.NewState()
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.binary != "" {
+				if _, err := exec.LookPath(tt.binary); err != nil {
+					t.Skipf("%s not available", tt.binary)
+				}
+			}
+
+			task, state := tt.makeTask(t)
+			run := &Run{}
+			var s testsuite.WorkflowTestSuite
+			env := s.NewTestActivityEnvironment()
+			env.RegisterActivity(run.CallScriptActivity)
+
+			val, err := env.ExecuteActivity(run.CallScriptActivity, task, nil, state)
+			if tt.wantErr {
+				require.Error(t, err)
+				if tt.errSubstr != "" {
+					assert.Contains(t, err.Error(), tt.errSubstr)
+				}
+				return
+			}
+			require.NoError(t, err)
+			var output string
+			require.NoError(t, val.Get(&output))
+			assert.Equal(t, tt.want, output)
+		})
+	}
 }
 
 func TestCallScriptActivity(t *testing.T) {

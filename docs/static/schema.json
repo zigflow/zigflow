@@ -1251,6 +1251,20 @@
                           "required": [
                             "code"
                           ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "source": {
+                              "$ref": "#/$defs/externalResource",
+                              "title": "ExternalScriptResource"
+                            }
+                          },
+                          "title": "ExternalScript",
+                          "description": "The script's resource.",
+                          "required": [
+                            "source"
+                          ]
                         }
                       ]
                     }
