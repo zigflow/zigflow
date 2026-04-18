@@ -10,6 +10,7 @@ release.
 ## What you will learn
 
 - How to run Zigflow using the official Docker image
+- How to choose between the full and core image variants
 - How to connect a containerised worker to a Temporal server
 - How to configure the worker using environment variables
 - How to set up Zigflow in a Docker Compose stack
@@ -27,6 +28,34 @@ Tags:
 
 The binary is set as the container entrypoint. Pass `run` and any flags as
 the command.
+
+---
+
+## Image variants
+
+Zigflow publishes two image variants.
+
+| Variant | Tags | Contents |
+| --- | --- | --- |
+| Full (default) | `latest`, `<version>` | Go binary, Python and Node.js runtimes |
+| Core | `core`, `<version>-core` | Go binary only |
+
+The **full** image is the default. It includes Python and Node.js runtimes to
+support script-based workflow steps.
+
+The **core** image excludes Python and Node.js. It is smaller and has a reduced
+attack surface, making it a better fit for production deployments that do not
+use script execution.
+
+:::warning
+Workflows that include script steps will fail at runtime if run against the
+`core` image. Use the full image if your workflows execute scripts.
+:::
+
+Core image tags:
+
+- `ghcr.io/zigflow/zigflow:core` (latest release)
+- `ghcr.io/zigflow/zigflow:<version>-core` (specific version, e.g. `1.2.3-core`)
 
 ---
 
