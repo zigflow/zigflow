@@ -28,6 +28,7 @@ thing:</p>
 <li class="">build your own DSL</li>
 </ol>
 <p>I thought the Temporal community should provide a third option. Here's one approach.</p>
+<!-- -->
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="the-idea">The idea<a href="https://zigflow.dev/articles/why-i-built-a-yaml-dsl-for-temporal-workflows#the-idea" class="hash-link" aria-label="Direct link to The idea" title="Direct link to The idea" translate="no">​</a></h2>
 <p>Temporal workflows are typically written in code. That's powerful, but it also
 creates friction.</p>
@@ -130,6 +131,7 @@ be worth exploring.</p>]]></content:encoded>
 than code.</p>
 <p>Understanding when not to use Zigflow is just as important as understanding when
 you should.</p>
+<!-- -->
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="if-you-need-full-sdk-control">If you need full SDK control<a href="https://zigflow.dev/articles/when-not-to-use-zigflow#if-you-need-full-sdk-control" class="hash-link" aria-label="Direct link to If you need full SDK control" title="Direct link to If you need full SDK control" translate="no">​</a></h2>
 <p>Temporal's SDKs provide complete control over workflow execution.</p>
 <p>If your use case depends on:</p>
@@ -187,6 +189,7 @@ Zigflow may be a better fit.</p>]]></content:encoded>
             <content:encoded><![CDATA[<p>Zigflow allows workflows to be defined declaratively in YAML.</p>
 <p>Under the hood, everything still runs on Temporal.</p>
 <p>So how does that mapping actually work?</p>
+<!-- -->
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="the-core-idea">The core idea<a href="https://zigflow.dev/articles/how-zigflow-maps-yaml-to-temporal#the-core-idea" class="hash-link" aria-label="Direct link to The core idea" title="Direct link to The core idea" translate="no">​</a></h2>
 <p>Zigflow does not interpret YAML at runtime.</p>
 <p>Instead, it follows a pipeline:</p>
@@ -287,6 +290,7 @@ appear at runtime.</p>
 <p>You keep full access to the Temporal SDK, while still allowing workflows to be
 defined declaratively.</p>
 <p>But Zigflow deliberately does not do this.</p>
+<!-- -->
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="the-obvious-approach-generate-code">The obvious approach: generate code<a href="https://zigflow.dev/articles/why-zigflow-doesnt-generate-code#the-obvious-approach-generate-code" class="hash-link" aria-label="Direct link to The obvious approach: generate code" title="Direct link to The obvious approach: generate code" translate="no">​</a></h2>
 <p>If you treat the YAML as a source format, you could:</p>
 <ol>
