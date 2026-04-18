@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkzigflow=self.webpackChunkzigflow||[]).push([["3220"],{1912(e){e.exports=JSON.parse('{"blogBasePath":"/preview/dependabot-npm-and-yarn-examples-typescript-protobufjs-7.5.5/articles","blogTitle":"Blog","authorsListPath":"/preview/dependabot-npm-and-yarn-examples-typescript-protobufjs-7.5.5/articles/authors"}')}}]);
