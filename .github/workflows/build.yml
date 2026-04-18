@@ -302,13 +302,14 @@ jobs:
           echo "commit_id=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
           echo "git_repo=github.com/${GITHUB_REPOSITORY}" >> "$GITHUB_OUTPUT"
 
-  # Build zigflow Docker images in parallel by architecture
-  docker_zigflow:
+  # Build Docker images in parallel by architecture and variant
+  docker:
     runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     needs: metadata
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms) }}
+        variant: [full, core]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -325,19 +326,29 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate platform-specific tag
-        id: tag
+      - name: Derive variant values
+        id: vars
         run: |
           PLATFORM_TAG=$(echo "${{ matrix.platform }}" | sed 's/\//-/g')
-          echo "platform_tag=${PLATFORM_TAG}" >> "$GITHUB_OUTPUT"
 
-          # Image name with SHA-based tag for this platform
-          echo "image_ref=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}-${PLATFORM_TAG}" >> "$GITHUB_OUTPUT"
+          if [ "${{ matrix.variant }}" = "core" ]; then
+            SUFFIX="-core"
+            TARGET="core"
+          else
+            SUFFIX=""
+            TARGET=""
+          fi
+
+          echo "platform_tag=${PLATFORM_TAG}" >> "$GITHUB_OUTPUT"
+          echo "target=${TARGET}" >> "$GITHUB_OUTPUT"
+          echo "image_ref=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}-${PLATFORM_TAG}${SUFFIX}" >> "$GITHUB_OUTPUT"
+          echo "sarif_file=trivy-zigflow-${{ matrix.variant }}-${PLATFORM_TAG}.sarif" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
+          target: ${{ steps.vars.outputs.target }}
           build-args: |
             GIT_COMMIT=${{ needs.metadata.outputs.commit_id }}
             GIT_REPO=${{ needs.metadata.outputs.git_repo }}
@@ -347,19 +358,18 @@ jobs:
           platforms: ${{ matrix.platform }}
           load: ${{ needs.metadata.outputs.push == 'false' }}
           push: ${{ needs.metadata.outputs.push == 'true' }}
-          tags: ${{ steps.tag.outputs.image_ref }}
-          # Save as artifact for non-main branches
+          tags: ${{ steps.vars.outputs.image_ref }}
 
       - name: Pull images
         if: ${{ needs.metadata.outputs.push == 'true' }}
-        run: docker pull ${{ steps.tag.outputs.image_ref }}
+        run: docker pull ${{ steps.vars.outputs.image_ref }}
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@0.35.0
         with:
-          image-ref: ${{ steps.tag.outputs.image_ref }}
+          image-ref: ${{ steps.vars.outputs.image_ref }}
           format: sarif
-          output: trivy-zigflow-${{ steps.tag.outputs.platform_tag }}.sarif
+          output: ${{ steps.vars.outputs.sarif_file }}
           exit-code: "1"
           ignore-unfixed: true
           vuln-type: os,library
@@ -370,15 +380,18 @@ jobs:
         if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: trivy-zigflow-${{ steps.tag.outputs.platform_tag }}.sarif
+          sarif_file: ${{ steps.vars.outputs.sarif_file }}
 
-  # Combine architecture-specific images into a multi-arch manifest
-  docker_zigflow_manifest:
+  # Combine architecture-specific images into multi-arch manifests
+  docker_manifest:
     runs-on: ubuntu-latest
     if: needs.metadata.outputs.push == 'true'
     needs:
       - metadata
-      - docker_zigflow
+      - docker
+    strategy:
+      matrix:
+        variant: [full, core]
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -401,38 +414,39 @@ jobs:
       - name: Generate manifest tags and create manifest
         run: |
           REPO_LOWER="ghcr.io/${GITHUB_REPOSITORY,,}"
+          VARIANT="${{ matrix.variant }}"
 
-          # Build list of source images based on platforms
-          SOURCE_IMAGES="${REPO_LOWER}:${GITHUB_SHA}-linux-amd64"
-
-          # Add arm64 only if it was built (tags only)
-          if [ "${{ needs.metadata.outputs.is_tag }}" = "true"  ];
-          then
-            SOURCE_IMAGES="${SOURCE_IMAGES} ${REPO_LOWER}:${GITHUB_SHA}-linux-arm64"
+          if [ "${VARIANT}" = "core" ]; then
+            SUFFIX="-core"
+            STABLE_TAG="core"
+            SHA_TAG="${GITHUB_SHA}-core"
+          else
+            SUFFIX=""
+            STABLE_TAG="latest"
+            SHA_TAG="${GITHUB_SHA}"
           fi
 
-          # Determine target tags based on ref type
-          if [ "${{ needs.metadata.outputs.is_tag }}" = "true"  ];
-          then
-            # For tags: choose latest/prerelease + version tag + SHA based on pre-release status
+          SOURCE_IMAGES="${REPO_LOWER}:${GITHUB_SHA}-linux-amd64${SUFFIX}"
+
+          if [ "${{ needs.metadata.outputs.is_tag }}" = "true" ]; then
+            SOURCE_IMAGES="${SOURCE_IMAGES} ${REPO_LOWER}:${GITHUB_SHA}-linux-arm64${SUFFIX}"
+          fi
+
+          if [ "${{ needs.metadata.outputs.is_tag }}" = "true" ]; then
             if [ "${{ needs.metadata.outputs.is_prerelease }}" = "true" ]; then
-              TARGET_TAGS="${REPO_LOWER}:prerelease ${REPO_LOWER}:${{ needs.metadata.outputs.tag }} ${REPO_LOWER}:${GITHUB_SHA}"
+              TARGET_TAGS="${REPO_LOWER}:prerelease${SUFFIX} ${REPO_LOWER}:${{ needs.metadata.outputs.tag }}${SUFFIX} ${REPO_LOWER}:${SHA_TAG}"
             else
-              TARGET_TAGS="${REPO_LOWER}:latest ${REPO_LOWER}:${{ needs.metadata.outputs.tag }} ${REPO_LOWER}:${GITHUB_SHA}"
+              TARGET_TAGS="${REPO_LOWER}:${STABLE_TAG} ${REPO_LOWER}:${{ needs.metadata.outputs.tag }}${SUFFIX} ${REPO_LOWER}:${SHA_TAG}"
             fi
-          elif [ "${{ github.ref }}" = "refs/heads/main"  ];
-          then
-            # For main branch: branch-main + SHA
-            TARGET_TAGS="${REPO_LOWER}:branch-main ${REPO_LOWER}:${GITHUB_SHA}"
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            TARGET_TAGS="${REPO_LOWER}:branch-main${SUFFIX} ${REPO_LOWER}:${SHA_TAG}"
           else
-            # For other branches: branch-<name> + SHA
             BRANCH="${{ needs.metadata.outputs.current_branch }}"
             BRANCH_TAG="branch-${BRANCH//\//-}"
             BRANCH_TAG="${BRANCH_TAG,,}"
-            TARGET_TAGS="${REPO_LOWER}:${BRANCH_TAG} ${REPO_LOWER}:${GITHUB_SHA}"
+            TARGET_TAGS="${REPO_LOWER}:${BRANCH_TAG}${SUFFIX} ${REPO_LOWER}:${SHA_TAG}"
           fi
 
-          # Create manifest for each target tag
           for TAG in ${TARGET_TAGS}; do
             echo "Creating manifest for ${TAG} from: ${SOURCE_IMAGES}"
             docker buildx imagetools create -t "${TAG}" ${SOURCE_IMAGES}

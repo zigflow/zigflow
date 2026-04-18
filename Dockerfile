@@ -41,6 +41,17 @@ RUN go generate ./... \
 COPY --from=cosmtrek/air /go/bin/air /go/bin/air
 ENTRYPOINT [ "air" ]
 
+FROM cgr.dev/chainguard/static:latest AS core
+ARG GIT_COMMIT
+ARG VERSION
+ENV DISABLE_TELEMETRY=false
+ENV GIT_COMMIT="${GIT_COMMIT}"
+ENV VERSION="${VERSION}"
+ENV WORKFLOW_FILE=/app/workflow.yaml
+WORKDIR /app
+COPY --from=builder /go/bin/app /app
+ENTRYPOINT [ "/app/app" ]
+
 FROM cgr.dev/chainguard/wolfi-base:latest
 ARG GIT_COMMIT
 ARG VERSION
