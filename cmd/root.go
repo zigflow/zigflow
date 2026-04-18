@@ -17,6 +17,7 @@
 package cmd
 
 import (
+	_ "embed"
 	"os"
 
 	gh "github.com/mrsimonemms/golang-helpers"
@@ -27,6 +28,9 @@ import (
 	"github.com/zigflow/zigflow/pkg/telemetry"
 	"github.com/zigflow/zigflow/pkg/zigflow"
 )
+
+//go:embed banner.txt
+var banner string
 
 type cli struct {
 	Telemetry *telemetry.Telemetry
@@ -90,6 +94,8 @@ platform.`,
 			return nil
 		},
 	}
+
+	rootCmd.SetHelpTemplate("\n" + banner + "\n\n" + rootCmd.HelpTemplate())
 
 	viper.SetDefault("disable_telemetry", false)
 	rootCmd.PersistentFlags().BoolVar(
