@@ -30,7 +30,7 @@ Enables the execution of external processes encapsulated within a containerised
 environment, allowing workflows to interact with and execute complex operations
 using containerised applications, scripts, or commands.
 
-### Properties {#container-properties}
+### Properties {/*#container-properties*/}
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -42,7 +42,7 @@ using containerised applications, scripts, or commands.
 | arguments | `string[]` | `no` | A list of the arguments, if any, passed as argv to the command or default container CMD |
 | lifetime | [`containerLifetime`](#container-lifetime) | `no` | An object used to configure the container's lifetime |
 
-### Example {#container-example}
+### Example {/*#container-example*/}
 
 ```yaml
 document:
@@ -65,7 +65,7 @@ do:
 
 Configures the lifetime of a container.
 
-#### Properties {#container-lifetime-properties}
+#### Properties {/*#container-lifetime-properties*/}
 
 | Property | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -77,7 +77,7 @@ Enables the execution of custom scripts or code within a workflow, empowering
 workflows to perform specialised logic, data processing, or integration tasks by
 executing user-defined scripts written in various programming languages.
 
-### Properties {#script-properties}
+### Properties {/*#script-properties*/}
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -102,12 +102,12 @@ This is a list of available languages and the command that is called.
 | `js` | `node` |
 | `python` | `python` |
 
-### External source {#external-source}
+### External source {/*#external-source*/}
 
 When `source` is used instead of `code`, Zigflow fetches the script from an
 external resource before execution. The resource is identified by its `endpoint`.
 
-#### Properties {#external-source-properties}
+#### Properties {/*#external-source-properties*/}
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -158,9 +158,9 @@ Scripts fetched over HTTP or HTTPS are limited to **10 MiB**. Requests that
 exceed this limit will fail, whether the size is declared in a `Content-Length`
 header or detected during streaming.
 
-### Examples {#script-examples}
+### Examples {/*#script-examples*/}
 
-#### Inline script {#script-example-inline}
+#### Inline script {/*#script-example-inline*/}
 
 ```yaml
 document:
@@ -210,7 +210,7 @@ do:
             NAME: python
 ```
 
-#### External file script {#script-example-file}
+#### External file script {/*#script-example-file*/}
 
 ```yaml
 document:
@@ -227,7 +227,7 @@ do:
             endpoint: file:///scripts/run.js
 ```
 
-#### External HTTP script {#script-example-http}
+#### External HTTP script {/*#script-example-http*/}
 
 ```yaml
 document:
@@ -244,7 +244,7 @@ do:
             endpoint: https://example.com/scripts/run.py
 ```
 
-#### Expression-based endpoint {#script-example-expression}
+#### Expression-based endpoint {/*#script-example-expression*/}
 
 The endpoint URL can be resolved from workflow state at execution time.
 
@@ -273,7 +273,7 @@ interact with the underlying operating system and perform system-level operation
 such as file manipulation, environment configuration, or system administration
 tasks.
 
-### Properties {#shell-properties}
+### Properties {/*#shell-properties*/}
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -281,7 +281,7 @@ tasks.
 | arguments | `string[]` | `no` | A list of the arguments, if any, to the shell command as argv |
 | environment | `map` | `no` | A key/value mapping of the environment variables, if any, to use when running the configured process |
 
-### Examples {#shell-examples}
+### Examples {/*#shell-examples*/}
 
 ```yaml
 document:
@@ -308,14 +308,14 @@ from a parent workflow, facilitating modularization, reusability, and abstractio
 of complex logic or business processes by encapsulating them into standalone
 workflow units.
 
-### Properties {#workflow-properties}
+### Properties {/*#workflow-properties*/}
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
 | type | `string` | `yes` | The workflow type to run |
 | input | `any` | `no` | The data, if any, to pass as input to the workflow to execute. The value should be validated against the target workflow's input schema, if specified |
 
-### Example {#workflow-example}
+### Example {/*#workflow-example*/}
 
 ```yaml
 document:

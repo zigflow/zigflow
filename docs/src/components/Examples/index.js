@@ -19,6 +19,7 @@ import CodeBlock from '@theme/CodeBlock';
 import TabItem from '@theme/TabItem';
 import Tabs from '@theme/Tabs';
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 
 import styles from './styles.module.css';
 
@@ -56,7 +57,7 @@ export default function Examples() {
               label={ex.workflow.document.title}
             >
               <h3>{ex.workflow.document.title}</h3>
-              <p>{ex.workflow.document.summary}</p>
+              <ReactMarkdown>{ex.workflow.document.summary}</ReactMarkdown>
 
               <CodeBlock language="yaml" title="workflow.yaml">
                 {ex.content}

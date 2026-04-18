@@ -10,7 +10,7 @@ Under the hood, everything still runs on Temporal.
 
 So how does that mapping actually work?
 
-<!-- truncate -->
+{/*truncate*/}
 
 ## The core idea
 

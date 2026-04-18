@@ -27,8 +27,33 @@ const projectName = 'zigflow';
 const githubDomain = `${organizationName}/${projectName}`;
 const githubURL = `https://github.com/${githubDomain}`;
 
+// vscode-languageserver-protocol (pulled in via mermaid → @mermaid-js/parser → langium)
+// CJS-requires vscode-languageserver-types, landing on the `default` export
+// condition which points to the UMD build. The UMD factory pattern triggers a
+// webpack "Critical dependency" warning. Alias to the ESM build to avoid it.
+// lib/esm/main.js is not a named export in the package so we can't use
+// require.resolve with the subpath directly; derive the path from the default
+// resolution instead.
+const vscodeLangserverTypesEsm = require
+  .resolve('vscode-languageserver-types')
+  .replace(/[\\/]lib[\\/]umd[\\/]main\.js$/, '/lib/esm/main.js');
+
 /** @type {import('@docusaurus/types').PluginConfig[]} */
-const plugins = [loadExamplesPlugin];
+const plugins = [
+  loadExamplesPlugin,
+  () => ({
+    name: 'vscode-languageserver-types-esm-alias',
+    configureWebpack() {
+      return {
+        resolve: {
+          alias: {
+            'vscode-languageserver-types': vscodeLangserverTypesEsm,
+          },
+        },
+      };
+    },
+  }),
+];
 
 if (process.env.GA_TRACKING_ID) {
   plugins.push([

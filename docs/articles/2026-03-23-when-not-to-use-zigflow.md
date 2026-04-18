@@ -12,7 +12,7 @@ than code.
 Understanding when not to use Zigflow is just as important as understanding when
 you should.
 
-<!-- truncate -->
+{/*truncate*/}
 
 ## If you need full SDK control
 

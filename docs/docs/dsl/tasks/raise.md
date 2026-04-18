@@ -44,7 +44,7 @@ do:
 Defines the [Problem Details RFC](https://datatracker.ietf.org/doc/html/rfc7807)
 compliant description of an error.
 
-### Properties {#error-properties}
+### Properties {/*#error-properties*/}
 
 | Property | Type | Required | Description |
 | --- | :---: | :---: | --- |

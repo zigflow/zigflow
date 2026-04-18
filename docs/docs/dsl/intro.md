@@ -31,7 +31,7 @@ the process from start to finish, and helps streamline operations, ensure
 consistency, and
 optimise efficiency within an organisation.
 
-### Properties {#workflow-properties}
+### Properties {/*#workflow-properties*/}
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -68,13 +68,13 @@ when handling runtime expressions.
 When set, runtimes must validate raw input data against the defined schema before
 applying transformations, unless defined otherwise.
 
-### Properties {#input-properties}
+### Properties {/*#input-properties*/}
 
 | Property | Type | Required | Description |
 | --- | :---: | :---: | --- |
 | schema | [`schema`](#schema) | `no` | The [`schema`](#schema) used to describe and validate raw input data.<br />*Even though the schema is not required, it is strongly encouraged to document it, whenever feasible. The input will be validated against this schema, returning an error if the given input does not match.* |
 
-### Examples {#input-examples}
+### Examples {/*#input-examples*/}
 
 ```yaml
 schema:
@@ -108,14 +108,14 @@ when handling runtime expressions.
 When set, runtimes must validate output data against the defined schema after
 applying transformations, unless defined otherwise.
 
-### Properties {#output-properties}
+### Properties {/*#output-properties*/}
 
 | Property | Type | Required | Description |
 | --- | :---: | :---: | --- |
 | schema | [`schema`](#schema) | `no` | The [`schema`](#schema) used to describe and validate raw input data.<br />*Even though the schema is not required, it is strongly encouraged to document it, whenever feasible.* |
 | as | `string`<br />`object` | `no` | A [runtime expression](/docs/dsl/tasks/intro#runtime-expressions), if any, used to filter and/or mutate the workflow/task output. |
 
-### Examples {#output-examples}
+### Examples {/*#output-examples*/}
 
 ```yaml
 output:
@@ -142,14 +142,14 @@ evaluated against the transformed task output.
 Optionally, the context might have an associated schema which is validated against
 the result of the expression.
 
-### Properties {#export-properties}
+### Properties {/*#export-properties*/}
 
 | Property | Type | Required | Description |
 | --- | :---: | :---: | --- |
 | schema | [`schema`](#schema) | `no` | The [`schema`](#schema) used to describe and validate context.<br />*Included to handle the non frequent case in which the context has a known format.* |
 | as | `string`<br />`object` | `no` | A runtime expression, if any, used to export the output data to the context. |
 
-### Examples {#export-examples}
+### Examples {/*#export-examples*/}
 
 Merge the task output into the current context.
 
@@ -176,14 +176,14 @@ export:
 
 Describes a data schema.
 
-### Properties {#schema-properties}
+### Properties {/*#schema-properties*/}
 
 | Property | Type | Required | Description |
 | --- | :---: | :---: | --- |
 | format | `string` | `yes` | The schema format.<br />*Supported values are:*<br />*- `json`, which indicates the [JSONSchema](https://json-schema.org/) format.* |
 | document | `object` | `yes` | The inline schema document. |
 
-### Examples {#schema-examples}
+### Examples {/*#schema-examples*/}
 
 ```yaml
 format: json
@@ -222,13 +222,13 @@ for details.
 
 Defines a workflow or task timeout.
 
-### Properties {#timeout-properties}
+### Properties {/*#timeout-properties*/}
 
 | Property | Type | Required | Description |
 | --- | :---: | :---: | --- |
 | after | [`duration`](#duration) | `yes` | The duration after which the workflow or task times out. |
 
-### Examples {#timeout-examples}
+### Examples {/*#timeout-examples*/}
 
 ```yaml
 document:
@@ -249,7 +249,7 @@ timeout:
 
 Defines a time duration.
 
-### Properties {#duration-properties}
+### Properties {/*#duration-properties*/}
 
 | Property | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -259,7 +259,7 @@ Defines a time duration.
 | Seconds | `integer` | `no` | Number of seconds, if any. |
 | Milliseconds | `integer` | `no` | Number of milliseconds, if any. |
 
-### Examples {#duration-examples}
+### Examples {/*#duration-examples*/}
 
 *Example of a duration of 2 hours, 15 minutes and 30 seconds:*
 

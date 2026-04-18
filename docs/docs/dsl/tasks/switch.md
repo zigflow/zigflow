@@ -14,7 +14,7 @@ value of workflow state or input data.
 | --- | :---: | :---: | --- |
 | switch | [`case[]`](#switch-case) | `yes` | A name/value map of the cases to switch on |
 
-### Switch case {#switch-case}
+### Switch case {/*#switch-case*/}
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |

@@ -25,7 +25,7 @@ cases. In most scenarios, you probably won't need to configure this.
 
 ## Types
 
-### ActivityOptions {#types-activity-options}
+### ActivityOptions {/*#types-activity-options*/}
 
 | Name | Type | Required | Default | Description |
 | :--- | :---: | :---: | :---: | :--- |
@@ -38,15 +38,15 @@ cases. In most scenarios, you probably won't need to configure this.
 | summary | `string` | `no` | The task's name | Add a summary to the Temporal workflow UI |
 | priority | [`ActivityPriority`](#types-activity-priority) | `no` | - | Configure an activity's priority and fairness |
 
-### ActivityPriority {#types-activity-priority}
+### ActivityPriority {/*#types-activity-priority*/}
 
 | Name | Type | Required | Default | Description |
 | :--- | :---: | :---: | :---: | :--- |
-| `priorityKey` | `integer` | `no` | - | A positive integer from 1 to _n_, where smaller integers correspond to higher priorities (tasks run sooner) |
+| `priorityKey` | `integer` | `no` | - | A positive integer from 1 to *n*, where smaller integers correspond to higher priorities (tasks run sooner) |
 | `fairnessKey` | `string` | `no` | - | A short string that's used as a key for a fairness balancing mechanism |
 | `fairnessWeight` | `float` | `no` | - | Weight of a task can come from multiple sources for flexibility |
 
-### RetryPolicy {#types-retry-policy}
+### RetryPolicy {/*#types-retry-policy*/}
 
 | Name | Type | Required | Default | Description |
 | :--- | :---: | :---: | :---: | :--- |

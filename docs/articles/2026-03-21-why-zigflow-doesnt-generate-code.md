@@ -15,7 +15,7 @@ defined declaratively.
 
 But Zigflow deliberately does not do this.
 
-<!-- truncate -->
+{/*truncate*/}
 
 ## The obvious approach: generate code
 

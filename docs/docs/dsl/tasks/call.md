@@ -25,7 +25,7 @@ the same namespace.
 
 To use this, the `call` property must equal `activity`.
 
-### Properties {#activity-properties}
+### Properties {/*#activity-properties*/}
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -33,7 +33,7 @@ To use this, the `call` property must equal `activity`.
 | arguments | `any[]` | `no` | The arguments to pass to the activity. These are interpolated through the state. |
 | taskQueue | `string` | `yes` | The task queue where the activity is running. |
 
-### Example {#activity-example}
+### Example {/*#activity-example*/}
 
 ```yaml
 document:
@@ -61,7 +61,7 @@ do:
 Call an external resource via gRPC. To use this, the `call` property must equal
 `grpc`.
 
-### Properties {#grpc-properties}
+### Properties {/*#grpc-properties*/}
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -72,7 +72,7 @@ Call an external resource via gRPC. To use this, the `call` property must equal
 | method | `string` | `yes` | The name of the gRPC service method to call. |
 | arguments | `map` | `no` | A name/value mapping of the method call's arguments, if any. |
 
-### Example {#grpc-example}
+### Example {/*#grpc-example*/}
 
 ```yaml
 document:
@@ -100,7 +100,7 @@ do:
 Call an external resource via HTTP. To use this, the `call` property must equal
 `http`.
 
-### Properties {#http-properties}
+### Properties {/*#http-properties*/}
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -112,7 +112,7 @@ Call an external resource via HTTP. To use this, the `call` property must equal
 | output | `string` | `no` | The http call's output format.<br />*Supported values are:*<br />*- `raw`, which output's the base-64 encoded [http response](https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md#http-response) content, if any.*<br />*- `content`, which outputs the content of [http response](https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md#http-response), possibly deserialized.*<br />*- `response`, which outputs the [http response](https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md#http-response).*<br />*Defaults to `content`.* |
 | redirect | `boolean` | `no` | Specifies whether redirection status codes (`300–399`) should be treated as errors.<br />*If set to `false`, runtimes must raise an error for response status codes outside the `200–299` range.*<br />*If set to `true`, they must raise an error for status codes outside the `200–399` range.*<br />*Defaults to `false`.* |
 
-### Example {#http-example}
+### Example {/*#http-example*/}
 
 ```yaml
 document:

@@ -18,7 +18,7 @@ arrives:
 * `signal`: receive a fire-and-forget notification
 * `update`: receive a message and return a response
 
-## Properties {#listen-properties}
+## Properties {/*#listen-properties*/}
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -28,7 +28,7 @@ arrives:
 
 Represents the configuration of an event consumption strategy.
 
-#### Properties {#event-consumption-strategy-properties}
+#### Properties {/*#event-consumption-strategy-properties*/}
 
 | Property | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -41,7 +41,7 @@ Represents the configuration of an event consumption strategy.
 An event filter is a mechanism used to selectively process or handle events based
 on predefined criteria, such as event type, source, or specific attributes.
 
-#### Properties {#event-filter-properties}
+#### Properties {/*#event-filter-properties*/}
 
 | Property | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -55,7 +55,7 @@ An event object typically includes details such as the event type, source, times
   Workflow, standardizes this structure to ensure interoperability across different
   systems and services.
 
-#### Properties {#event-properties-properties}
+#### Properties {/*#event-properties-properties*/}
 
 | Property | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -69,7 +69,7 @@ A query is used to perform a read query on a running workflow. This makes no
 changes to the workflow and is typically used to return the state, such as
 progress
 
-### Example {#query-example}
+### Example {/*#query-example*/}
 
 ```yaml
 document:
@@ -164,7 +164,7 @@ is received within the timeout period, the task times out.
 An update is used to perform read/writes queries on a running workflow. This
 makes a write call, optionally validates the input and then returns a response.
 
-### Example {#update-example}
+### Example {/*#update-example*/}
 
 ```yaml
 document:

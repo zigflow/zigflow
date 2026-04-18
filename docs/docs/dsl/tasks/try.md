@@ -9,7 +9,7 @@ Use Try when a task may fail and you want to recover without
 failing the entire workflow. Common uses include optional HTTP
 calls and handling external service errors.
 
-## Properties {#try-properties}
+## Properties {/*#try-properties*/}
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
@@ -65,7 +65,7 @@ This outputs:
 Defines the configuration of a catch clause, which a concept used to catch
 errors.
 
-#### Properties {#catch-properties}
+#### Properties {/*#catch-properties*/}
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |

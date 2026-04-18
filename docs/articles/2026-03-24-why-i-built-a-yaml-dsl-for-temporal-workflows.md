@@ -22,7 +22,7 @@ In practice, there are usually two answers in that situation:
 
 I thought the Temporal community should provide a third option. Here's one approach.
 
-<!-- truncate -->
+{/*truncate*/}
 
 ## The idea
 
