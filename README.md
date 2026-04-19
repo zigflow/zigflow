@@ -1,10 +1,13 @@
 <!-- markdownlint-disable MD041 -->
 [![Zigflow](./designs/zigflow.png "Zigflow")](https://zigflow.dev?utm_source=github&utm_medium=readme&utm_campaign=header)
 
-[![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-green.svg?style=flat)](https://github.com/zigflow/zigflow/issues)
-[![Licence](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/zigflow/zigflow/blob/master/LICENSE)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/zigflow/zigflow/build.yml?style=flat&label=Build)](https://github.com/zigflow/zigflow/actions/workflows/build.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/zigflow/zigflow?label=Release)](https://github.com/zigflow/zigflow/releases/latest)
+[![GitHub Repo stars](https://img.shields.io/github/stars/zigflow/zigflow?style=flat&label=Stars)](https://github.com/zigflow/zigflow)
+[![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/zigflow/zigflow/total?label=Downloads)](https://github.com/zigflow/zigflow/releases)
+[![Licence](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/zigflow/zigflow/blob/main/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/zigflow/zigflow)](https://goreportcard.com/report/github.com/zigflow/zigflow)
+[![Docs](https://img.shields.io/badge/Docs-zigflow.dev-blue)](https://zigflow.dev)
 
 **Declarative YAML workflows on Temporal. No SDK boilerplate.**
 
