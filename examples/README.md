@@ -20,6 +20,7 @@ A collection of examples
 | Name | Description |
 | --- | --- |
 | [Activity Call](./activity-call) | Invoke an external Temporal activity from Zigflow |
+| [Authentication](./authentication) | An example of how to use authentication on external calls |
 | [Authorise Change Request](./authorise-change-request) | Authorise and implement or reject a change request |
 | [Basic](./basic) | An example of how to use Serverless Workflow to define Temporal Workflows |
 | [Child Workflows](./child-workflows) | Define multiple workflows and call a child workflow from a parent |

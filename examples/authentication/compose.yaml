@@ -1,0 +1,62 @@
+services:
+  server:
+    image: node:lts-alpine
+    working_dir: /home/node/app
+    volumes:
+      - ./server:/home/node/app
+    ports:
+      - 9000:3000
+    command:
+      - npm
+      - run
+      - dev
+
+  temporal:
+    image: temporalio/temporal
+    ports:
+      - 8080:8233
+    command: server start-dev --ip 0.0.0.0 --search-attribute Step=text
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator cluster health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+
+  workflow:
+    build:
+      context: ../../
+      target: builder
+    environment:
+      LOG_LEVEL: "${LOG_LEVEL:-debug}"
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      TEMPORAL_API_KEY: ${TEMPORAL_API_KEY:-}
+      TEMPORAL_TLS: ${TEMPORAL_TLS:-false}
+      WORKFLOW_FILE: ./examples/money-transfer/workflow.yaml
+    volumes:
+      - ../../:/go/app
+    command:
+      - run
+    links:
+      - server
+      - temporal
+    depends_on:
+      temporal:
+        condition: service_healthy
+      # UI isn't actually linked, but allows us to run docker compose up workflow
+      ui:
+        condition: service_started
+
+  ui:
+    image: ghcr.io/temporal-sa/money-transfer-demo/ui
+    links:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      TEMPORAL_API_KEY: ${TEMPORAL_API_KEY:-}
+    depends_on:
+      temporal:
+        condition: service_healthy
+    ports:
+      - 7070:7070

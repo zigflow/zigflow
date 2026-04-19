@@ -1,0 +1,17 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: authentication
+  version: 0.0.1
+  title: Authentication
+  summary: An example of how to use authentication on external calls
+do:
+  - fork:
+      fork:
+        compete: false
+        branches:
+          - basic:
+              call: http
+              with:
+                method: get
+                endpoint: http://server:3000/basic
