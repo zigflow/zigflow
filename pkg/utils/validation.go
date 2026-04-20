@@ -86,6 +86,7 @@ func NewValidator() (*Validator, error) {
 
 	return &Validator{
 		validate: validate,
+		trans:    trans,
 	}, nil
 }
 
