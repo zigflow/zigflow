@@ -28,20 +28,13 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// LoadFromFile reads a workflow definition from file, maps Zigflow-specific
-// field names (workflowType, taskQueue) onto the SDK model, and returns a
-// parsed *model.Workflow. It does not perform schema validation.
+// LoadFromBytes parses and normalises a workflow definition from raw YAML or
+// JSON bytes. It does not perform schema validation.
 //
-// Call ValidateFile before LoadFromFile when schema enforcement is required,
-// such as in CLI validation paths or when running with --validate=true.
-func LoadFromFile(file string) (*model.Workflow, error) {
-	data, err := os.ReadFile(filepath.Clean(file))
+// Call ValidateBytes before LoadFromBytes when schema enforcement is required.
+func LoadFromBytes(data []byte) (*model.Workflow, error) {
+	jsonBytes, err := yaml.YAMLToJSON(data)
 	if err != nil {
-		return nil, fmt.Errorf("error loading file: %w", err)
-	}
-
-	var jsonBytes []byte
-	if jsonBytes, err = yaml.YAMLToJSON(data); err != nil {
 		return nil, fmt.Errorf("error converting yaml to json: %w", err)
 	}
 
@@ -88,6 +81,42 @@ func LoadFromFile(file string) (*model.Workflow, error) {
 	return wf, nil
 }
 
+// ValidateBytes validates raw YAML or JSON bytes against the Zigflow JSON
+// Schema. It returns ErrSchemaValidation (via errors.Is) if the document does
+// not conform.
+func ValidateBytes(data []byte) error {
+	jsonBytes, err := yaml.YAMLToJSON(data)
+	if err != nil {
+		return fmt.Errorf("error converting yaml to json: %w", err)
+	}
+
+	var rawDoc map[string]any
+	if err := json.Unmarshal(jsonBytes, &rawDoc); err != nil {
+		return fmt.Errorf("error parsing workflow document: %w", err)
+	}
+
+	if err := schema.ValidateDocument(rawDoc); err != nil {
+		return fmt.Errorf("%w: %s", ErrSchemaValidation, err)
+	}
+
+	return nil
+}
+
+// LoadFromFile reads a workflow definition from file, maps Zigflow-specific
+// field names (workflowType, taskQueue) onto the SDK model, and returns a
+// parsed *model.Workflow. It does not perform schema validation.
+//
+// Call ValidateFile before LoadFromFile when schema enforcement is required,
+// such as in CLI validation paths or when running with --validate=true.
+func LoadFromFile(file string) (*model.Workflow, error) {
+	data, err := os.ReadFile(filepath.Clean(file))
+	if err != nil {
+		return nil, fmt.Errorf("error loading file: %w", err)
+	}
+
+	return LoadFromBytes(data)
+}
+
 // ValidateFile validates the workflow file at path against the Zigflow JSON
 // Schema. It returns ErrSchemaValidation (via errors.Is) if the document does
 // not conform, including when legacy fields (document.name, document.namespace)
@@ -104,21 +133,7 @@ func ValidateFile(file string) error {
 		return fmt.Errorf("error loading file: %w", err)
 	}
 
-	jsonBytes, err := yaml.YAMLToJSON(data)
-	if err != nil {
-		return fmt.Errorf("error converting yaml to json: %w", err)
-	}
-
-	var rawDoc map[string]any
-	if err := json.Unmarshal(jsonBytes, &rawDoc); err != nil {
-		return fmt.Errorf("error parsing workflow document: %w", err)
-	}
-
-	if err := schema.ValidateDocument(rawDoc); err != nil {
-		return fmt.Errorf("%w: %s", ErrSchemaValidation, err)
-	}
-
-	return nil
+	return ValidateBytes(data)
 }
 
 func normaliseDoTask(task map[string]any) error {

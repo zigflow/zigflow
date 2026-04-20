@@ -116,6 +116,7 @@ platform.`,
 		newSchemaCmd(),
 		newGraphCmd(),
 		newGenerateDocsCmd(rootCmd),
+		newMCPCmd(),
 	)
 
 	return rootCmd

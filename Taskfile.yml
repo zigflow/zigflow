@@ -82,6 +82,11 @@ tasks:
           cd - > /dev/null
         done
 
+  mcp:
+    desc: Inspect the MCP server for development
+    cmds:
+      - npm_config_yes=true HOST=0.0.0.0 npx @modelcontextprotocol/inspector go run . mcp
+
   minikube:
     desc: Start minikube and apply dev manifests
     cmds:
