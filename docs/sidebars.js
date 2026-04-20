@@ -73,6 +73,7 @@ const sidebars = {
   ],
   cliSidebar: [
     'cli/using-the-cli',
+    'cli/mcp-server',
     {
       type: 'category',
       label: 'Commands',
