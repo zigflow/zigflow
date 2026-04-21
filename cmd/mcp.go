@@ -19,7 +19,6 @@ package cmd
 import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
-	zigflowexamples "github.com/zigflow/zigflow/examples"
 	m "github.com/zigflow/zigflow/pkg/mcp"
 )
 
@@ -35,7 +34,7 @@ func newMCPCmd() *cobra.Command {
 				WebsiteURL: "https://zigflow.dev",
 			}, nil)
 
-			_ = m.New(server, Version, zigflowexamples.EmbeddedFS)
+			_ = m.New(server, Version)
 
 			return server.Run(cmd.Context(), &mcp.StdioTransport{})
 		},

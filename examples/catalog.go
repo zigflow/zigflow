@@ -39,37 +39,14 @@ type Example struct {
 	Dir string
 }
 
-// knownTags maps example directory names to retrieval tags. Only entries where
-// the tag is unambiguously grounded in what the example demonstrates are listed.
-var knownTags = map[string][]string{
-	"activity-call":              {"activity"},
-	"authorise-change-request":   {"signal", "update"},
-	"child-workflows":            {"child-workflow"},
-	"cloudevents":                {"cloudevents", "debugging"},
-	"competing-concurrent-tasks": {"fork", "competition"},
-	"conditionally-execute":      {"switch"},
-	"external-calls":             {"http", "grpc"},
-	"for-loop":                   {"for-loop"},
-	"heartbeat":                  {"heartbeat", "activity"},
-	"multiple-workflow-files":    {"multi-file"},
-	"multiple-workflows":         {"multi-workflow"},
-	"priority-and-fairness":      {"priority", "fairness"},
-	"query":                      {"query"},
-	"raise":                      {"error"},
-	"run-task":                   {"run", "script"},
-	"schedule":                   {"schedule"},
-	"search-attributes":          {"search-attributes"},
-	"signal":                     {"signal"},
-	"switch":                     {"switch"},
-	"try-catch":                  {"error", "try-catch"},
-	"update":                     {"update"},
-}
-
 // exampleMeta is the minimal YAML structure needed to extract example metadata.
 type exampleMeta struct {
 	Document struct {
-		Title   string `json:"title"`
-		Summary string `json:"summary"`
+		Title    string `json:"title"`
+		Summary  string `json:"summary"`
+		Metadata struct {
+			Tags []string `json:"tags,omitempty"`
+		} `json:"metadata"`
 	} `json:"document"`
 }
 
@@ -101,11 +78,16 @@ func LoadCatalog(fsys fs.FS, root string) ([]Example, error) {
 			return nil, fmt.Errorf("example %q: %w", name, err)
 		}
 
+		tags := make([]string, 0)
+		if meta.Document.Metadata.Tags != nil {
+			tags = append(tags, meta.Document.Metadata.Tags...)
+		}
+
 		result = append(result, Example{
 			Name:        name,
 			Title:       meta.Document.Title,
 			Description: meta.Document.Summary,
-			Tags:        knownTags[name],
+			Tags:        tags,
 			Dir:         exDir,
 		})
 	}

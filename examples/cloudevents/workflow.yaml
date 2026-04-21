@@ -6,6 +6,9 @@ document:
   title: Debugging
   summary: An example of how to use CloudEvents for debugging workflows
   metadata:
+    tags:
+      - cloudevents
+      - debugging
     activityOptions:
       startToCloseTimeout:
         minutes: 1

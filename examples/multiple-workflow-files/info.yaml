@@ -1,3 +1,6 @@
 document:
   title: Multiple Workflow Files
   summary: Run multiple workflow definitions from separate YAML files in a single Zigflow worker
+  metadata:
+    tags:
+      - multi-file

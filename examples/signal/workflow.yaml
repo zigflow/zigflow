@@ -5,6 +5,9 @@ document:
   version: 0.0.1
   title: Signal Listeners
   summary: Listen for Temporal signal events
+  metadata:
+    tags:
+      - signal
 do:
   - approveListener:
       metadata:

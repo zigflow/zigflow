@@ -7,6 +7,8 @@ document:
   summary: Define and run multiple workflows within a single YAML file
   metadata:
     display: false
+    tags:
+      - multi-workflow
     activityOptions:
       startToCloseTimeout:
         minutes: 1

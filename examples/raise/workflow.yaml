@@ -7,6 +7,8 @@ document:
   summary: Throw an error from a Temporal workflow
   metadata:
     display: false
+    tags:
+      - error
     activityOptions:
       startToCloseTimeout:
         minutes: 1

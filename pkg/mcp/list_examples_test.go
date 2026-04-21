@@ -17,7 +17,6 @@
 package mcp
 
 import (
-	"context"
 	"sort"
 	"testing"
 	"testing/fstest"
@@ -45,8 +44,7 @@ func TestListExamples_ReturnsExamples(t *testing.T) {
 		"query/workflow.yaml":  workflowFile("Query Listeners", "Listen for Temporal query events"),
 	})
 
-	m := &MCP{examplesFS: fsys}
-	_, out, err := m.ListExamples(context.Background(), nil, ListExamplesInput{})
+	out, err := listExamplesFromFS(fsys)
 	require.NoError(t, err)
 	assert.Len(t, out.Examples, 2)
 }
@@ -58,8 +56,7 @@ func TestListExamples_StableOrder(t *testing.T) {
 		"middle/workflow.yaml": workflowFile("Middle", "Middle"),
 	})
 
-	m := &MCP{examplesFS: fsys}
-	_, out, err := m.ListExamples(context.Background(), nil, ListExamplesInput{})
+	out, err := listExamplesFromFS(fsys)
 	require.NoError(t, err)
 	require.Len(t, out.Examples, 3)
 
@@ -76,8 +73,7 @@ func TestListExamples_NamesNonEmpty(t *testing.T) {
 		"signal/workflow.yaml":      workflowFile("Signal Listeners", "Listen for Temporal signal events"),
 	})
 
-	m := &MCP{examplesFS: fsys}
-	_, out, err := m.ListExamples(context.Background(), nil, ListExamplesInput{})
+	out, err := listExamplesFromFS(fsys)
 	require.NoError(t, err)
 
 	for _, ex := range out.Examples {
@@ -90,8 +86,7 @@ func TestListExamples_NoYAMLContents(t *testing.T) {
 		"hello-world/workflow.yaml": workflowFile("Hello World", "Hello world with Zigflow"),
 	})
 
-	m := &MCP{examplesFS: fsys}
-	_, out, err := m.ListExamples(context.Background(), nil, ListExamplesInput{})
+	out, err := listExamplesFromFS(fsys)
 	require.NoError(t, err)
 	require.Len(t, out.Examples, 1)
 
@@ -103,9 +98,8 @@ func TestListExamples_NoYAMLContents(t *testing.T) {
 }
 
 func TestListExamples_LoaderFailureSurfaced(t *testing.T) {
-	m := &MCP{examplesFS: exampleFS(map[string]string{
+	_, err := listExamplesFromFS(exampleFS(map[string]string{
 		"broken/other.yaml": "somekey: somevalue\n",
-	})}
-	_, _, err := m.ListExamples(context.Background(), nil, ListExamplesInput{})
+	}))
 	assert.Error(t, err)
 }

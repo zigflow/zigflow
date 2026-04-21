@@ -5,6 +5,9 @@ document:
   version: 0.0.1
   title: For
   summary: How to use the for loop task
+  metadata:
+    tags:
+      - for-loop
 input:
   schema:
     format: json

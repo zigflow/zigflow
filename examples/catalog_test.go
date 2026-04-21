@@ -17,6 +17,7 @@
 package examples_test
 
 import (
+	"fmt"
 	"testing"
 	"testing/fstest"
 
@@ -25,8 +26,14 @@ import (
 	"github.com/zigflow/zigflow/examples"
 )
 
-func workflowYAML(title, summary string) []byte {
-	return []byte("document:\n  title: " + title + "\n  summary: " + summary + "\n")
+func workflowYAML(title, summary string, tags ...[]string) []byte {
+	s := "document:\n  title: " + title + "\n  summary: " + summary + "\n"
+
+	if len(tags) > 0 {
+		s += "  metadata:\n    tags: " + fmt.Sprintf("%v", tags[0]) + "\n"
+	}
+
+	return []byte(s)
 }
 
 func TestLoadCatalog_ReturnsSortedExamples(t *testing.T) {
@@ -111,8 +118,8 @@ func TestLoadCatalog_ErrorOnUnreadableDirectory(t *testing.T) {
 
 func TestLoadCatalog_KnownTagsAttached(t *testing.T) {
 	fsys := fstest.MapFS{
-		"signal/workflow.yaml": {Data: workflowYAML("Signal Listeners", "Listen for Temporal signal events")},
-		"query/workflow.yaml":  {Data: workflowYAML("Query Listeners", "Listen for Temporal query events")},
+		"signal/workflow.yaml": {Data: workflowYAML("Signal Listeners", "Listen for Temporal signal events", []string{"signal"})},
+		"query/workflow.yaml":  {Data: workflowYAML("Query Listeners", "Listen for Temporal query events", []string{"query"})},
 		"basic/workflow.yaml":  {Data: workflowYAML("Basic", "A basic example")},
 	}
 

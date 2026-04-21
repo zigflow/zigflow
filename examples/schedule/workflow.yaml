@@ -6,6 +6,8 @@ document:
   title: Scheduling
   summary: Schedule the tasks to be triggered automatically
   metadata:
+    tags:
+      - schedule
     # Set the workflow name to trigger - this will either be the document.workflowType or the Do task (see multiple-workflows example)
     scheduleWorkflowName: schedule
     # Optionally set the schedule ID name

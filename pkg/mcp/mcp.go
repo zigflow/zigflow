@@ -17,20 +17,16 @@
 package mcp
 
 import (
-	"io/fs"
-
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 type MCP struct {
-	version    string
-	examplesFS fs.FS
+	version string
 }
 
-func New(server *mcp.Server, version string, examplesFS fs.FS) *MCP {
+func New(server *mcp.Server, version string) *MCP {
 	m := &MCP{
-		version:    version,
-		examplesFS: examplesFS,
+		version: version,
 	}
 
 	mcp.AddTool(server, &mcp.Tool{

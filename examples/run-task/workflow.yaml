@@ -7,6 +7,9 @@ document:
   summary: How to execute code in NodeJS, Python and Shell
   metadata:
     display: false
+    tags:
+      - run
+      - script
     activityOptions:
       startToCloseTimeout:
         minutes: 1

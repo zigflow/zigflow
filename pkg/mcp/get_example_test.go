@@ -17,7 +17,6 @@
 package mcp
 
 import (
-	"context"
 	"io/fs"
 	"testing"
 	"testing/fstest"
@@ -35,16 +34,14 @@ func signalFS() fstest.MapFS {
 }
 
 func TestGetExample_ValidName(t *testing.T) {
-	m := &MCP{examplesFS: signalFS()}
-	_, out, err := m.GetExample(context.Background(), nil, GetExampleInput{Name: "signal"})
+	out, err := getExampleFromFS(signalFS(), "signal")
 	require.NoError(t, err)
 	assert.Empty(t, out.Errors)
 	assert.Equal(t, "signal", out.Name)
 }
 
 func TestGetExample_ContentNonEmptyAndIsYAML(t *testing.T) {
-	m := &MCP{examplesFS: signalFS()}
-	_, out, err := m.GetExample(context.Background(), nil, GetExampleInput{Name: "signal"})
+	out, err := getExampleFromFS(signalFS(), "signal")
 	require.NoError(t, err)
 	assert.NotEmpty(t, out.Content)
 	assert.Contains(t, out.Content, "document:")
@@ -52,11 +49,11 @@ func TestGetExample_ContentNonEmptyAndIsYAML(t *testing.T) {
 
 func TestGetExample_MetadataMatchesCatalog(t *testing.T) {
 	fsys := exampleFS(map[string]string{
-		"query/workflow.yaml": "document:\n  title: Query Listeners\n  summary: Listen for Temporal query events\ndo: []\n",
+		"query/workflow.yaml": "document:\n  title: Query Listeners\n  metadata:\n    tags: [query]\n  " +
+			"summary: Listen for Temporal query events\ndo: []\n",
 	})
 
-	m := &MCP{examplesFS: fsys}
-	_, out, err := m.GetExample(context.Background(), nil, GetExampleInput{Name: "query"})
+	out, err := getExampleFromFS(fsys, "query")
 	require.NoError(t, err)
 	assert.Equal(t, "query", out.Name)
 	assert.Equal(t, "Query Listeners", out.Title)
@@ -65,8 +62,7 @@ func TestGetExample_MetadataMatchesCatalog(t *testing.T) {
 }
 
 func TestGetExample_EmptyName(t *testing.T) {
-	m := &MCP{examplesFS: signalFS()}
-	_, out, err := m.GetExample(context.Background(), nil, GetExampleInput{Name: ""})
+	out, err := getExampleFromFS(signalFS(), "")
 	require.NoError(t, err)
 	require.Len(t, out.Errors, 1)
 	assert.Equal(t, "input", out.Errors[0].Stage)
@@ -74,16 +70,14 @@ func TestGetExample_EmptyName(t *testing.T) {
 }
 
 func TestGetExample_WhitespaceName(t *testing.T) {
-	m := &MCP{examplesFS: signalFS()}
-	_, out, err := m.GetExample(context.Background(), nil, GetExampleInput{Name: "   "})
+	out, err := getExampleFromFS(signalFS(), "   ")
 	require.NoError(t, err)
 	require.Len(t, out.Errors, 1)
 	assert.Equal(t, "input", out.Errors[0].Stage)
 }
 
 func TestGetExample_UnknownName(t *testing.T) {
-	m := &MCP{examplesFS: signalFS()}
-	_, out, err := m.GetExample(context.Background(), nil, GetExampleInput{Name: "does-not-exist"})
+	out, err := getExampleFromFS(signalFS(), "does-not-exist")
 	require.NoError(t, err)
 	require.Len(t, out.Errors, 1)
 	assert.Equal(t, "input", out.Errors[0].Stage)
@@ -97,8 +91,7 @@ func TestGetExample_UnknownNameListsAvailable(t *testing.T) {
 		"beta/workflow.yaml":  "document:\n  title: Beta\n  summary: Second\n",
 	})
 
-	m := &MCP{examplesFS: fsys}
-	_, out, err := m.GetExample(context.Background(), nil, GetExampleInput{Name: "gamma"})
+	out, err := getExampleFromFS(fsys, "gamma")
 	require.NoError(t, err)
 	require.Len(t, out.Errors, 1)
 	assert.Contains(t, out.Errors[0].Message, "alpha")
@@ -106,8 +99,7 @@ func TestGetExample_UnknownNameListsAvailable(t *testing.T) {
 }
 
 func TestGetExample_ReadFailureSurfacedAsGoError(t *testing.T) {
-	m := &MCP{examplesFS: &alwaysErrFS{}}
-	_, _, err := m.GetExample(context.Background(), nil, GetExampleInput{Name: "anything"})
+	_, err := getExampleFromFS(&alwaysErrFS{}, "anything")
 	assert.Error(t, err)
 }
 
@@ -116,16 +108,14 @@ func TestGetExample_InfoYAMLFallback(t *testing.T) {
 		"multi/info.yaml": "document:\n  title: Multi\n  summary: Uses info.yaml\n",
 	})
 
-	m := &MCP{examplesFS: fsys}
-	_, out, err := m.GetExample(context.Background(), nil, GetExampleInput{Name: "multi"})
+	out, err := getExampleFromFS(fsys, "multi")
 	require.NoError(t, err)
 	assert.Empty(t, out.Errors)
 	assert.Contains(t, out.Content, "document:")
 }
 
 func TestGetExample_EmbeddedFS(t *testing.T) {
-	m := &MCP{examplesFS: zigflowexamples.EmbeddedFS}
-	_, out, err := m.GetExample(context.Background(), nil, GetExampleInput{Name: "signal"})
+	out, err := getExampleFromFS(zigflowexamples.EmbeddedFS, "signal")
 	require.NoError(t, err)
 	assert.Empty(t, out.Errors)
 	assert.Equal(t, "signal", out.Name)

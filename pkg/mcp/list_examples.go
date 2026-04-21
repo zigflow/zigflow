@@ -19,6 +19,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"io/fs"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/zigflow/zigflow/examples"
@@ -37,14 +38,10 @@ type ListExamplesOutput struct {
 	Examples []ExampleSummary `json:"examples"`
 }
 
-func (m *MCP) ListExamples(
-	ctx context.Context,
-	req *mcp.CallToolRequest,
-	input ListExamplesInput,
-) (*mcp.CallToolResult, ListExamplesOutput, error) {
-	catalog, err := examples.LoadCatalog(m.examplesFS, ".")
+func listExamplesFromFS(fsys fs.FS) (ListExamplesOutput, error) {
+	catalog, err := examples.LoadCatalog(fsys, ".")
 	if err != nil {
-		return nil, ListExamplesOutput{}, fmt.Errorf("loading examples: %w", err)
+		return ListExamplesOutput{}, fmt.Errorf("loading examples: %w", err)
 	}
 
 	summaries := make([]ExampleSummary, len(catalog))
@@ -57,5 +54,14 @@ func (m *MCP) ListExamples(
 		}
 	}
 
-	return nil, ListExamplesOutput{Examples: summaries}, nil
+	return ListExamplesOutput{Examples: summaries}, nil
+}
+
+func (m *MCP) ListExamples(
+	ctx context.Context,
+	req *mcp.CallToolRequest,
+	input ListExamplesInput,
+) (*mcp.CallToolResult, ListExamplesOutput, error) {
+	out, err := listExamplesFromFS(examples.EmbeddedFS)
+	return nil, out, err
 }

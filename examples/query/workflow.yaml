@@ -6,6 +6,8 @@ document:
   title: Query Listeners
   summary: Listen for Temporal query events
   metadata:
+    tags:
+      - query
     # Acts as override to test out continue-as-new
     # @link https://docs.temporal.io/develop/go/continue-as-new
     canMaxHistoryLength: 5

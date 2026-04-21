@@ -5,6 +5,10 @@ document:
   version: 0.0.1
   title: External Calls
   summary: An example of how to use Zigflow to make external gRPC and HTTP calls
+  metadata:
+    tags:
+      - http
+      - grpc
 do:
   - fork:
       fork:

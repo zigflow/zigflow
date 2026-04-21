@@ -28,7 +28,7 @@ import (
 )
 
 type GetExampleInput struct {
-	Name string `json:"name"`
+	Name string `json:"name" jsonschema:"Example name"`
 }
 
 type GetExampleError struct {
@@ -45,22 +45,22 @@ type GetExampleOutput struct {
 	Errors      []GetExampleError `json:"errors,omitempty"`
 }
 
-func (m *MCP) GetExample(
-	ctx context.Context,
-	req *mcp.CallToolRequest,
-	input GetExampleInput,
-) (*mcp.CallToolResult, GetExampleOutput, error) {
-	name := strings.TrimSpace(input.Name)
+func getExampleFromFS(fsys fs.FS, name string) (GetExampleOutput, error) {
+	name = strings.TrimSpace(name)
 	if name == "" {
-		return nil, GetExampleOutput{Errors: []GetExampleError{{
-			Stage:   "input",
-			Message: "name is required",
-		}}}, nil
+		return GetExampleOutput{
+			Errors: []GetExampleError{
+				{
+					Stage:   "input",
+					Message: "name is required",
+				},
+			},
+		}, nil
 	}
 
-	catalog, err := examples.LoadCatalog(m.examplesFS, ".")
+	catalog, err := examples.LoadCatalog(fsys, ".")
 	if err != nil {
-		return nil, GetExampleOutput{}, fmt.Errorf("loading examples: %w", err)
+		return GetExampleOutput{}, fmt.Errorf("loading examples: %w", err)
 	}
 
 	var found *examples.Example
@@ -77,24 +77,33 @@ func (m *MCP) GetExample(
 			available[i] = ex.Name
 		}
 
-		return nil, GetExampleOutput{Errors: []GetExampleError{{
+		return GetExampleOutput{Errors: []GetExampleError{{
 			Stage:   "input",
 			Message: fmt.Sprintf("example %q not found; available: %s", name, strings.Join(available, ", ")),
 		}}}, nil
 	}
 
-	data, err := readExampleContent(m.examplesFS, found.Dir)
+	data, err := readExampleContent(fsys, found.Dir)
 	if err != nil {
-		return nil, GetExampleOutput{}, fmt.Errorf("reading example %q: %w", name, err)
+		return GetExampleOutput{}, fmt.Errorf("reading example %q: %w", name, err)
 	}
 
-	return nil, GetExampleOutput{
+	return GetExampleOutput{
 		Name:        found.Name,
 		Title:       found.Title,
 		Description: found.Description,
 		Tags:        found.Tags,
 		Content:     string(data),
 	}, nil
+}
+
+func (m *MCP) GetExample(
+	ctx context.Context,
+	req *mcp.CallToolRequest,
+	input GetExampleInput,
+) (*mcp.CallToolResult, GetExampleOutput, error) {
+	out, err := getExampleFromFS(examples.EmbeddedFS, input.Name)
+	return nil, out, err
 }
 
 // readExampleContent reads the primary YAML file from the example directory,

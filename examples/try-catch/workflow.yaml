@@ -7,6 +7,9 @@ document:
   summary: An example of how to catch an erroring workflow
   metadata:
     display: false
+    tags:
+      - error
+      - try-catch
 do:
   - user:
       try:

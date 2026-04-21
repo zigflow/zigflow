@@ -7,6 +7,9 @@ document:
   summary: Have two tasks competing and the first to finish wins
   metadata:
     display: false
+    tags:
+      - fork
+      - competition
     activityOptions:
       startToCloseTimeout:
         minutes: 1

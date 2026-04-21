@@ -7,6 +7,9 @@ document:
   summary: Using Temporal's Priority and Fairness features with Zigflow
   metadata:
     display: false
+    tags:
+      - priority
+      - fairness
 input:
   schema:
     format: json

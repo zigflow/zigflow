@@ -26,6 +26,9 @@ document:
   summary: Authorise and implement or reject a change request
   metadata:
     display: false
+    tags:
+      - signal
+      - update
 input:
   schema:
     format: json

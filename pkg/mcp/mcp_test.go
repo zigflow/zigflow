@@ -18,7 +18,6 @@ package mcp
 
 import (
 	"testing"
-	"testing/fstest"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
@@ -26,6 +25,6 @@ import (
 
 func TestNew_ReturnsInitialisedMCP(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "test"}, nil)
-	m := New(server, "development", fstest.MapFS{})
+	m := New(server, "development")
 	assert.NotNil(t, m)
 }

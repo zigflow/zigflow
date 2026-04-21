@@ -6,6 +6,8 @@ document:
   title: Child Workflows
   summary: Define multiple workflows and call a child workflow from a parent
   metadata:
+    tags:
+      - child-workflow
     activityOptions:
       startToCloseTimeout:
         minutes: 1

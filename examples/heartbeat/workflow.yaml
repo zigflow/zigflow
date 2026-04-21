@@ -5,6 +5,10 @@ document:
   version: 0.0.1
   title: Heartbeat
   summary: Set [activity heartbeat](https://docs.temporal.io/encyclopedia/detecting-activity-failures#activity-heartbeat). Useful on long-running activities.
+  metadata:
+    tags:
+      - heartbeat
+      - activity
 do:
   - longRunningActivity:
       metadata:

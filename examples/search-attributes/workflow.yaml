@@ -6,6 +6,8 @@ document:
   title: Custom Search Attributes
   summary: How to add custom search attribute data into your Temporal workflows
   metadata:
+    tags:
+      - search-attributes
     activityOptions:
       startToCloseTimeout:
         minutes: 1
