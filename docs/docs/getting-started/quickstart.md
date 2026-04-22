@@ -44,7 +44,7 @@ For other installation options, see [Installation](/docs/getting-started/install
 ## Step 2: Start a Temporal server
 
 Zigflow requires a Temporal server. For local development, use the development
-server bundled with the Temporal CLI:
+server bundled with the [Temporal CLI](https://docs.temporal.io/cli):
 
 ```sh
 temporal server start-dev
