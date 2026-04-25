@@ -5,7 +5,7 @@ services:
       - 8080:8233
     command: server start-dev --ip 0.0.0.0 --search-attribute Step=text
     healthcheck:
-      test: ["CMD-SHELL", "temporal operator cluster health"]
+      test: [ "CMD-SHELL", "temporal operator cluster health" ]
       interval: 10s
       timeout: 10s
       retries: 3
@@ -54,6 +54,8 @@ services:
       context: ../../
       target: builder
     environment:
+      ZIGGY_EXAMPLE_USERNAME: some-username
+      ZIGGY_EXAMPLE_PASSWORD: some-password
       ZIGGY_GRPC_INPUT: some-input
       LOG_LEVEL: "${LOG_LEVEL:-debug}"
       TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
