@@ -25,6 +25,18 @@ services:
       - run
       - .
 
+  server:
+    image: node:lts-alpine
+    working_dir: /home/node/app
+    volumes:
+      - ./server:/home/node/app
+    ports:
+      - 9000:3000
+    command:
+      - npm
+      - run
+      - dev
+
   starter:
     build:
       context: ../../
@@ -54,8 +66,8 @@ services:
       context: ../../
       target: builder
     environment:
-      ZIGGY_EXAMPLE_USERNAME: some-username
-      ZIGGY_EXAMPLE_PASSWORD: some-password
+      ZIGGY_EXAMPLE_USERNAME: zigflow
+      ZIGGY_EXAMPLE_PASSWORD: zigflowftw!
       ZIGGY_GRPC_INPUT: some-input
       LOG_LEVEL: "${LOG_LEVEL:-debug}"
       TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
@@ -71,5 +83,7 @@ services:
       - grpc
       - temporal
     depends_on:
+      server:
+        condition: service_started
       temporal:
         condition: service_healthy

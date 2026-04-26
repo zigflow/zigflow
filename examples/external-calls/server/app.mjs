@@ -22,9 +22,10 @@ const fastify = Fastify({
   logger: true,
 });
 
-const authenticate = { realm: "Zigflow" };
-
-fastify.register(fastifyBasicAuth, { validate, authenticate });
+fastify.register(fastifyBasicAuth, {
+  validate,
+  authenticate: { realm: "Zigflow" },
+});
 
 // Declare a route
 fastify.after(() => {
@@ -32,9 +33,7 @@ fastify.after(() => {
     method: "GET",
     url: "/basic",
     onRequest: fastify.basicAuth,
-    handler: async (req, reply) => {
-      return { hello: "world" };
-    },
+    handler,
   });
 });
 

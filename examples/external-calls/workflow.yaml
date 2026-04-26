@@ -38,5 +38,11 @@ do:
                   method: get
                   endpoint:
                     uri: https://jsonplaceholder.typicode.com/users/3
+          - http_basic:
+              call: http
+              with:
+                  method: get
+                  endpoint:
+                    uri: http://server:3000/basic
                     authentication:
                       use: basic_auth
