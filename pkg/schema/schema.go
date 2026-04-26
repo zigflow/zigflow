@@ -166,4 +166,20 @@ var schemaProperties = map[string]*jsonschema.Schema{
 			},
 		},
 	},
+	"use": {
+		Type:                  "object",
+		Title:                 "Use",
+		Description:           "Defines reusable components that can be referenced throughout the workflow.",
+		UnevaluatedProperties: falseSchema(),
+		Properties: map[string]*jsonschema.Schema{
+			"authentications": {
+				Type:        "object",
+				Title:       "UseAuthentications",
+				Description: "The workflow's reusable authentication policies.",
+				AdditionalProperties: &jsonschema.Schema{
+					Ref: SchemaRef("authenticationPolicy"),
+				},
+			},
+		},
+	},
 }

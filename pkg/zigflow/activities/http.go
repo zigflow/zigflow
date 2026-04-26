@@ -154,6 +154,31 @@ func (c *CallHTTP) CallHTTPActivity(ctx context.Context, task *model.CallHTTP, i
 	return ParseOutput(task.With.Output, httpResponse, bodyRes), err
 }
 
+func (c *CallHTTP) authenticate(task *model.CallHTTP, headers map[string]string, state *utils.State) error {
+	if task.With.Endpoint.EndpointConfig != nil && task.With.Endpoint.EndpointConfig.Authentication != nil {
+		auth := task.With.Endpoint.EndpointConfig.Authentication.AuthenticationPolicy
+		if auth.Basic != nil {
+			username, err := utils.EvaluateString(auth.Basic.Username, nil, state)
+			if err != nil {
+				return fmt.Errorf("error evaluating basic auth username: %w", err)
+			}
+			password, err := utils.EvaluateString(auth.Basic.Password, nil, state)
+			if err != nil {
+				return fmt.Errorf("error evaluating basic auth password: %w", err)
+			}
+
+			headers["Authorization"] = c.basicAuth(username.(string), password.(string))
+		}
+	}
+
+	return nil
+}
+
+func (c *CallHTTP) basicAuth(username, password string) string {
+	token := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
+	return fmt.Sprintf("Basic %s", token)
+}
+
 func (c *CallHTTP) callHTTPAction(ctx context.Context, task *model.CallHTTP, timeout time.Duration, state *utils.State) (
 	resp *http.Response,
 	method, url string,
@@ -170,6 +195,18 @@ func (c *CallHTTP) callHTTPAction(ctx context.Context, task *model.CallHTTP, tim
 			err
 	}
 
+	if args.Headers == nil {
+		args.Headers = map[string]string{}
+	}
+	if authErr := c.authenticate(task, args.Headers, state); authErr != nil {
+		err = temporal.NewNonRetryableApplicationError(
+			"Error building authentication headers",
+			"CallHTTP authentication error",
+			authErr,
+		)
+		return resp, method, url, reqHeaders, err
+	}
+
 	method = strings.ToUpper(args.Method)
 	url = args.Endpoint.String()
 	body := args.Body
@@ -178,6 +215,16 @@ func (c *CallHTTP) callHTTPAction(ctx context.Context, task *model.CallHTTP, tim
 	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(body))
 	if err != nil {
 		logger.Error("Error making HTTP request", "method", method, "url", url, "error", err)
+		return resp, method, url, reqHeaders, err
+	}
+
+	if authErr := c.authenticate(task, args.Headers, state); authErr != nil {
+		logger.Error("Error building authentication headers", "error", authErr)
+		err = temporal.NewNonRetryableApplicationError(
+			"Error building authentication headers",
+			"CallHTTP authentication error",
+			authErr,
+		)
 		return resp, method, url, reqHeaders, err
 	}
 

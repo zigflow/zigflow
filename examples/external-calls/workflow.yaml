@@ -9,6 +9,12 @@ document:
     tags:
       - http
       - grpc
+use:
+  authentications:
+    basic_auth:
+      basic:
+        username: ${ $env.EXAMPLE_USERNAME }
+        password: ${ $env.EXAMPLE_PASSWORD }
 do:
   - fork:
       fork:
@@ -30,4 +36,13 @@ do:
               call: http
               with:
                   method: get
-                  endpoint: https://jsonplaceholder.typicode.com/users/3
+                  endpoint:
+                    uri: https://jsonplaceholder.typicode.com/users/3
+          - http_basic:
+              call: http
+              with:
+                  method: get
+                  endpoint:
+                    uri: http://server:3000/basic
+                    authentication:
+                      use: basic_auth

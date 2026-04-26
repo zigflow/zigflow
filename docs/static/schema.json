@@ -112,11 +112,71 @@
           "description": "The workflow's timeout configuration, if any."
         }
       ]
+    },
+    "use": {
+      "type": "object",
+      "properties": {
+        "authentications": {
+          "type": "object",
+          "title": "UseAuthentications",
+          "description": "The workflow's reusable authentication policies.",
+          "additionalProperties": {
+            "$ref": "#/$defs/authenticationPolicy"
+          }
+        }
+      },
+      "title": "Use",
+      "description": "Defines reusable components that can be referenced throughout the workflow.",
+      "unevaluatedProperties": false
     }
   },
   "$id": "https://zigflow.dev/schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
+    "authenticationPolicy": {
+      "type": "object",
+      "title": "AuthenticationPolicy",
+      "description": "Defines a reusable authentication policy.",
+      "oneOf": [
+        {
+          "properties": {
+            "basic": {
+              "type": "object",
+              "title": "BasicAuthenticationPolicyConfiguration",
+              "description": "The configuration of the basic authentication policy.",
+              "unevaluatedProperties": false,
+              "oneOf": [
+                {
+                  "properties": {
+                    "password": {
+                      "type": "string",
+                      "title": "Password",
+                      "description": "The password for basic authentication."
+                    },
+                    "username": {
+                      "type": "string",
+                      "title": "Username",
+                      "description": "The username for basic authentication."
+                    }
+                  },
+                  "title": "BasicAuthenticationProperties",
+                  "description": "Inline configuration of the basic authentication policy.",
+                  "required": [
+                    "username",
+                    "password"
+                  ]
+                }
+              ]
+            }
+          },
+          "title": "BasicAuthenticationPolicy",
+          "description": "Use basic authentication.",
+          "required": [
+            "basic"
+          ]
+        }
+      ]
+    },
     "callTask": {
       "title": "CallTask",
       "description": "Defines the call to perform.",
@@ -576,6 +636,11 @@
         {
           "type": "object",
           "properties": {
+            "authentication": {
+              "$ref": "#/$defs/referenceableAuthenticationPolicy",
+              "title": "EndpointAuthentication",
+              "description": "The authentication policy to use."
+            },
             "uri": {
               "title": "EndpointUri",
               "description": "The endpoint's URI.",
@@ -1113,6 +1178,32 @@
               "unevaluatedProperties": false
             }
           }
+        }
+      ]
+    },
+    "referenceableAuthenticationPolicy": {
+      "type": "object",
+      "title": "ReferenceableAuthenticationPolicy",
+      "description": "Represents a referenceable authentication policy.",
+      "unevaluatedProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "use": {
+              "type": "string",
+              "title": "ReferenceableAuthenticationPolicyName",
+              "description": "The name of the authentication policy to use.",
+              "minLength": 1
+            }
+          },
+          "title": "AuthenticationPolicyReference",
+          "description": "The reference of the authentication policy to use.",
+          "required": [
+            "use"
+          ]
+        },
+        {
+          "$ref": "#/$defs/authenticationPolicy"
         }
       ]
     },

@@ -1,0 +1,21 @@
+{
+  "name": "server",
+  "private": true,
+  "version": "1.0.0",
+  "description": "",
+  "license": "Apache-2.0",
+  "author": "",
+  "type": "commonjs",
+  "main": "app.mjs",
+  "scripts": {
+    "dev": "nodemon ./",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@fastify/basic-auth": "^6.2.0",
+    "fastify": "^5.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
