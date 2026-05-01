@@ -1,0 +1,35 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: catalog
+  version: 0.0.1
+  title: Reusable catalog
+  summary: Reuse workflows from external sources
+  metadata:
+    display: false
+input:
+  schema:
+    format: json
+    document:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+use:
+  catalogs:
+    some-catalog:
+      endpoint:
+        uri: https://raw.githubusercontent.com/zigflow/catalog/refs/heads/main/workflows/hello-world/0.0.1/workflow.yaml
+do:
+  - exec-catalog:
+      run:
+        workflow:
+          type: some-catalog
+  # - catalog:
+  #     do:
+  #       - workflow:
+  #           run:
+  #             workflow:
+  #               type: some-catalog

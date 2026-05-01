@@ -26,6 +26,7 @@ import (
 func buildDefinitions() map[string]*jsonschema.Schema {
 	return map[string]*jsonschema.Schema{
 		"callTask":                 callTaskDefinition,
+		"catalog":                  catalogDefinition,
 		"commonMetadata":           commonMetadataDefinition,
 		"containerLifetime":        containerLifetimeDefinition,
 		"doTask":                   doTaskDefinition,
@@ -253,6 +254,21 @@ var callTaskDefinition = &jsonschema.Schema{
 					},
 				},
 			},
+		},
+	},
+}
+
+var catalogDefinition = &jsonschema.Schema{
+	Type:                 "object",
+	Title:                "Catalog",
+	Description:          "The definition of a resource catalog.",
+	AdditionalProperties: falseSchema(),
+	Required:             []string{"endpoint"},
+	Properties: map[string]*jsonschema.Schema{
+		"endpoint": {
+			Ref:         SchemaRef("endpoint"),
+			Title:       "CatalogEndpoint",
+			Description: "The root URL where the catalog is hosted.",
 		},
 	},
 }
