@@ -25,41 +25,83 @@ import (
 
 func buildDefinitions() map[string]*jsonschema.Schema {
 	return map[string]*jsonschema.Schema{
-		"callTask":                 callTaskDefinition,
-		"commonMetadata":           commonMetadataDefinition,
-		"containerLifetime":        containerLifetimeDefinition,
-		"doTask":                   doTaskDefinition,
-		"documentMetadata":         documentMetadataDefinition,
-		"duration":                 durationDefinition,
-		"endpoint":                 endpointDefinition,
-		"error":                    errorDefinition,
-		"eventConsumptionStrategy": eventConsumptionStrategyDefinition,
-		"eventFilter":              eventFilterDefinition,
-		"eventProperties":          eventPropertiesDefinition,
-		"export":                   exportDefinition,
-		"externalResource":         externalResourceDefinition,
-		"flowDirective":            flowDirectiveDefinition,
-		"forkTask":                 forkTaskDefinition,
-		"forTask":                  forTaskDefinition,
-		"input":                    inputDefinition,
-		"listenTask":               listenTaskDefinition,
-		"output":                   outputDefinition,
-		"raiseTask":                raiseTaskDefinition,
-		"runTask":                  runTaskDefinition,
-		"runtimeExpression":        runtimeExpressionDefinition,
-		"schema":                   schemaDefinition,
-		"setTask":                  setTaskDefinition,
-		"subscriptionIterator":     subscriptionIteratorDefinition,
-		"switchTask":               switchTaskDefinition,
-		"task":                     taskDefinition,
-		"taskBase":                 taskBaseDefinition,
-		"taskList":                 taskListDefinition,
-		"taskMetadata":             taskMetadataDefinition,
-		"timeout":                  timeoutDefinition,
-		"tryTask":                  tryTaskDefinition,
-		"uriTemplate":              uriTemplateDefinition,
-		"waitTask":                 waitTaskDefinition,
+		"authenticationPolicy":              authenticationPolicyDefinition,
+		"callTask":                          callTaskDefinition,
+		"commonMetadata":                    commonMetadataDefinition,
+		"containerLifetime":                 containerLifetimeDefinition,
+		"doTask":                            doTaskDefinition,
+		"documentMetadata":                  documentMetadataDefinition,
+		"duration":                          durationDefinition,
+		"endpoint":                          endpointDefinition,
+		"error":                             errorDefinition,
+		"eventConsumptionStrategy":          eventConsumptionStrategyDefinition,
+		"eventFilter":                       eventFilterDefinition,
+		"eventProperties":                   eventPropertiesDefinition,
+		"export":                            exportDefinition,
+		"externalResource":                  externalResourceDefinition,
+		"flowDirective":                     flowDirectiveDefinition,
+		"forkTask":                          forkTaskDefinition,
+		"forTask":                           forTaskDefinition,
+		"input":                             inputDefinition,
+		"listenTask":                        listenTaskDefinition,
+		"output":                            outputDefinition,
+		"raiseTask":                         raiseTaskDefinition,
+		"referenceableAuthenticationPolicy": referenceableAuthenticationPolicyDefinition,
+		"runTask":                           runTaskDefinition,
+		"runtimeExpression":                 runtimeExpressionDefinition,
+		"schema":                            schemaDefinition,
+		"setTask":                           setTaskDefinition,
+		"subscriptionIterator":              subscriptionIteratorDefinition,
+		"switchTask":                        switchTaskDefinition,
+		"task":                              taskDefinition,
+		"taskBase":                          taskBaseDefinition,
+		"taskList":                          taskListDefinition,
+		"taskMetadata":                      taskMetadataDefinition,
+		"timeout":                           timeoutDefinition,
+		"tryTask":                           tryTaskDefinition,
+		"uriTemplate":                       uriTemplateDefinition,
+		"waitTask":                          waitTaskDefinition,
 	}
+}
+
+var authenticationPolicyDefinition = &jsonschema.Schema{
+	Type:        "object",
+	Title:       "AuthenticationPolicy",
+	Description: "Defines a reusable authentication policy.",
+	OneOf: []*jsonschema.Schema{
+		{
+			Title:       "BasicAuthenticationPolicy",
+			Description: "Use basic authentication.",
+			Required:    []string{"basic"},
+			Properties: map[string]*jsonschema.Schema{
+				"basic": {
+					Type:                  "object",
+					Title:                 "BasicAuthenticationPolicyConfiguration",
+					Description:           "The configuration of the basic authentication policy.",
+					UnevaluatedProperties: falseSchema(),
+					OneOf: []*jsonschema.Schema{
+						{
+							Title:       "BasicAuthenticationProperties",
+							Description: "Inline configuration of the basic authentication policy.",
+							Required:    []string{"username", "password"},
+							Properties: map[string]*jsonschema.Schema{
+								"username": {
+									Type:        "string",
+									Title:       "Username",
+									Description: "The username for basic authentication.",
+								},
+								"password": {
+									Type:        "string",
+									Title:       "Password",
+									Description: "The password for basic authentication.",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
 }
 
 var callTaskDefinition = &jsonschema.Schema{
@@ -496,6 +538,11 @@ var endpointDefinition = &jsonschema.Schema{
 							Description: "An expression based endpoint's URI.",
 						},
 					},
+				},
+				"authentication": {
+					Ref:         SchemaRef("referenceableAuthenticationPolicy"),
+					Title:       "EndpointAuthentication",
+					Description: "The authentication policy to use.",
 				},
 			},
 		},
@@ -972,6 +1019,31 @@ var raiseTaskDefinition = &jsonschema.Schema{
 					},
 				},
 			},
+		},
+	},
+}
+
+var referenceableAuthenticationPolicyDefinition = &jsonschema.Schema{
+	Type:                  "object",
+	Title:                 "ReferenceableAuthenticationPolicy",
+	Description:           "Represents a referenceable authentication policy.",
+	UnevaluatedProperties: falseSchema(),
+	OneOf: []*jsonschema.Schema{
+		{
+			Title:       "AuthenticationPolicyReference",
+			Description: "The reference of the authentication policy to use.",
+			Required:    []string{"use"},
+			Properties: map[string]*jsonschema.Schema{
+				"use": {
+					Type:        "string",
+					MinLength:   utils.Ptr(1),
+					Title:       "ReferenceableAuthenticationPolicyName",
+					Description: "The name of the authentication policy to use.",
+				},
+			},
+		},
+		{
+			Ref: SchemaRef("authenticationPolicy"),
 		},
 	},
 }

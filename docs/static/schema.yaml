@@ -1,4 +1,34 @@
 $defs:
+  authenticationPolicy:
+    description: Defines a reusable authentication policy.
+    oneOf:
+    - description: Use basic authentication.
+      properties:
+        basic:
+          description: The configuration of the basic authentication policy.
+          oneOf:
+          - description: Inline configuration of the basic authentication policy.
+            properties:
+              password:
+                description: The password for basic authentication.
+                title: Password
+                type: string
+              username:
+                description: The username for basic authentication.
+                title: Username
+                type: string
+            required:
+            - username
+            - password
+            title: BasicAuthenticationProperties
+          title: BasicAuthenticationPolicyConfiguration
+          type: object
+          unevaluatedProperties: false
+      required:
+      - basic
+      title: BasicAuthenticationPolicy
+    title: AuthenticationPolicy
+    type: object
   callTask:
     description: Defines the call to perform.
     oneOf:
@@ -345,6 +375,10 @@ $defs:
     - $ref: '#/$defs/runtimeExpression'
     - $ref: '#/$defs/uriTemplate'
     - properties:
+        authentication:
+          $ref: '#/$defs/referenceableAuthenticationPolicy'
+          description: The authentication policy to use.
+          title: EndpointAuthentication
         uri:
           description: The endpoint's URI.
           oneOf:
@@ -727,6 +761,23 @@ $defs:
     required:
     - raise
     title: RaiseTask
+    type: object
+    unevaluatedProperties: false
+  referenceableAuthenticationPolicy:
+    description: Represents a referenceable authentication policy.
+    oneOf:
+    - description: The reference of the authentication policy to use.
+      properties:
+        use:
+          description: The name of the authentication policy to use.
+          minLength: 1
+          title: ReferenceableAuthenticationPolicyName
+          type: string
+      required:
+      - use
+      title: AuthenticationPolicyReference
+    - $ref: '#/$defs/authenticationPolicy'
+    title: ReferenceableAuthenticationPolicy
     type: object
     unevaluatedProperties: false
   runTask:
@@ -1266,6 +1317,19 @@ properties:
       description: The workflow's timeout configuration, if any.
       title: TimeoutDefinition
     title: DoTimeout
+  use:
+    description: Defines reusable components that can be referenced throughout the
+      workflow.
+    properties:
+      authentications:
+        additionalProperties:
+          $ref: '#/$defs/authenticationPolicy'
+        description: The workflow's reusable authentication policies.
+        title: UseAuthentications
+        type: object
+    title: Use
+    type: object
+    unevaluatedProperties: false
 required:
 - do
 - document

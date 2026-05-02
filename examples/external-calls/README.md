@@ -19,6 +19,13 @@ Generate the protobuf definition
 task -d ../../ generate-grpc
 ```
 
+Install the server dependencies
+
+```sh
+cd server
+npm ci
+```
+
 Now run the application
 
 ```sh
@@ -53,6 +60,14 @@ flowchart TD
     end
     external_calls_fork --> external_calls_http__start
     external_calls_http__end --> external_calls_fork__join
+    subgraph fork_external_calls_http_basic["http_basic"]
+        direction TB
+        external_calls_http_basic__start([ ])
+        external_calls_http_basic__end([ ])
+        external_calls_http_basic__start --> external_calls_http_basic__end
+    end
+    external_calls_fork --> external_calls_http_basic__start
+    external_calls_http_basic__end --> external_calls_fork__join
     external_calls__start --> external_calls_fork
     external_calls_fork__join --> external_calls__end
 ```

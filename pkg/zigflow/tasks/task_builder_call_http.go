@@ -17,6 +17,8 @@
 package tasks
 
 import (
+	"fmt"
+
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/utils"
@@ -48,6 +50,10 @@ type CallHTTPTaskBuilder struct {
 }
 
 func (t *CallHTTPTaskBuilder) Build() (TemporalWorkflowFunc, error) {
+	if err := utils.ResolveAuthenticationPolicy(t.task.With.Endpoint, t.doc); err != nil {
+		return nil, fmt.Errorf("failed to resolve authentication policy for task '%s': %v", t.name, err)
+	}
+
 	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
 		return t.executeActivity(ctx, (*activities.CallHTTP).CallHTTPActivity, input, state)
 	}, nil
