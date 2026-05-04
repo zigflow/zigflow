@@ -1,0 +1,59 @@
+{
+  "features": {
+    "ghcr.io/azutake/devcontainer-features/go-packages-install:0": {
+      "version": "0.0.2",
+      "resolved": "ghcr.io/azutake/devcontainer-features/go-packages-install@sha256:2de9228b12e43192618e4b7652dad3922f2de1bc54ab94e4e66b1a8c79e83807",
+      "integrity": "sha256:2de9228b12e43192618e4b7652dad3922f2de1bc54ab94e4e66b1a8c79e83807"
+    },
+    "ghcr.io/devcontainers-extra/features/gh-release:1": {
+      "version": "1.0.26",
+      "resolved": "ghcr.io/devcontainers-extra/features/gh-release@sha256:09be4373c696a6a457dad170233c76934ae250edfda0e126f8617fcb41bdd418",
+      "integrity": "sha256:09be4373c696a6a457dad170233c76934ae250edfda0e126f8617fcb41bdd418"
+    },
+    "ghcr.io/devcontainers-extra/features/go-task:1": {
+      "version": "1.0.6",
+      "resolved": "ghcr.io/devcontainers-extra/features/go-task@sha256:4d1db153919976cadd3209ca05d655a761a01707767716994dad677b4538dc1b",
+      "integrity": "sha256:4d1db153919976cadd3209ca05d655a761a01707767716994dad677b4538dc1b"
+    },
+    "ghcr.io/devcontainers-extra/features/grpcurl-asdf:2": {
+      "version": "2.0.16",
+      "resolved": "ghcr.io/devcontainers-extra/features/grpcurl-asdf@sha256:9eec57cf4460cf039b8a13793c617a1eb745305925b3d512b9f5d4fb1081a1ed",
+      "integrity": "sha256:9eec57cf4460cf039b8a13793c617a1eb745305925b3d512b9f5d4fb1081a1ed"
+    },
+    "ghcr.io/devcontainers-extra/features/protoc:1": {
+      "version": "1.0.3",
+      "resolved": "ghcr.io/devcontainers-extra/features/protoc@sha256:57ec0b9c074c3c764d5b43386f5fd219586b2548d5a99da8c3307f29fc1deafc",
+      "integrity": "sha256:57ec0b9c074c3c764d5b43386f5fd219586b2548d5a99da8c3307f29fc1deafc"
+    },
+    "ghcr.io/devcontainers-extra/features/temporal-cli:1": {
+      "version": "1.0.7",
+      "resolved": "ghcr.io/devcontainers-extra/features/temporal-cli@sha256:275980d00e6e4d291d1e71a7f94a7d4c70e4d0cb82e3a7e0db04a6b3b0390761",
+      "integrity": "sha256:275980d00e6e4d291d1e71a7f94a7d4c70e4d0cb82e3a7e0db04a6b3b0390761"
+    },
+    "ghcr.io/dhoeric/features/trivy:1": {
+      "version": "1.0.0",
+      "resolved": "ghcr.io/dhoeric/features/trivy@sha256:c291ec03dd2938d1c4bc6cf87e6afab8067514fb000c9165bcc66a6f65092783",
+      "integrity": "sha256:c291ec03dd2938d1c4bc6cf87e6afab8067514fb000c9165bcc66a6f65092783"
+    },
+    "ghcr.io/mrsimonemms/devcontainers/buf:1": {
+      "version": "1.0.1",
+      "resolved": "ghcr.io/mrsimonemms/devcontainers/buf@sha256:34ac5681af43a19bb9f23b140080147d35ba1b2507e9d21d2dcee06b711bdbd8",
+      "integrity": "sha256:34ac5681af43a19bb9f23b140080147d35ba1b2507e9d21d2dcee06b711bdbd8"
+    },
+    "ghcr.io/mrsimonemms/devcontainers/cobra-cli:1": {
+      "version": "1.0.0",
+      "resolved": "ghcr.io/mrsimonemms/devcontainers/cobra-cli@sha256:e5f61d4c00e066815dc98ce8f949aeded739b97f8f69c234ba33d1f07be8c081",
+      "integrity": "sha256:e5f61d4c00e066815dc98ce8f949aeded739b97f8f69c234ba33d1f07be8c081"
+    },
+    "ghcr.io/rio/features/skaffold:2": {
+      "version": "2.0.0",
+      "resolved": "ghcr.io/rio/features/skaffold@sha256:6368d4c207c98008165b8b9e8b0df19ebd9bc6efce7463da16aebcb18c8d7328",
+      "integrity": "sha256:6368d4c207c98008165b8b9e8b0df19ebd9bc6efce7463da16aebcb18c8d7328"
+    },
+    "ghcr.io/va-h/devcontainers-features/uv:1": {
+      "version": "1.1.4",
+      "resolved": "ghcr.io/va-h/devcontainers-features/uv@sha256:a15737142539d150ef4d358e2d6a7424a0a2f3dc43b29a3aa1b50162a8b11bc1",
+      "integrity": "sha256:a15737142539d150ef4d358e2d6a7424a0a2f3dc43b29a3aa1b50162a8b11bc1"
+    }
+  }
+}
