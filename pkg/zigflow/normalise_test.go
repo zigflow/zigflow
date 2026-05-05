@@ -26,6 +26,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// String constants used across normalise_test.go to satisfy goconst requirements.
+const (
+	testKeyDocument     = "document"
+	testKeyDo           = "do"
+	testKeyDSL          = "dsl"
+	testKeyRun          = "run"
+	testKeySet          = "set"
+	testKeyType         = "type"
+	testKeyWorkflow     = "workflow"
+	testKeyWorkflowType = "workflowType"
+	testKeyTaskQueue    = "taskQueue"
+	testKeyVersion      = "version"
+	testDSLVersion      = "1.0.0"
+	testWFName          = "wf"
+	testChildWorkflow   = "child-workflow"
+	testHello           = "hello"
+	testParent          = "parent"
+)
+
 // cloneMap returns a deep copy of m so that mutations in the function under
 // test do not affect the original test-case literal.
 func cloneMap(t *testing.T, m map[string]any) map[string]any {
@@ -40,7 +59,7 @@ func cloneMap(t *testing.T, m map[string]any) map[string]any {
 // docOf extracts the "document" sub-map from a top-level workflow map.
 func docOf(t *testing.T, m map[string]any) map[string]any {
 	t.Helper()
-	raw, ok := m["document"]
+	raw, ok := m[testKeyDocument]
 	require.True(t, ok, "expected a 'document' key")
 	doc, ok := raw.(map[string]any)
 	require.True(t, ok, "expected document to be a map")
@@ -50,11 +69,11 @@ func docOf(t *testing.T, m map[string]any) map[string]any {
 // workflowOf extracts run.workflow from a single task-body map.
 func workflowOf(t *testing.T, task map[string]any) map[string]any {
 	t.Helper()
-	raw, ok := task["run"]
+	raw, ok := task[testKeyRun]
 	require.True(t, ok, "expected a 'run' key in task")
 	run, ok := raw.(map[string]any)
 	require.True(t, ok, "expected run to be a map")
-	raw, ok = run["workflow"]
+	raw, ok = run[testKeyWorkflow]
 	require.True(t, ok, "expected a 'workflow' key in run")
 	wf, ok := raw.(map[string]any)
 	require.True(t, ok, "expected run.workflow to be a map")
@@ -66,11 +85,11 @@ func workflowOf(t *testing.T, task map[string]any) map[string]any {
 func TestNormaliseTopLevelDocument_WorkflowTypeRenamedToName(t *testing.T) {
 	// workflowType must become name.
 	input := cloneMap(t, map[string]any{
-		"document": map[string]any{
-			"dsl":          "1.0.0",
-			"workflowType": "my-workflow",
-			"taskQueue":    "my-queue",
-			"version":      "1.0.0",
+		testKeyDocument: map[string]any{
+			testKeyDSL:          testDSLVersion,
+			testKeyWorkflowType: "my-workflow",
+			testKeyTaskQueue:    "my-queue",
+			testKeyVersion:      testDSLVersion,
 		},
 	})
 
@@ -84,38 +103,38 @@ func TestNormaliseTopLevelDocument_WorkflowTypeRenamedToName(t *testing.T) {
 func TestNormaliseTopLevelDocument_ZigflowKeysRemoved(t *testing.T) {
 	// After normalisation the original Zigflow field names must not remain.
 	input := cloneMap(t, map[string]any{
-		"document": map[string]any{
-			"dsl":          "1.0.0",
-			"workflowType": "wf",
-			"taskQueue":    "q",
-			"version":      "1.0.0",
+		testKeyDocument: map[string]any{
+			testKeyDSL:          testDSLVersion,
+			testKeyWorkflowType: testWFName,
+			testKeyTaskQueue:    "q",
+			testKeyVersion:      testDSLVersion,
 		},
 	})
 
 	require.NoError(t, normaliseTopLevelDocument(input))
 
 	doc := docOf(t, input)
-	assert.NotContains(t, doc, "workflowType", "workflowType must be removed after normalisation")
-	assert.NotContains(t, doc, "taskQueue", "taskQueue must be removed after normalisation")
+	assert.NotContains(t, doc, testKeyWorkflowType, "workflowType must be removed after normalisation")
+	assert.NotContains(t, doc, testKeyTaskQueue, "taskQueue must be removed after normalisation")
 }
 
 func TestNormaliseTopLevelDocument_UnrelatedFieldsPreserved(t *testing.T) {
 	// Fields unrelated to the Zigflow rename must survive unchanged.
 	input := cloneMap(t, map[string]any{
-		"document": map[string]any{
-			"dsl":          "1.0.0",
-			"workflowType": "wf",
-			"taskQueue":    "q",
-			"version":      "1.0.0",
-			"summary":      "A workflow summary",
+		testKeyDocument: map[string]any{
+			testKeyDSL:          testDSLVersion,
+			testKeyWorkflowType: testWFName,
+			testKeyTaskQueue:    "q",
+			testKeyVersion:      testDSLVersion,
+			"summary":           "A workflow summary",
 		},
 	})
 
 	require.NoError(t, normaliseTopLevelDocument(input))
 
 	doc := docOf(t, input)
-	assert.Equal(t, "1.0.0", doc["dsl"])
-	assert.Equal(t, "1.0.0", doc["version"])
+	assert.Equal(t, testDSLVersion, doc[testKeyDSL])
+	assert.Equal(t, testDSLVersion, doc[testKeyVersion])
 	assert.Equal(t, "A workflow summary", doc["summary"])
 }
 
@@ -123,17 +142,17 @@ func TestNormaliseTopLevelDocument_OnlyWorkflowType(t *testing.T) {
 	// If only workflowType is present, name is added but namespace is not
 	// introduced from thin air.
 	input := cloneMap(t, map[string]any{
-		"document": map[string]any{
-			"dsl":          "1.0.0",
-			"workflowType": "wf",
-			"version":      "1.0.0",
+		testKeyDocument: map[string]any{
+			testKeyDSL:          testDSLVersion,
+			testKeyWorkflowType: testWFName,
+			testKeyVersion:      testDSLVersion,
 		},
 	})
 
 	require.NoError(t, normaliseTopLevelDocument(input))
 
 	doc := docOf(t, input)
-	assert.Equal(t, "wf", doc["name"])
+	assert.Equal(t, testWFName, doc["name"])
 	assert.NotContains(t, doc, "namespace", "namespace must not be introduced when taskQueue is absent")
 }
 
@@ -141,10 +160,10 @@ func TestNormaliseTopLevelDocument_OnlyTaskQueue(t *testing.T) {
 	// If only taskQueue is present, namespace is added but name is not
 	// introduced from thin air.
 	input := cloneMap(t, map[string]any{
-		"document": map[string]any{
-			"dsl":       "1.0.0",
-			"taskQueue": "q",
-			"version":   "1.0.0",
+		testKeyDocument: map[string]any{
+			testKeyDSL:       testDSLVersion,
+			testKeyTaskQueue: "q",
+			testKeyVersion:   testDSLVersion,
 		},
 	})
 
@@ -159,9 +178,9 @@ func TestNormaliseTopLevelDocument_NoZigflowFields(t *testing.T) {
 	// When neither workflowType nor taskQueue are present the document must
 	// not gain name or namespace keys.
 	input := cloneMap(t, map[string]any{
-		"document": map[string]any{
-			"dsl":     "1.0.0",
-			"version": "1.0.0",
+		testKeyDocument: map[string]any{
+			testKeyDSL:     testDSLVersion,
+			testKeyVersion: testDSLVersion,
 		},
 	})
 
@@ -175,7 +194,7 @@ func TestNormaliseTopLevelDocument_NoZigflowFields(t *testing.T) {
 func TestNormaliseTopLevelDocument_NoDocumentKey(t *testing.T) {
 	// A map without a "document" key is a no-op and must not error.
 	input := cloneMap(t, map[string]any{
-		"do": []any{},
+		testKeyDo: []any{},
 	})
 
 	require.NoError(t, normaliseTopLevelDocument(input))
@@ -186,9 +205,9 @@ func TestNormaliseTopLevelDocument_NoDocumentKey(t *testing.T) {
 func TestNormaliseRunTask_TypeRenamedToName(t *testing.T) {
 	// run.workflow.type must become run.workflow.name.
 	task := cloneMap(t, map[string]any{
-		"run": map[string]any{
-			"workflow": map[string]any{
-				"type": "child-workflow",
+		testKeyRun: map[string]any{
+			testKeyWorkflow: map[string]any{
+				testKeyType: testChildWorkflow,
 			},
 		},
 	})
@@ -196,16 +215,16 @@ func TestNormaliseRunTask_TypeRenamedToName(t *testing.T) {
 	require.NoError(t, normaliseRunTask(task))
 
 	wf := workflowOf(t, task)
-	assert.Equal(t, "child-workflow", wf["name"], "type must be mapped to name")
+	assert.Equal(t, testChildWorkflow, wf["name"], "type must be mapped to name")
 }
 
 func TestNormaliseRunTask_TypeKeyRemoved(t *testing.T) {
 	// The original "type" key must not remain after normalisation.
 	task := cloneMap(t, map[string]any{
-		"run": map[string]any{
-			"workflow": map[string]any{
-				"type":  "child-workflow",
-				"input": map[string]any{"foo": "bar"},
+		testKeyRun: map[string]any{
+			testKeyWorkflow: map[string]any{
+				testKeyType: testChildWorkflow,
+				"input":     map[string]any{"foo": "bar"},
 			},
 		},
 	})
@@ -213,16 +232,16 @@ func TestNormaliseRunTask_TypeKeyRemoved(t *testing.T) {
 	require.NoError(t, normaliseRunTask(task))
 
 	wf := workflowOf(t, task)
-	assert.NotContains(t, wf, "type", "type must be removed after normalisation")
+	assert.NotContains(t, wf, testKeyType, "type must be removed after normalisation")
 }
 
 func TestNormaliseRunTask_OtherWorkflowFieldsPreserved(t *testing.T) {
 	// Fields alongside "type" in run.workflow must survive unchanged.
 	task := cloneMap(t, map[string]any{
-		"run": map[string]any{
-			"workflow": map[string]any{
-				"type":  "child-workflow",
-				"input": map[string]any{"key": "value"},
+		testKeyRun: map[string]any{
+			testKeyWorkflow: map[string]any{
+				testKeyType: testChildWorkflow,
+				"input":     map[string]any{"key": "value"},
 			},
 		},
 	})
@@ -237,7 +256,7 @@ func TestNormaliseRunTask_NoWorkflowKey(t *testing.T) {
 	// A run task without a workflow key (e.g. container run) must not be
 	// modified and must not error.
 	task := cloneMap(t, map[string]any{
-		"run": map[string]any{
+		testKeyRun: map[string]any{
 			"container": map[string]any{
 				"image": "alpine",
 			},
@@ -247,31 +266,31 @@ func TestNormaliseRunTask_NoWorkflowKey(t *testing.T) {
 	require.NoError(t, normaliseRunTask(task))
 
 	// run.container must survive unchanged.
-	run := task["run"].(map[string]any)
+	run := task[testKeyRun].(map[string]any)
 	assert.Equal(t, map[string]any{"image": "alpine"}, run["container"])
-	assert.NotContains(t, run, "workflow")
+	assert.NotContains(t, run, testKeyWorkflow)
 }
 
 func TestNormaliseRunTask_NoRunKey(t *testing.T) {
 	// A task without a "run" key at all (e.g. a set task) must be left
 	// completely unchanged and must not error.
 	task := cloneMap(t, map[string]any{
-		"set": map[string]any{
-			"greeting": "hello",
+		testKeySet: map[string]any{
+			"greeting": testHello,
 		},
 	})
 
 	require.NoError(t, normaliseRunTask(task))
 
-	assert.Equal(t, map[string]any{"greeting": "hello"}, task["set"])
+	assert.Equal(t, map[string]any{"greeting": testHello}, task[testKeySet])
 }
 
 func TestNormaliseRunTask_NormalisationIsIdempotentAfterRename(t *testing.T) {
 	// If the task already uses the SDK field name (name instead of type),
 	// the existing name must not be overwritten by a second rename attempt.
 	task := cloneMap(t, map[string]any{
-		"run": map[string]any{
-			"workflow": map[string]any{
+		testKeyRun: map[string]any{
+			testKeyWorkflow: map[string]any{
 				"name": "already-normalised",
 			},
 		},
@@ -290,18 +309,18 @@ func TestNormaliseWorkflowDocument_TopLevelDoRunTask(t *testing.T) {
 	// A run.workflow task nested directly in the top-level do list must be
 	// normalised.
 	doc := cloneMap(t, map[string]any{
-		"document": map[string]any{
-			"dsl":          "1.0.0",
-			"workflowType": "parent",
-			"taskQueue":    "q",
-			"version":      "1.0.0",
+		testKeyDocument: map[string]any{
+			testKeyDSL:          testDSLVersion,
+			testKeyWorkflowType: testParent,
+			testKeyTaskQueue:    "q",
+			testKeyVersion:      testDSLVersion,
 		},
-		"do": []any{
+		testKeyDo: []any{
 			map[string]any{
 				"callChild": map[string]any{
-					"run": map[string]any{
-						"workflow": map[string]any{
-							"type": "child-workflow",
+					testKeyRun: map[string]any{
+						testKeyWorkflow: map[string]any{
+							testKeyType: testChildWorkflow,
 						},
 					},
 				},
@@ -313,35 +332,35 @@ func TestNormaliseWorkflowDocument_TopLevelDoRunTask(t *testing.T) {
 
 	// Top-level document mapping.
 	d := docOf(t, doc)
-	assert.Equal(t, "parent", d["name"])
+	assert.Equal(t, testParent, d["name"])
 	assert.Equal(t, "q", d["namespace"])
 
 	// Nested run.workflow normalisation.
-	tasks := doc["do"].([]any)
+	tasks := doc[testKeyDo].([]any)
 	callChild := tasks[0].(map[string]any)["callChild"].(map[string]any)
-	wf := callChild["run"].(map[string]any)["workflow"].(map[string]any)
-	assert.Equal(t, "child-workflow", wf["name"])
-	assert.NotContains(t, wf, "type")
+	wf := callChild[testKeyRun].(map[string]any)[testKeyWorkflow].(map[string]any)
+	assert.Equal(t, testChildWorkflow, wf["name"])
+	assert.NotContains(t, wf, testKeyType)
 }
 
 func TestNormaliseWorkflowDocument_RunTaskInsideTry(t *testing.T) {
 	// A run.workflow task inside a try block's task list must be normalised.
 	doc := cloneMap(t, map[string]any{
-		"document": map[string]any{
-			"dsl":          "1.0.0",
-			"workflowType": "parent",
-			"taskQueue":    "q",
-			"version":      "1.0.0",
+		testKeyDocument: map[string]any{
+			testKeyDSL:          testDSLVersion,
+			testKeyWorkflowType: testParent,
+			testKeyTaskQueue:    "q",
+			testKeyVersion:      testDSLVersion,
 		},
-		"do": []any{
+		testKeyDo: []any{
 			map[string]any{
 				"tryBlock": map[string]any{
 					"try": []any{
 						map[string]any{
 							"callChild": map[string]any{
-								"run": map[string]any{
-									"workflow": map[string]any{
-										"type": "child-in-try",
+								testKeyRun: map[string]any{
+									testKeyWorkflow: map[string]any{
+										testKeyType: "child-in-try",
 									},
 								},
 							},
@@ -357,41 +376,41 @@ func TestNormaliseWorkflowDocument_RunTaskInsideTry(t *testing.T) {
 
 	require.NoError(t, normaliseWorkflowDocument(doc))
 
-	tasks := doc["do"].([]any)
+	tasks := doc[testKeyDo].([]any)
 	tryBlock := tasks[0].(map[string]any)["tryBlock"].(map[string]any)
 	tryList := tryBlock["try"].([]any)
-	wf := tryList[0].(map[string]any)["callChild"].(map[string]any)["run"].(map[string]any)["workflow"].(map[string]any)
+	wf := tryList[0].(map[string]any)["callChild"].(map[string]any)[testKeyRun].(map[string]any)[testKeyWorkflow].(map[string]any)
 	assert.Equal(t, "child-in-try", wf["name"])
-	assert.NotContains(t, wf, "type")
+	assert.NotContains(t, wf, testKeyType)
 }
 
 func TestNormaliseWorkflowDocument_RunTaskInsideCatchDo(t *testing.T) {
 	// A run.workflow task inside a catch.do list must be normalised.
 	doc := cloneMap(t, map[string]any{
-		"document": map[string]any{
-			"dsl":          "1.0.0",
-			"workflowType": "parent",
-			"taskQueue":    "q",
-			"version":      "1.0.0",
+		testKeyDocument: map[string]any{
+			testKeyDSL:          testDSLVersion,
+			testKeyWorkflowType: testParent,
+			testKeyTaskQueue:    "q",
+			testKeyVersion:      testDSLVersion,
 		},
-		"do": []any{
+		testKeyDo: []any{
 			map[string]any{
 				"tryBlock": map[string]any{
 					"try": []any{
 						map[string]any{
 							"noop": map[string]any{
-								"set": map[string]any{"x": "1"},
+								testKeySet: map[string]any{"x": "1"},
 							},
 						},
 					},
 					"catch": map[string]any{
 						"errors": map[string]any{"with": map[string]any{}},
-						"do": []any{
+						testKeyDo: []any{
 							map[string]any{
 								"recover": map[string]any{
-									"run": map[string]any{
-										"workflow": map[string]any{
-											"type": "recovery-workflow",
+									testKeyRun: map[string]any{
+										testKeyWorkflow: map[string]any{
+											testKeyType: "recovery-workflow",
 										},
 									},
 								},
@@ -405,24 +424,24 @@ func TestNormaliseWorkflowDocument_RunTaskInsideCatchDo(t *testing.T) {
 
 	require.NoError(t, normaliseWorkflowDocument(doc))
 
-	tasks := doc["do"].([]any)
+	tasks := doc[testKeyDo].([]any)
 	tryBlock := tasks[0].(map[string]any)["tryBlock"].(map[string]any)
-	catchDo := tryBlock["catch"].(map[string]any)["do"].([]any)
-	wf := catchDo[0].(map[string]any)["recover"].(map[string]any)["run"].(map[string]any)["workflow"].(map[string]any)
+	catchDo := tryBlock["catch"].(map[string]any)[testKeyDo].([]any)
+	wf := catchDo[0].(map[string]any)["recover"].(map[string]any)[testKeyRun].(map[string]any)[testKeyWorkflow].(map[string]any)
 	assert.Equal(t, "recovery-workflow", wf["name"])
-	assert.NotContains(t, wf, "type")
+	assert.NotContains(t, wf, testKeyType)
 }
 
 func TestNormaliseWorkflowDocument_RunTaskInsideForkBranch(t *testing.T) {
 	// A run.workflow task inside a fork branch must be normalised.
 	doc := cloneMap(t, map[string]any{
-		"document": map[string]any{
-			"dsl":          "1.0.0",
-			"workflowType": "parent",
-			"taskQueue":    "q",
-			"version":      "1.0.0",
+		testKeyDocument: map[string]any{
+			testKeyDSL:          testDSLVersion,
+			testKeyWorkflowType: testParent,
+			testKeyTaskQueue:    "q",
+			testKeyVersion:      testDSLVersion,
 		},
-		"do": []any{
+		testKeyDo: []any{
 			map[string]any{
 				"fanOut": map[string]any{
 					"fork": map[string]any{
@@ -430,18 +449,18 @@ func TestNormaliseWorkflowDocument_RunTaskInsideForkBranch(t *testing.T) {
 						"branches": []any{
 							map[string]any{
 								"branch1": map[string]any{
-									"run": map[string]any{
-										"workflow": map[string]any{
-											"type": "child-a",
+									testKeyRun: map[string]any{
+										testKeyWorkflow: map[string]any{
+											testKeyType: "child-a",
 										},
 									},
 								},
 							},
 							map[string]any{
 								"branch2": map[string]any{
-									"run": map[string]any{
-										"workflow": map[string]any{
-											"type": "child-b",
+									testKeyRun: map[string]any{
+										testKeyWorkflow: map[string]any{
+											testKeyType: "child-b",
 										},
 									},
 								},
@@ -455,17 +474,17 @@ func TestNormaliseWorkflowDocument_RunTaskInsideForkBranch(t *testing.T) {
 
 	require.NoError(t, normaliseWorkflowDocument(doc))
 
-	tasks := doc["do"].([]any)
+	tasks := doc[testKeyDo].([]any)
 	fanOut := tasks[0].(map[string]any)["fanOut"].(map[string]any)
 	branches := fanOut["fork"].(map[string]any)["branches"].([]any)
 
-	wf1 := branches[0].(map[string]any)["branch1"].(map[string]any)["run"].(map[string]any)["workflow"].(map[string]any)
+	wf1 := branches[0].(map[string]any)["branch1"].(map[string]any)[testKeyRun].(map[string]any)[testKeyWorkflow].(map[string]any)
 	assert.Equal(t, "child-a", wf1["name"])
-	assert.NotContains(t, wf1, "type")
+	assert.NotContains(t, wf1, testKeyType)
 
-	wf2 := branches[1].(map[string]any)["branch2"].(map[string]any)["run"].(map[string]any)["workflow"].(map[string]any)
+	wf2 := branches[1].(map[string]any)["branch2"].(map[string]any)[testKeyRun].(map[string]any)[testKeyWorkflow].(map[string]any)
 	assert.Equal(t, "child-b", wf2["name"])
-	assert.NotContains(t, wf2, "type")
+	assert.NotContains(t, wf2, testKeyType)
 }
 
 // --- no-op behaviour ---
@@ -473,17 +492,17 @@ func TestNormaliseWorkflowDocument_RunTaskInsideForkBranch(t *testing.T) {
 func TestNormaliseWorkflowDocument_SetTaskUntouched(t *testing.T) {
 	// A set task must pass through normalisation without any modification.
 	original := map[string]any{
-		"document": map[string]any{
-			"dsl":          "1.0.0",
-			"workflowType": "wf",
-			"taskQueue":    "q",
-			"version":      "1.0.0",
+		testKeyDocument: map[string]any{
+			testKeyDSL:          testDSLVersion,
+			testKeyWorkflowType: testWFName,
+			testKeyTaskQueue:    "q",
+			testKeyVersion:      testDSLVersion,
 		},
-		"do": []any{
+		testKeyDo: []any{
 			map[string]any{
 				"greet": map[string]any{
-					"set": map[string]any{
-						"hello": "world",
+					testKeySet: map[string]any{
+						testHello: "world",
 					},
 				},
 			},
@@ -493,9 +512,9 @@ func TestNormaliseWorkflowDocument_SetTaskUntouched(t *testing.T) {
 
 	require.NoError(t, normaliseWorkflowDocument(doc))
 
-	tasks := doc["do"].([]any)
+	tasks := doc[testKeyDo].([]any)
 	greet := tasks[0].(map[string]any)["greet"].(map[string]any)
-	assert.Equal(t, map[string]any{"hello": "world"}, greet["set"],
+	assert.Equal(t, map[string]any{testHello: "world"}, greet[testKeySet],
 		"set task body must be unchanged after normalisation")
 }
 
@@ -503,20 +522,20 @@ func TestNormaliseWorkflowDocument_NoDo(t *testing.T) {
 	// A document without a do key must have only the top-level field mapping
 	// applied and must not error.
 	doc := cloneMap(t, map[string]any{
-		"document": map[string]any{
-			"dsl":          "1.0.0",
-			"workflowType": "wf",
-			"taskQueue":    "q",
-			"version":      "1.0.0",
+		testKeyDocument: map[string]any{
+			testKeyDSL:          testDSLVersion,
+			testKeyWorkflowType: testWFName,
+			testKeyTaskQueue:    "q",
+			testKeyVersion:      testDSLVersion,
 		},
 	})
 
 	require.NoError(t, normaliseWorkflowDocument(doc))
 
 	d := docOf(t, doc)
-	assert.Equal(t, "wf", d["name"])
+	assert.Equal(t, testWFName, d["name"])
 	assert.Equal(t, "q", d["namespace"])
-	assert.NotContains(t, doc, "do")
+	assert.NotContains(t, doc, testKeyDo)
 }
 
 // --- normaliser boundary: defaults are not the normaliser's responsibility ---

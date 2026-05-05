@@ -142,8 +142,8 @@ func TestListenTaskBuilderProcessReply(t *testing.T) {
 			ID:   "evt",
 			Type: string(ListenTaskTypeSignal),
 			Additional: map[string]any{
-				"data": map[string]any{
-					"result": "${ $data.message }",
+				testConstData: map[string]any{
+					testConstResult: "${ $data.message }",
 				},
 			},
 		},
@@ -151,7 +151,7 @@ func TestListenTaskBuilderProcessReply(t *testing.T) {
 
 	state := utils.NewState()
 	state.AddData(map[string]any{
-		"message": "hello",
+		testConstMessage: "hello",
 	})
 
 	var s testsuite.WorkflowTestSuite
@@ -167,5 +167,5 @@ func TestListenTaskBuilderProcessReply(t *testing.T) {
 	var result map[string]any
 	assert.NoError(t, env.GetWorkflowResult(&result))
 
-	assert.Equal(t, map[string]any{"result": "hello"}, result)
+	assert.Equal(t, map[string]any{testConstResult: "hello"}, result)
 }

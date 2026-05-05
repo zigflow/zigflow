@@ -41,7 +41,7 @@ func TestParseHTTPArguments(t *testing.T) {
 				"X-Token": "${ $env.token }",
 			},
 			Query: map[string]any{
-				"debug": "${ $data.flag }",
+				"debug": testConstDataFlag,
 			},
 		},
 	}
@@ -58,7 +58,7 @@ func TestParseOutput(t *testing.T) {
 	httpResp := activities.HTTPResponse{
 		StatusCode: 200,
 		Content: map[string]any{
-			"message": "ok",
+			testConstMessage: "ok",
 		},
 	}
 	raw := []byte("payload")

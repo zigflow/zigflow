@@ -29,7 +29,13 @@ import (
 	"go.temporal.io/sdk/temporal"
 )
 
-const ndeDocsURL = "https://zigflow.dev/docs/concepts/data-and-expressions/#why-must-generated-values-be-in-a-set-task"
+const (
+	ndeDocsURL = "https://zigflow.dev/docs/concepts/data-and-expressions/#why-must-generated-values-be-in-a-set-task"
+
+	jqFuncUUID         = "uuid"
+	jqFuncTimestamp    = "timestamp"
+	jqFuncTimestampISO = "timestamp_iso8601"
+)
 
 type ExpressionWrapperFunc func(func() (any, error)) (any, error)
 
@@ -45,20 +51,20 @@ type jqFunc struct {
 // when used outside of a set task (i.e. without a side-effect wrapper).
 var jqFuncs []jqFunc = []jqFunc{
 	{
-		Name: "uuid",
+		Name: jqFuncUUID,
 		Func: func(_ any, _ []any) any {
 			return uuid.New().String()
 		},
 	},
 	{
-		Name: "timestamp",
+		Name: jqFuncTimestamp,
 		Func: func(_ any, _ []any) any {
 			// Convert to int so it can be formatted by strftime
 			return int(time.Now().Unix())
 		},
 	},
 	{
-		Name: "timestamp_iso8601",
+		Name: jqFuncTimestampISO,
 		Func: func(_ any, _ []any) any {
 			return time.Now().UTC().Format(time.RFC3339)
 		},

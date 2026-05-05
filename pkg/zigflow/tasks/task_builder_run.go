@@ -93,7 +93,7 @@ func (t *RunTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 }
 
 func (t *RunTaskBuilder) validateScriptConfig(s *model.Script) error {
-	if !slices.Contains([]string{"js", "python"}, s.Language) {
+	if !slices.Contains([]string{"js", constScriptLanguagePython}, s.Language) {
 		return fmt.Errorf("unknown script language '%s' for task: %s", s.Language, t.GetTaskName())
 	}
 	if !*t.task.Run.Await {
@@ -127,7 +127,7 @@ func (t *RunTaskBuilder) PostLoad() error {
 	// Default run.workflow fields.
 	if w := t.task.Run.Workflow; w != nil {
 		if w.Namespace == "" {
-			w.Namespace = "default"
+			w.Namespace = constDefaultNamespace
 		}
 		if w.Version == "" {
 			w.Version = "0.0.1"

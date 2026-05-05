@@ -32,21 +32,21 @@ func BuildSchema(version, format string) (*jsonschema.Schema, error) {
 		Schema:      SchemaVersion,
 		Title:       SchemaTitle,
 		Description: SchemaDescription,
-		Type:        "object",
-		Required:    []string{"do", "document"},
+		Type:        typeObject,
+		Required:    []string{propDo, propDocument},
 		Properties:  schemaProperties,
 		Defs:        buildDefinitions(),
 		If: &jsonschema.Schema{
 			Required: []string{"schedule"},
 		},
 		Then: &jsonschema.Schema{
-			Required: []string{"document"},
+			Required: []string{propDocument},
 			Properties: map[string]*jsonschema.Schema{
-				"document": {
-					Required: []string{"metadata"},
+				propDocument: {
+					Required: []string{propMetadata},
 					Properties: map[string]*jsonschema.Schema{
-						"metadata": {
-							Required: []string{"scheduleWorkflowName"},
+						propMetadata: {
+							Required: []string{propScheduleWorkflowName},
 						},
 					},
 				},
@@ -63,88 +63,88 @@ func BuildSchema(version, format string) (*jsonschema.Schema, error) {
 }
 
 var schemaProperties = map[string]*jsonschema.Schema{
-	"do": {
+	propDo: {
 		Ref:         SchemaRef("taskList"),
 		Title:       "Do",
 		Description: "Defines the task(s) the workflow must perform.",
 	},
-	"document": {
-		Type:                  "object",
+	propDocument: {
+		Type:                  typeObject,
 		Title:                 "Document",
 		Description:           "Documents the workflow",
-		Required:              []string{"dsl", "taskQueue", "workflowType", "version"},
+		Required:              []string{propDSL, propTaskQueue, propWorkflowType, propVersion},
 		UnevaluatedProperties: falseSchema(),
 		Properties: map[string]*jsonschema.Schema{
-			"dsl": {
-				Type:        "string",
+			propDSL: {
+				Type:        typeString,
 				Title:       "WorkflowDSL",
 				Pattern:     semVerPattern,
 				Description: "The version of the DSL used by the workflow.",
 			},
-			"metadata": {
-				Type:                 "object",
+			propMetadata: {
+				Type:                 typeObject,
 				Title:                "WorkflowMetadata",
 				Description:          "Holds additional information about the workflow.",
 				AdditionalProperties: trueSchema(),
 				AllOf: []*jsonschema.Schema{
-					{Ref: SchemaRef("commonMetadata")},
-					{Ref: SchemaRef("documentMetadata")},
+					{Ref: SchemaRef(defCommonMetadata)},
+					{Ref: SchemaRef(defDocumentMetadata)},
 				},
 			},
-			"taskQueue": {
-				Type:        "string",
+			propTaskQueue: {
+				Type:        typeString,
 				Title:       "WorkflowTaskQueue",
 				Pattern:     dnsLabelPattern,
 				Description: "The Temporal task queue the workflow runs on.",
 			},
-			"workflowType": {
-				Type:        "string",
+			propWorkflowType: {
+				Type:        typeString,
 				Title:       "WorkflowType",
 				Pattern:     dnsLabelPattern,
 				Description: "The Temporal workflow type name.",
 			},
-			"summary": {
-				Type:        "string",
+			propSummary: {
+				Type:        typeString,
 				Title:       "WorkflowSummary",
 				Description: "The workflow's Markdown summary.",
 			},
 			"tags": {
-				Type:                 "object",
+				Type:                 typeObject,
 				Title:                "WorkflowTags",
 				Description:          "A key/value mapping of the workflow's tags, if any.",
 				AdditionalProperties: &jsonschema.Schema{},
 			},
 			"title": {
-				Type:        "string",
+				Type:        typeString,
 				Title:       "WorkflowTitle",
 				Description: "The workflow's title.",
 			},
-			"version": {
-				Type:        "string",
+			propVersion: {
+				Type:        typeString,
 				Title:       "WorkflowVersion",
 				Pattern:     semVerPattern,
 				Description: "The workflow's semantic version.",
 			},
 		},
 	},
-	"input": {
-		Ref:         SchemaRef("input"),
+	propInput: {
+		Ref:         SchemaRef(propInput),
 		Title:       "Input",
 		Description: "Configures the workflow's input.",
 	},
-	"output": {
-		Ref:         SchemaRef("output"),
+	propOutput: {
+		Ref:         SchemaRef(defOutput),
 		Title:       "Output",
 		Description: "Configures the workflow's output.",
 	},
 	"schedule": {
-		Type:                  "object",
+		Type:                  typeObject,
 		Title:                 "Schedule",
 		Description:           "Schedules the workflow.",
 		UnevaluatedProperties: falseSchema(),
 		Properties: map[string]*jsonschema.Schema{
-			"cron": {
-				Type:        "string",
+			propCron: {
+				Type:        typeString,
 				Title:       "ScheduleCron",
 				Description: "Specifies the schedule using a cron expression, e.g., '0 0 * * *' for daily at midnight.",
 			},
@@ -155,12 +155,12 @@ var schemaProperties = map[string]*jsonschema.Schema{
 			},
 		},
 	},
-	"timeout": {
+	defTimeout: {
 		Title:      "DoTimeout",
 		Deprecated: true,
 		OneOf: []*jsonschema.Schema{
 			{
-				Ref:         SchemaRef("timeout"),
+				Ref:         SchemaRef(defTimeout),
 				Title:       "TimeoutDefinition",
 				Description: "The workflow's timeout configuration, if any.",
 			},

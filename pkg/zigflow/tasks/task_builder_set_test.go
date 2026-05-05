@@ -29,8 +29,8 @@ import (
 func TestSetTaskBuilderBuild(t *testing.T) {
 	task := &model.SetTask{
 		Set: map[string]any{
-			"result": map[string]any{
-				"value": "${ $env.VALUE }",
+			testConstResult: map[string]any{
+				testConstValue: "${ $env.VALUE }",
 			},
 		},
 	}
@@ -42,7 +42,7 @@ func TestSetTaskBuilderBuild(t *testing.T) {
 	assert.NoError(t, err)
 
 	state := utils.NewState()
-	state.Env["VALUE"] = "ok"
+	state.Env["VALUE"] = testConstOK
 
 	var s testsuite.WorkflowTestSuite
 	env := s.NewTestWorkflowEnvironment()
@@ -58,11 +58,11 @@ func TestSetTaskBuilderBuild(t *testing.T) {
 	assert.NoError(t, env.GetWorkflowResult(&result))
 
 	expected := map[string]any{
-		"result": map[string]any{
-			"value": "ok",
+		testConstResult: map[string]any{
+			testConstValue: testConstOK,
 		},
 	}
 
 	assert.Equal(t, expected, result)
-	assert.Equal(t, expected["result"], state.Data["result"])
+	assert.Equal(t, expected[testConstResult], state.Data[testConstResult])
 }

@@ -20,6 +20,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+const stageInput = "input"
+
 type MCP struct {
 	version string
 }

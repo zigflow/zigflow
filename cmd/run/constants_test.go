@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package tasks
+package run
 
-const customCallFunctionActivity = "activity"
-
+// Test constants shared across the cmd/run test suite to satisfy the goconst
+// linter, which requires string literals appearing 3+ times to be named.
 const (
-	constKeyInput             = "input"
-	constKeyState             = "state"
-	constDefaultItemVar       = "item"
-	constDefaultNamespace     = "default"
-	constScriptLanguagePython = "python"
+	testEnableVersioningTrue = "true"
+	testWorkflowPathA        = "/a/workflow.yaml"
+	testDirectoryGlob        = "*.yaml"
+	testTemporalServerName   = "your-namespace.tmprl.cloud"
+	testSourceFileA          = "a.yaml"
+	testSourceFileB          = "b.yaml"
+	testWorkflowType         = "wf"
 )

@@ -29,7 +29,7 @@ import (
 // signalFS builds a minimal embedded FS containing the "signal" example.
 func signalFS() fstest.MapFS {
 	return exampleFS(map[string]string{
-		"signal/workflow.yaml": "document:\n  title: Signal\n  summary: Signal example\ndo: []\n",
+		signalWorkflowYAML: "document:\n  title: Signal\n  summary: Signal example\ndo: []\n",
 	})
 }
 

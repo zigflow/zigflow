@@ -69,9 +69,9 @@ func TestInitTemporalClient_ServerNamePropagation(t *testing.T) {
 		{
 			name:           "server name is propagated when TLS is enabled",
 			tlsEnabled:     true,
-			serverName:     "your-namespace.tmprl.cloud",
+			serverName:     testTemporalServerName,
 			expectTLSBlock: true,
-			expectSNI:      "your-namespace.tmprl.cloud",
+			expectSNI:      testTemporalServerName,
 		},
 		{
 			name:           "empty server name leaves SNI unset when TLS is enabled",
@@ -83,7 +83,7 @@ func TestInitTemporalClient_ServerNamePropagation(t *testing.T) {
 		{
 			name:           "no TLS block when TLS is disabled, even with server name set",
 			tlsEnabled:     false,
-			serverName:     "your-namespace.tmprl.cloud",
+			serverName:     testTemporalServerName,
 			expectTLSBlock: false,
 		},
 	}

@@ -159,8 +159,8 @@ func (t *ForTaskBuilder) addIterationResult(ctx workflow.Context, state *utils.S
 		e.SetID(workflowID)
 		e.SetSubject(taskName)
 		_ = e.SetData(ceSDK.ApplicationJSON, map[string]any{
-			"state": state,
-			"while": t.task.While,
+			constKeyState: state,
+			"while":       t.task.While,
 		})
 	})
 }
@@ -300,7 +300,7 @@ func (t *ForTaskBuilder) iterator(ctx workflow.Context, key, value any, workingS
 	}
 	valueVar := t.task.For.Each
 	if valueVar == "" {
-		valueVar = "item"
+		valueVar = constDefaultItemVar
 	}
 
 	// Build a per-iteration state that adds the loop-local variables.

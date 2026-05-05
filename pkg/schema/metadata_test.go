@@ -72,7 +72,7 @@ func withTaskMetadata(meta map[string]any) map[string]any {
 func TestMetadataDefinitionsPresent(t *testing.T) {
 	defs := buildDefinitions()
 
-	for _, key := range []string{"commonMetadata", "documentMetadata", "taskMetadata"} {
+	for _, key := range []string{defCommonMetadata, defDocumentMetadata, defTaskMetadata} {
 		assert.Contains(t, defs, key, "buildDefinitions() must contain %q", key)
 	}
 }
@@ -83,33 +83,33 @@ func TestMetadataDefinitionsPresent(t *testing.T) {
 func TestCommonMetadataDefinitionShape(t *testing.T) {
 	def := commonMetadataDefinition
 
-	assert.Equal(t, "object", def.Type)
+	assert.Equal(t, typeObject, def.Type)
 	assert.True(t, isOpenSchema(def.AdditionalProperties),
 		"commonMetadata must be open (additionalProperties: true)")
 
-	require.Contains(t, def.Properties, "activityOptions")
-	actOpts := def.Properties["activityOptions"]
+	require.Contains(t, def.Properties, propActivityOptions)
+	actOpts := def.Properties[propActivityOptions]
 
 	// All expected activity-options sub-keys must be present.
 	for _, key := range []string{
-		"disableEagerExecution",
-		"heartbeatTimeout",
-		"retryPolicy",
+		propDisableEager,
+		propHeartbeatTimeout,
+		propRetryPolicy,
 		"scheduleToCloseTimeout",
 		"scheduleToStartTimeout",
-		"startToCloseTimeout",
-		"summary",
+		propStartToCloseTimeout,
+		propSummary,
 	} {
 		assert.Contains(t, actOpts.Properties, key,
 			"activityOptions must have property %q", key)
 	}
 
-	assert.Equal(t, "boolean", actOpts.Properties["disableEagerExecution"].Type)
-	assert.Equal(t, SchemaRef("duration"), actOpts.Properties["heartbeatTimeout"].Ref)
+	assert.Equal(t, typeBoolean, actOpts.Properties[propDisableEager].Type)
+	assert.Equal(t, SchemaRef("duration"), actOpts.Properties[propHeartbeatTimeout].Ref)
 	assert.Equal(t, SchemaRef("duration"), actOpts.Properties["scheduleToCloseTimeout"].Ref)
 	assert.Equal(t, SchemaRef("duration"), actOpts.Properties["scheduleToStartTimeout"].Ref)
-	assert.Equal(t, SchemaRef("duration"), actOpts.Properties["startToCloseTimeout"].Ref)
-	assert.Equal(t, "string", actOpts.Properties["summary"].Type)
+	assert.Equal(t, SchemaRef("duration"), actOpts.Properties[propStartToCloseTimeout].Ref)
+	assert.Equal(t, typeString, actOpts.Properties[propSummary].Type)
 }
 
 // TestRetryPolicyDefinitionShape verifies that retryPolicy inside
@@ -117,18 +117,18 @@ func TestCommonMetadataDefinitionShape(t *testing.T) {
 // closed (additionalProperties: false) so that unknown retry keys are
 // rejected.
 func TestRetryPolicyDefinitionShape(t *testing.T) {
-	actOpts := commonMetadataDefinition.Properties["activityOptions"]
-	require.Contains(t, actOpts.Properties, "retryPolicy")
-	rp := actOpts.Properties["retryPolicy"]
+	actOpts := commonMetadataDefinition.Properties[propActivityOptions]
+	require.Contains(t, actOpts.Properties, propRetryPolicy)
+	rp := actOpts.Properties[propRetryPolicy]
 
-	assert.Equal(t, "object", rp.Type)
+	assert.Equal(t, typeObject, rp.Type)
 	assert.False(t, isOpenSchema(rp.AdditionalProperties),
 		"retryPolicy must be closed (additionalProperties: false)")
 
 	for _, key := range []string{
 		"backoffCoefficient",
 		"initialInterval",
-		"maximumAttempts",
+		propMaximumAttempts,
 		"maximumInterval",
 		"nonRetryableErrorTypes",
 	} {
@@ -136,14 +136,14 @@ func TestRetryPolicyDefinitionShape(t *testing.T) {
 	}
 
 	assert.Equal(t, "number", rp.Properties["backoffCoefficient"].Type)
-	assert.Equal(t, "integer", rp.Properties["maximumAttempts"].Type)
+	assert.Equal(t, typeInteger, rp.Properties[propMaximumAttempts].Type)
 	assert.Equal(t, SchemaRef("duration"), rp.Properties["initialInterval"].Ref)
 	assert.Equal(t, SchemaRef("duration"), rp.Properties["maximumInterval"].Ref)
 
 	nonRetryable := rp.Properties["nonRetryableErrorTypes"]
-	assert.Equal(t, "array", nonRetryable.Type)
+	assert.Equal(t, typeArray, nonRetryable.Type)
 	require.NotNil(t, nonRetryable.Items)
-	assert.Equal(t, "string", nonRetryable.Items.Type)
+	assert.Equal(t, typeString, nonRetryable.Items.Type)
 }
 
 // TestDocumentMetadataDefinitionShape verifies that documentMetadataDefinition
@@ -152,24 +152,24 @@ func TestRetryPolicyDefinitionShape(t *testing.T) {
 func TestDocumentMetadataDefinitionShape(t *testing.T) {
 	def := documentMetadataDefinition
 
-	assert.Equal(t, "object", def.Type)
+	assert.Equal(t, typeObject, def.Type)
 	assert.True(t, isOpenSchema(def.AdditionalProperties),
 		"documentMetadata must be open (additionalProperties: true)")
 
 	for _, key := range []string{
-		"canMaxHistoryLength",
-		"scheduleWorkflowName",
-		"scheduleId",
-		"scheduleInput",
+		propCanMaxHistory,
+		propScheduleWorkflowName,
+		propScheduleID,
+		propScheduleInput,
 	} {
 		assert.Contains(t, def.Properties, key,
 			"documentMetadata must have property %q", key)
 	}
 
-	assert.Equal(t, "integer", def.Properties["canMaxHistoryLength"].Type)
-	assert.Equal(t, "string", def.Properties["scheduleWorkflowName"].Type)
-	assert.Equal(t, "string", def.Properties["scheduleId"].Type)
-	assert.Equal(t, "array", def.Properties["scheduleInput"].Type)
+	assert.Equal(t, typeInteger, def.Properties[propCanMaxHistory].Type)
+	assert.Equal(t, typeString, def.Properties[propScheduleWorkflowName].Type)
+	assert.Equal(t, typeString, def.Properties[propScheduleID].Type)
+	assert.Equal(t, typeArray, def.Properties[propScheduleInput].Type)
 }
 
 // TestTaskMetadataDefinitionShape verifies that taskMetadataDefinition
@@ -177,37 +177,37 @@ func TestDocumentMetadataDefinitionShape(t *testing.T) {
 func TestTaskMetadataDefinitionShape(t *testing.T) {
 	def := taskMetadataDefinition
 
-	assert.Equal(t, "object", def.Type)
+	assert.Equal(t, typeObject, def.Type)
 	assert.True(t, isOpenSchema(def.AdditionalProperties),
 		"taskMetadata must be open (additionalProperties: true)")
 
-	require.Contains(t, def.Properties, "__zigflow_id")
-	assert.Equal(t, "string", def.Properties["__zigflow_id"].Type)
+	require.Contains(t, def.Properties, propZigflowID)
+	assert.Equal(t, typeString, def.Properties[propZigflowID].Type)
 
-	require.Contains(t, def.Properties, "heartbeat")
-	assert.Equal(t, SchemaRef("duration"), def.Properties["heartbeat"].Ref)
+	require.Contains(t, def.Properties, propHeartbeat)
+	assert.Equal(t, SchemaRef("duration"), def.Properties[propHeartbeat].Ref)
 }
 
 // TestTaskBaseMetadataAllOf verifies that taskBase wires metadata through
 // both commonMetadata and taskMetadata.
 func TestTaskBaseMetadataAllOf(t *testing.T) {
-	meta := taskBaseDefinition.Properties["metadata"]
+	meta := taskBaseDefinition.Properties[propMetadata]
 	require.NotNil(t, meta, "taskBase must have a metadata property")
 
 	refs := schemaRefs(meta.AllOf)
-	assert.Contains(t, refs, SchemaRef("commonMetadata"))
+	assert.Contains(t, refs, SchemaRef(defCommonMetadata))
 	assert.Contains(t, refs, SchemaRef("taskMetadata"))
 }
 
 // TestDocumentMetadataAllOf verifies that the document.metadata property in
 // the root schema wires through both commonMetadata and documentMetadata.
 func TestDocumentMetadataAllOf(t *testing.T) {
-	meta := schemaProperties["document"].Properties["metadata"]
+	meta := schemaProperties[propDocument].Properties[propMetadata]
 	require.NotNil(t, meta, "document must have a metadata property")
 
 	refs := schemaRefs(meta.AllOf)
-	assert.Contains(t, refs, SchemaRef("commonMetadata"))
-	assert.Contains(t, refs, SchemaRef("documentMetadata"))
+	assert.Contains(t, refs, SchemaRef(defCommonMetadata))
+	assert.Contains(t, refs, SchemaRef(defDocumentMetadata))
 }
 
 // --- validation tests ---------------------------------------------------------
@@ -237,7 +237,7 @@ func TestDocumentMetadata_Validation(t *testing.T) {
 		},
 		{
 			name: "canMaxHistoryLength integer is accepted",
-			meta: map[string]any{"canMaxHistoryLength": 100},
+			meta: map[string]any{propCanMaxHistory: 100},
 		},
 		{
 			name: "unknown metadata key is accepted (open schema)",
@@ -246,16 +246,16 @@ func TestDocumentMetadata_Validation(t *testing.T) {
 		{
 			name: "activityOptions with valid startToCloseTimeout is accepted",
 			meta: map[string]any{
-				"activityOptions": map[string]any{
-					"startToCloseTimeout": map[string]any{"seconds": 30},
+				propActivityOptions: map[string]any{
+					"startToCloseTimeout": map[string]any{propSeconds: 30},
 				},
 			},
 		},
 		{
 			name: "activityOptions with valid retryPolicy is accepted",
 			meta: map[string]any{
-				"activityOptions": map[string]any{
-					"retryPolicy": map[string]any{"maximumAttempts": 3},
+				propActivityOptions: map[string]any{
+					propRetryPolicy: map[string]any{"maximumAttempts": 3},
 				},
 			},
 		},
@@ -268,19 +268,19 @@ func TestDocumentMetadata_Validation(t *testing.T) {
 		},
 		{
 			name:        "canMaxHistoryLength as string is rejected",
-			meta:        map[string]any{"canMaxHistoryLength": "not-an-int"},
+			meta:        map[string]any{propCanMaxHistory: "not-an-int"},
 			expectError: true,
 		},
 		{
 			name:        "activityOptions.disableEagerExecution as string is rejected",
-			meta:        map[string]any{"activityOptions": map[string]any{"disableEagerExecution": "yes"}},
+			meta:        map[string]any{propActivityOptions: map[string]any{propDisableEager: "yes"}},
 			expectError: true,
 		},
 		{
 			name: "unknown key in retryPolicy is rejected (closed schema)",
 			meta: map[string]any{
-				"activityOptions": map[string]any{
-					"retryPolicy": map[string]any{"unknownRetryKey": "val"},
+				propActivityOptions: map[string]any{
+					propRetryPolicy: map[string]any{"unknownRetryKey": "val"},
 				},
 			},
 			expectError: true,
@@ -313,11 +313,11 @@ func TestTaskMetadata_Validation(t *testing.T) {
 		// ---- valid cases ----
 		{
 			name: "__zigflow_id string is accepted",
-			meta: map[string]any{"__zigflow_id": "abc-123"},
+			meta: map[string]any{propZigflowID: "abc-123"},
 		},
 		{
 			name: "heartbeat duration object is accepted",
-			meta: map[string]any{"heartbeat": map[string]any{"seconds": 30}},
+			meta: map[string]any{propHeartbeat: map[string]any{propSeconds: 30}},
 		},
 		{
 			name: "unknown task metadata key is accepted (open schema)",
@@ -326,8 +326,8 @@ func TestTaskMetadata_Validation(t *testing.T) {
 		{
 			name: "activityOptions with valid heartbeatTimeout is accepted",
 			meta: map[string]any{
-				"activityOptions": map[string]any{
-					"heartbeatTimeout": map[string]any{"minutes": 1},
+				propActivityOptions: map[string]any{
+					propHeartbeatTimeout: map[string]any{propMinutes: 1},
 				},
 			},
 		},
@@ -335,26 +335,26 @@ func TestTaskMetadata_Validation(t *testing.T) {
 		// ---- invalid cases ----
 		{
 			name:        "__zigflow_id as integer is rejected",
-			meta:        map[string]any{"__zigflow_id": 99},
+			meta:        map[string]any{propZigflowID: 99},
 			expectError: true,
 		},
 		{
 			name:        "heartbeat as plain string is rejected",
-			meta:        map[string]any{"heartbeat": "30s"},
+			meta:        map[string]any{propHeartbeat: "30s"},
 			expectError: true,
 		},
 		{
 			name: "unknown key in retryPolicy is rejected (closed schema)",
 			meta: map[string]any{
-				"activityOptions": map[string]any{
-					"retryPolicy": map[string]any{"bogusKey": true},
+				propActivityOptions: map[string]any{
+					propRetryPolicy: map[string]any{"bogusKey": true},
 				},
 			},
 			expectError: true,
 		},
 		{
 			name:        "activityOptions.disableEagerExecution as string is rejected",
-			meta:        map[string]any{"activityOptions": map[string]any{"disableEagerExecution": "true"}},
+			meta:        map[string]any{propActivityOptions: map[string]any{propDisableEager: "true"}},
 			expectError: true,
 		},
 	}

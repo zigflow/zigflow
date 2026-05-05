@@ -38,19 +38,19 @@ func TestPreRunE_VersioningValidation(t *testing.T) {
 	}{
 		{
 			name:             "invalid versioning type returns error when versioning enabled",
-			enableVersioning: "true",
+			enableVersioning: testEnableVersioningTrue,
 			versioningType:   "not-a-valid-type",
 			wantErr:          true,
 			errContains:      "invalid default versioning behaviour type",
 		},
 		{
 			name:             "valid pinned type succeeds",
-			enableVersioning: "true",
+			enableVersioning: testEnableVersioningTrue,
 			versioningType:   "pinned",
 		},
 		{
 			name:             "valid autoupgrade type succeeds",
-			enableVersioning: "true",
+			enableVersioning: testEnableVersioningTrue,
 			versioningType:   "autoupgrade",
 		},
 		{

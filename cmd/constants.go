@@ -14,14 +14,9 @@
  * limitations under the License.
  */
 
-package tasks
-
-const customCallFunctionActivity = "activity"
+package cmd
 
 const (
-	constKeyInput             = "input"
-	constKeyState             = "state"
-	constDefaultItemVar       = "item"
-	constDefaultNamespace     = "default"
-	constScriptLanguagePython = "python"
+	errMsgUnableToLoadWorkflowFile = "Unable to load workflow file"
+	errMsgUnableToReadTargetFile   = "Unable to read target file"
 )

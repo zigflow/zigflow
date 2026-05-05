@@ -33,12 +33,19 @@ import (
 	"go.temporal.io/sdk/testsuite"
 )
 
+const (
+	testHello           = "hello"
+	testShellCmd        = "sh"
+	testShellFlag       = "-c"
+	testImageNeverExist = "zigflow-test-does-not-exist:never"
+)
+
 func TestStdToString(t *testing.T) {
 	r := &Run{}
 	cases := []struct{ input, want string }{
 		{"", ""},
-		{"hello", "hello"},
-		{"\nhello\n", "hello"},
+		{testHello, testHello},
+		{"\nhello\n", testHello},
 		{"  hello world  ", "hello world"},
 	}
 	for _, c := range cases {
@@ -59,11 +66,11 @@ func TestCallShellActivity(t *testing.T) {
 		{
 			name: "stdout is returned trimmed",
 			task: &model.RunTask{Run: model.RunTaskConfiguration{Shell: &model.Shell{
-				Command:   "sh",
-				Arguments: &model.RunArguments{Value: []string{"-c", "echo hello"}},
+				Command:   testShellCmd,
+				Arguments: &model.RunArguments{Value: []string{testShellFlag, "echo hello"}},
 			}}},
 			state: utils.NewState(),
-			want:  "hello",
+			want:  testHello,
 		},
 		{
 			name: "nil args are tolerated",
@@ -77,8 +84,8 @@ func TestCallShellActivity(t *testing.T) {
 		{
 			name: "environment variables are passed through",
 			task: &model.RunTask{Run: model.RunTaskConfiguration{Shell: &model.Shell{
-				Command:     "sh",
-				Arguments:   &model.RunArguments{Value: []string{"-c", `printf "%s" "$MY_VAR"`}},
+				Command:     testShellCmd,
+				Arguments:   &model.RunArguments{Value: []string{testShellFlag, `printf "%s" "$MY_VAR"`}},
 				Environment: map[string]string{"MY_VAR": "my-value"},
 			}}},
 			state: utils.NewState(),
@@ -87,8 +94,8 @@ func TestCallShellActivity(t *testing.T) {
 		{
 			name: "state expressions in environment are interpolated",
 			task: &model.RunTask{Run: model.RunTaskConfiguration{Shell: &model.Shell{
-				Command:     "sh",
-				Arguments:   &model.RunArguments{Value: []string{"-c", `printf "%s" "$OPENAI_API_KEY"`}},
+				Command:     testShellCmd,
+				Arguments:   &model.RunArguments{Value: []string{testShellFlag, `printf "%s" "$OPENAI_API_KEY"`}},
 				Environment: map[string]string{"OPENAI_API_KEY": "${ $env.OPENAI_API_KEY }"},
 			}}},
 			state: func() *utils.State {
@@ -102,16 +109,16 @@ func TestCallShellActivity(t *testing.T) {
 			name: "command field is used as the executable with arguments forwarded",
 			task: &model.RunTask{Run: model.RunTaskConfiguration{Shell: &model.Shell{
 				Command:   "echo",
-				Arguments: &model.RunArguments{Value: []string{"hello"}},
+				Arguments: &model.RunArguments{Value: []string{testHello}},
 			}}},
 			state: utils.NewState(),
-			want:  "hello",
+			want:  testHello,
 		},
 		{
 			name: "non-zero exit code is surfaced as error",
 			task: &model.RunTask{Run: model.RunTaskConfiguration{Shell: &model.Shell{
-				Command:   "sh",
-				Arguments: &model.RunArguments{Value: []string{"-c", "exit 1"}},
+				Command:   testShellCmd,
+				Arguments: &model.RunArguments{Value: []string{testShellFlag, "exit 1"}},
 			}}},
 			state:   utils.NewState(),
 			wantErr: true,
@@ -158,7 +165,7 @@ func TestCallContainerActivityEnvExpressionsUseActivityEnrichedState(t *testing.
 	task := &model.RunTask{
 		Run: model.RunTaskConfiguration{
 			Container: &model.Container{
-				Image: "zigflow-test-does-not-exist:never",
+				Image: testImageNeverExist,
 				Environment: map[string]string{
 					// Raises a jq error when $data.activity is absent (raw state).
 					// Resolves cleanly when state is enriched with activity info.
@@ -192,7 +199,7 @@ func TestCallContainerActivityNonStringEnvVarFormattedCorrectly(t *testing.T) {
 	task := &model.RunTask{
 		Run: model.RunTaskConfiguration{
 			Container: &model.Container{
-				Image: "zigflow-test-does-not-exist:never",
+				Image: testImageNeverExist,
 				Environment: map[string]string{
 					"INT_VAR":  "${ 1 }",
 					"BOOL_VAR": "${ true }",
@@ -225,7 +232,7 @@ func TestCallContainerActivityNilEnvVarCoercedToEmpty(t *testing.T) {
 		Run: model.RunTaskConfiguration{
 			Container: &model.Container{
 				// Deliberately nonexistent image — docker fails fast without running anything.
-				Image: "zigflow-test-does-not-exist:never",
+				Image: testImageNeverExist,
 				Environment: map[string]string{
 					"MY_VAR": "${ null }", // jq null evaluates to nil in Go
 				},
@@ -253,7 +260,7 @@ func TestRunExecCommandRespectsWorkingDirectory(t *testing.T) {
 	testActivity := func(ctx context.Context) (any, error) {
 		return run.runExecCommand(
 			ctx,
-			[]string{"sh"}, &model.RunArguments{Value: []string{"-c", "pwd"}},
+			[]string{testShellCmd}, &model.RunArguments{Value: []string{testShellFlag, "pwd"}},
 			nil, utils.NewState(), dir, &model.TaskBase{},
 		)
 	}
@@ -279,7 +286,7 @@ func TestCallScriptActivityExternalSource(t *testing.T) {
 	}{
 		{
 			name:   "external file source is fetched and executed",
-			binary: "node",
+			binary: scriptCmdNode,
 			want:   "hello from file",
 			makeTask: func(t *testing.T) (*model.RunTask, *utils.State) {
 				f, err := os.CreateTemp("", "*.js")
@@ -291,7 +298,7 @@ func TestCallScriptActivityExternalSource(t *testing.T) {
 				return &model.RunTask{
 					Run: model.RunTaskConfiguration{
 						Script: &model.Script{
-							Language: "js",
+							Language: scriptLangJS,
 							External: &model.ExternalResource{
 								Endpoint: model.NewEndpoint("file://" + f.Name()),
 							},
@@ -302,7 +309,7 @@ func TestCallScriptActivityExternalSource(t *testing.T) {
 		},
 		{
 			name:   "external HTTP source is fetched and executed",
-			binary: "node",
+			binary: scriptCmdNode,
 			want:   "hello from http",
 			makeTask: func(t *testing.T) (*model.RunTask, *utils.State) {
 				srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -312,7 +319,7 @@ func TestCallScriptActivityExternalSource(t *testing.T) {
 				return &model.RunTask{
 					Run: model.RunTaskConfiguration{
 						Script: &model.Script{
-							Language: "js",
+							Language: scriptLangJS,
 							External: &model.ExternalResource{
 								Endpoint: model.NewEndpoint(srv.URL + "/script.js"),
 							},
@@ -329,7 +336,7 @@ func TestCallScriptActivityExternalSource(t *testing.T) {
 				return &model.RunTask{
 					Run: model.RunTaskConfiguration{
 						Script: &model.Script{
-							Language: "js",
+							Language: scriptLangJS,
 							External: &model.ExternalResource{
 								Endpoint: &model.Endpoint{
 									URITemplate: &model.LiteralUri{Value: "ftp://example.com/script.js"},
@@ -344,7 +351,7 @@ func TestCallScriptActivityExternalSource(t *testing.T) {
 			// The endpoint is a runtime expression that resolves to the test server URL
 			// via $env.SCRIPT_URL. Verifies EvaluateString is called before ReadURLContents.
 			name:   "runtime-expression endpoint is evaluated before fetching",
-			binary: "node",
+			binary: scriptCmdNode,
 			want:   "hello from expression",
 			makeTask: func(t *testing.T) (*model.RunTask, *utils.State) {
 				srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -356,7 +363,7 @@ func TestCallScriptActivityExternalSource(t *testing.T) {
 				return &model.RunTask{
 					Run: model.RunTaskConfiguration{
 						Script: &model.Script{
-							Language: "js",
+							Language: scriptLangJS,
 							External: &model.ExternalResource{
 								Endpoint: &model.Endpoint{
 									RuntimeExpression: model.NewExpr("${ $env.SCRIPT_URL }"),
@@ -375,7 +382,7 @@ func TestCallScriptActivityExternalSource(t *testing.T) {
 				return &model.RunTask{
 					Run: model.RunTaskConfiguration{
 						Script: &model.Script{
-							Language: "js",
+							Language: scriptLangJS,
 							External: &model.ExternalResource{
 								// Endpoint intentionally nil
 							},
@@ -436,24 +443,24 @@ func TestCallScriptActivity(t *testing.T) {
 		},
 		{
 			name:   "js script is executed and stdout is captured",
-			lang:   "js",
+			lang:   scriptLangJS,
 			code:   `process.stdout.write("hello from js")`,
-			binary: "node",
+			binary: scriptCmdNode,
 			want:   "hello from js",
 		},
 		{
 			name:   "python script is executed and stdout is captured",
-			lang:   "python",
+			lang:   scriptLangPython,
 			code:   `import sys; sys.stdout.write("hello from python")`,
-			binary: "python",
+			binary: scriptLangPython,
 			want:   "hello from python",
 		},
 		{
 			name:   "script arguments are forwarded after the script file",
-			lang:   "js",
+			lang:   scriptLangJS,
 			code:   `process.stdout.write(process.argv.slice(2).join(","))`,
 			args:   &model.RunArguments{Value: []string{"x", "y"}},
-			binary: "node",
+			binary: scriptCmdNode,
 			want:   "x,y",
 		},
 	}

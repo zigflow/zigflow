@@ -20,36 +20,42 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+const (
+	metricNamespace = "zigflow"
+	metricSubsystem = "events"
+	labelEmitter    = "emitter"
+)
+
 var (
 	EventsEmittedTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: "zigflow",
-			Subsystem: "events",
+			Namespace: metricNamespace,
+			Subsystem: metricSubsystem,
 			Name:      "emitted_total",
 			Help:      "Total number of CloudEvents emitted",
 		},
-		[]string{"emitter", "type"},
+		[]string{labelEmitter, "type"},
 	)
 
 	EventsUndeliveredTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: "zigflow",
-			Subsystem: "events",
+			Namespace: metricNamespace,
+			Subsystem: metricSubsystem,
 			Name:      "undelivered_total",
 			Help:      "Total number of CloudEvents that failed delivery",
 		},
-		[]string{"emitter", "type"},
+		[]string{labelEmitter, "type"},
 	)
 
 	EventEmitDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace: "zigflow",
-			Subsystem: "events",
+			Namespace: metricNamespace,
+			Subsystem: metricSubsystem,
 			Name:      "emit_duration_seconds",
 			Help:      "Time taken to emit CloudEvents",
 			Buckets:   prometheus.DefBuckets,
 		},
-		[]string{"emitter"},
+		[]string{labelEmitter},
 	)
 )
 

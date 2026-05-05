@@ -25,6 +25,11 @@ import (
 	"github.com/zigflow/zigflow/pkg/graph"
 )
 
+const (
+	callHTTP  = "http"
+	methodGet = "get"
+)
+
 // makeWF is a helper that constructs a minimal Workflow for testing.
 func makeWF(name string, tasks ...*model.TaskItem) *model.Workflow {
 	tl := model.TaskList(make([]*model.TaskItem, len(tasks)))
@@ -110,8 +115,8 @@ func TestMermaid_HTTPLabel(t *testing.T) {
 	ep := model.NewEndpoint("https://example.com/api")
 	wf := makeWF("mywf",
 		taskItem("fetch", &model.CallHTTP{
-			Call: "http",
-			With: model.HTTPArguments{Method: "get", Endpoint: ep},
+			Call: callHTTP,
+			With: model.HTTPArguments{Method: methodGet, Endpoint: ep},
 		}),
 	)
 	out, err := gen.Generate(wf)
@@ -233,7 +238,7 @@ func TestMermaid_TryNode(t *testing.T) {
 	gen, _ := graph.New(graph.FormatMermaid)
 	tryTasks := model.TaskList([]*model.TaskItem{
 		taskItem("risky", &model.CallHTTP{
-			Call: "http",
+			Call: callHTTP,
 			With: model.HTTPArguments{
 				Method:   "get",
 				Endpoint: model.NewEndpoint("https://example.com"),
@@ -347,8 +352,8 @@ func TestMermaid_LabelTruncation(t *testing.T) {
 	ep := model.NewEndpoint(longURL)
 	wf := makeWF("mywf",
 		taskItem("fetch", &model.CallHTTP{
-			Call: "http",
-			With: model.HTTPArguments{Method: "get", Endpoint: ep},
+			Call: callHTTP,
+			With: model.HTTPArguments{Method: methodGet, Endpoint: ep},
 		}),
 	)
 	out, err := gen.Generate(wf)

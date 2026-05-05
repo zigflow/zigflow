@@ -125,12 +125,14 @@ func TestSetActivityOptionsWorkflowTimeoutOverride(t *testing.T) {
 	assert.Equal(t, 2*time.Minute, opts.StartToCloseTimeout)
 }
 
+const testKeyStartToCloseTimeout = "startToCloseTimeout"
+
 func TestSetActivityOptionsGlobalMetadataOverride(t *testing.T) {
 	wf := &model.Workflow{
 		Document: model.Document{
 			Metadata: map[string]any{
 				metadata.MetadataActivityOptions: map[string]any{
-					"startToCloseTimeout": map[string]any{"minutes": 3},
+					testKeyStartToCloseTimeout: map[string]any{"minutes": 3},
 				},
 			},
 		},
@@ -149,7 +151,7 @@ func TestSetActivityOptionsTaskMetadataOverridePrecedence(t *testing.T) {
 		Document: model.Document{
 			Metadata: map[string]any{
 				metadata.MetadataActivityOptions: map[string]any{
-					"startToCloseTimeout": map[string]any{"minutes": 3},
+					testKeyStartToCloseTimeout: map[string]any{"minutes": 3},
 				},
 			},
 		},
@@ -162,7 +164,7 @@ func TestSetActivityOptionsTaskMetadataOverridePrecedence(t *testing.T) {
 	task := &model.TaskBase{
 		Metadata: map[string]any{
 			metadata.MetadataActivityOptions: map[string]any{
-				"startToCloseTimeout": map[string]any{"seconds": 30},
+				testKeyStartToCloseTimeout: map[string]any{"seconds": 30},
 			},
 		},
 	}

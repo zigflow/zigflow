@@ -29,7 +29,7 @@ import (
 
 func TestDiscoverWorkflowFiles_NoFilesError(t *testing.T) {
 	_, err := discoverWorkflowFiles(&runOptions{
-		DirectoryGlob: "*.yaml",
+		DirectoryGlob: testDirectoryGlob,
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "No workflow files found")
@@ -41,7 +41,7 @@ func TestDiscoverWorkflowFiles_ExplicitFiles(t *testing.T) {
 
 	files, err := discoverWorkflowFiles(&runOptions{
 		Files:         []string{p},
-		DirectoryGlob: "*.yaml",
+		DirectoryGlob: testDirectoryGlob,
 	})
 	require.NoError(t, err)
 	assert.Len(t, files, 1)
@@ -55,7 +55,7 @@ func TestDiscoverWorkflowFiles_DirectoryGlob(t *testing.T) {
 
 	files, err := discoverWorkflowFiles(&runOptions{
 		DirectoryPath: dir,
-		DirectoryGlob: "*.yaml",
+		DirectoryGlob: testDirectoryGlob,
 	})
 	require.NoError(t, err)
 	assert.Len(t, files, 2)
@@ -69,7 +69,7 @@ func TestDiscoverWorkflowFiles_MergesFilesAndDirectory(t *testing.T) {
 	files, err := discoverWorkflowFiles(&runOptions{
 		Files:         []string{p1},
 		DirectoryPath: dir,
-		DirectoryGlob: "*.yaml",
+		DirectoryGlob: testDirectoryGlob,
 	})
 	require.NoError(t, err)
 	// p1 discovered by both sources; must appear exactly once.
@@ -85,7 +85,7 @@ func TestDiscoverWorkflowFiles_DeduplicatesRelativeAndAbsolute(t *testing.T) {
 	// Pass both the absolute path and a path that resolves to the same file.
 	files, err := discoverWorkflowFiles(&runOptions{
 		Files:         []string{p, p},
-		DirectoryGlob: "*.yaml",
+		DirectoryGlob: testDirectoryGlob,
 	})
 	require.NoError(t, err)
 	assert.Len(t, files, 1)
@@ -95,7 +95,7 @@ func TestDiscoverWorkflowFiles_InvalidGlobError(t *testing.T) {
 	// An invalid directory causes the glob to fail.
 	_, err := discoverWorkflowFiles(&runOptions{
 		DirectoryPath: string([]byte{0}), // NUL in path is rejected by the OS
-		DirectoryGlob: "*.yaml",
+		DirectoryGlob: testDirectoryGlob,
 	})
 	assert.Error(t, err)
 }
@@ -168,8 +168,8 @@ do:
 
 func TestValidateWorkflowConflicts_DuplicateNameSameQueue(t *testing.T) {
 	regs := []*workflowRegistration{
-		{SourceFile: "a.yaml", TaskQueue: "q", WorkflowType: "wf"},
-		{SourceFile: "b.yaml", TaskQueue: "q", WorkflowType: "wf"},
+		{SourceFile: testSourceFileA, TaskQueue: "q", WorkflowType: testWorkflowType},
+		{SourceFile: testSourceFileB, TaskQueue: "q", WorkflowType: testWorkflowType},
 	}
 	err := validateWorkflowConflicts(regs)
 	assert.Error(t, err)
@@ -178,16 +178,16 @@ func TestValidateWorkflowConflicts_DuplicateNameSameQueue(t *testing.T) {
 
 func TestValidateWorkflowConflicts_SameNameDifferentQueues(t *testing.T) {
 	regs := []*workflowRegistration{
-		{SourceFile: "a.yaml", TaskQueue: "q1", WorkflowType: "wf"},
-		{SourceFile: "b.yaml", TaskQueue: "q2", WorkflowType: "wf"},
+		{SourceFile: testSourceFileA, TaskQueue: "q1", WorkflowType: testWorkflowType},
+		{SourceFile: testSourceFileB, TaskQueue: "q2", WorkflowType: testWorkflowType},
 	}
 	assert.NoError(t, validateWorkflowConflicts(regs))
 }
 
 func TestValidateWorkflowConflicts_DifferentNamesSameQueue(t *testing.T) {
 	regs := []*workflowRegistration{
-		{SourceFile: "a.yaml", TaskQueue: "q", WorkflowType: "wf1"},
-		{SourceFile: "b.yaml", TaskQueue: "q", WorkflowType: "wf2"},
+		{SourceFile: testSourceFileA, TaskQueue: "q", WorkflowType: "wf1"},
+		{SourceFile: testSourceFileB, TaskQueue: "q", WorkflowType: "wf2"},
 	}
 	assert.NoError(t, validateWorkflowConflicts(regs))
 }
@@ -201,7 +201,7 @@ func TestPrepareRegistrations_HappyPath(t *testing.T) {
 
 	opts := &runOptions{
 		DirectoryPath: dir,
-		DirectoryGlob: "*.yaml",
+		DirectoryGlob: testDirectoryGlob,
 		Validate:      false,
 	}
 

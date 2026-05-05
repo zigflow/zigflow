@@ -69,12 +69,12 @@ func TestNewGraphInjectCmd(t *testing.T) {
 			Name:          "explicit workflow injects mermaid graph",
 			WorkflowYAML:  validWorkflowYAML,
 			TargetContent: targetWithMarkers,
-			ExtraArgs:     []string{"--workflow", "PLACEHOLDER_WORKFLOW"},
+			ExtraArgs:     []string{testFlagWorkflow, testPlaceholderWorkflow},
 			OutputContains: []string{
 				"<!-- ZIGFLOW_GRAPH_START -->",
 				"<!-- ZIGFLOW_GRAPH_END -->",
 				"```mermaid",
-				"flowchart TD",
+				testOutputFlowchartTD,
 			},
 		},
 		{
@@ -83,12 +83,12 @@ func TestNewGraphInjectCmd(t *testing.T) {
 			WorkflowYAML:  validWorkflowYAML,
 			TargetContent: targetWithCustomMarkers,
 			ExtraArgs: []string{
-				"--workflow", "PLACEHOLDER_WORKFLOW",
+				testFlagWorkflow, testPlaceholderWorkflow,
 				"--start-marker", "{{GRAPH_START}}",
 				"--end-marker", "{{GRAPH_END}}",
 			},
 			OutputContains: []string{
-				"flowchart TD",
+				testOutputFlowchartTD,
 				"{{GRAPH_START}}",
 				"{{GRAPH_END}}",
 			},
@@ -97,13 +97,13 @@ func TestNewGraphInjectCmd(t *testing.T) {
 			Name:          "non-existent workflow file",
 			WorkflowYAML:  validWorkflowYAML,
 			TargetContent: targetWithMarkers,
-			ExtraArgs:     []string{"--workflow", "/nonexistent/workflow.yaml"},
+			ExtraArgs:     []string{testFlagWorkflow, "/nonexistent/workflow.yaml"},
 			ExpectError:   true,
 		},
 		{
 			Name:                 "non-existent target file",
 			WorkflowYAML:         validWorkflowYAML,
-			ExtraArgs:            []string{"--workflow", "PLACEHOLDER_WORKFLOW"},
+			ExtraArgs:            []string{testFlagWorkflow, testPlaceholderWorkflow},
 			UseNonExistentTarget: true,
 			ExpectError:          true,
 		},
@@ -112,14 +112,14 @@ func TestNewGraphInjectCmd(t *testing.T) {
 			Name:          "markers not found in target",
 			WorkflowYAML:  validWorkflowYAML,
 			TargetContent: targetWithoutMarkers,
-			ExtraArgs:     []string{"--workflow", "PLACEHOLDER_WORKFLOW"},
+			ExtraArgs:     []string{testFlagWorkflow, testPlaceholderWorkflow},
 			ExpectError:   true,
 		},
 		{
-			Name:          "unsupported output format",
+			Name:          testNameUnsupportedFormat,
 			WorkflowYAML:  validWorkflowYAML,
 			TargetContent: targetWithMarkers,
-			ExtraArgs:     []string{"--workflow", "PLACEHOLDER_WORKFLOW", "--output", "unknown"},
+			ExtraArgs:     []string{testFlagWorkflow, testPlaceholderWorkflow, testFlagOutput, "unknown"},
 			ExpectError:   true,
 		},
 		{
@@ -131,7 +131,7 @@ func TestNewGraphInjectCmd(t *testing.T) {
 				"<!-- ZIGFLOW_GRAPH_START ./workflow.yaml -->",
 				"<!-- ZIGFLOW_GRAPH_END -->",
 				"```mermaid",
-				"flowchart TD",
+				testOutputFlowchartTD,
 			},
 		},
 		{
@@ -174,7 +174,7 @@ func TestNewGraphInjectCmd(t *testing.T) {
 			// Resolve PLACEHOLDER_WORKFLOW in extra args.
 			resolvedArgs := make([]string, len(test.ExtraArgs))
 			for i, a := range test.ExtraArgs {
-				if a == "PLACEHOLDER_WORKFLOW" {
+				if a == testPlaceholderWorkflow {
 					resolvedArgs[i] = workflowPath
 				} else {
 					resolvedArgs[i] = a

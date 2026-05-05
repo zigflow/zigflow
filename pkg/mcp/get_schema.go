@@ -57,7 +57,7 @@ func (m *MCP) GetSchema(
 
 	if format != outputFormatJSON && format != outputFormatYAML {
 		return nil, GetSchemaOutput{Errors: []GetSchemaError{{
-			Stage:   "input",
+			Stage:   stageInput,
 			Message: `output must be "json" or "yaml"`,
 		}}}, nil
 	}

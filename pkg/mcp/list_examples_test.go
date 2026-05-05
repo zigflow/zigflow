@@ -25,6 +25,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const signalWorkflowYAML = "signal/workflow.yaml"
+
 func exampleFS(entries map[string]string) fstest.MapFS {
 	fsys := fstest.MapFS{}
 	for path, content := range entries {
@@ -40,8 +42,8 @@ func workflowFile(title, summary string) string {
 
 func TestListExamples_ReturnsExamples(t *testing.T) {
 	fsys := exampleFS(map[string]string{
-		"signal/workflow.yaml": workflowFile("Signal Listeners", "Listen for Temporal signal events"),
-		"query/workflow.yaml":  workflowFile("Query Listeners", "Listen for Temporal query events"),
+		signalWorkflowYAML:    workflowFile("Signal Listeners", "Listen for Temporal signal events"),
+		"query/workflow.yaml": workflowFile("Query Listeners", "Listen for Temporal query events"),
 	})
 
 	out, err := listExamplesFromFS(fsys)
@@ -70,7 +72,7 @@ func TestListExamples_StableOrder(t *testing.T) {
 func TestListExamples_NamesNonEmpty(t *testing.T) {
 	fsys := exampleFS(map[string]string{
 		"hello-world/workflow.yaml": workflowFile("Hello World", "Hello world with Zigflow"),
-		"signal/workflow.yaml":      workflowFile("Signal Listeners", "Listen for Temporal signal events"),
+		signalWorkflowYAML:          workflowFile("Signal Listeners", "Listen for Temporal signal events"),
 	})
 
 	out, err := listExamplesFromFS(fsys)

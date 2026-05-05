@@ -51,7 +51,7 @@ func getExampleFromFS(fsys fs.FS, name string) (GetExampleOutput, error) {
 		return GetExampleOutput{
 			Errors: []GetExampleError{
 				{
-					Stage:   "input",
+					Stage:   stageInput,
 					Message: "name is required",
 				},
 			},
@@ -78,7 +78,7 @@ func getExampleFromFS(fsys fs.FS, name string) (GetExampleOutput, error) {
 		}
 
 		return GetExampleOutput{Errors: []GetExampleError{{
-			Stage:   "input",
+			Stage:   stageInput,
 			Message: fmt.Sprintf("example %q not found; available: %s", name, strings.Join(available, ", ")),
 		}}}, nil
 	}

@@ -69,7 +69,7 @@ Arguments:
 			if err != nil {
 				return gh.FatalError{
 					Cause: err,
-					Msg:   "Unable to load workflow file",
+					Msg:   errMsgUnableToLoadWorkflowFile,
 				}
 			}
 

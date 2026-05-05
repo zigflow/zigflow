@@ -79,7 +79,7 @@ func TestDoTaskBuilderWorkflowExecutor(t *testing.T) {
 			var capturedState *utils.State
 			runOrder := make([]string, 0, 2)
 			expectedOutput := map[string]any{
-				"value": "two",
+				testConstValue: "two",
 			}
 
 			tasks := newOutputWorkflowFuncs(&runOrder, &capturedState)
@@ -89,7 +89,7 @@ func TestDoTaskBuilderWorkflowExecutor(t *testing.T) {
 			env := s.NewTestWorkflowEnvironment()
 
 			inputPayload := map[string]any{
-				"request_id": tc.name,
+				testConstRequestID: tc.name,
 			}
 			workflowName := "workflow-" + tc.name
 
@@ -106,7 +106,7 @@ func TestDoTaskBuilderWorkflowExecutor(t *testing.T) {
 			assert.NoError(t, env.GetWorkflowResult(&workflowResult))
 			assert.Equal(t, expectedOutput, workflowResult)
 
-			assert.Equal(t, []string{"task-one", "task-two"}, runOrder)
+			assert.Equal(t, []string{"task-one", testConstTaskTwo}, runOrder)
 			assert.NotNil(t, capturedState)
 			if tc.initialState != nil {
 				assert.Same(t, tc.initialState, capturedState)
@@ -134,14 +134,14 @@ func TestDoTaskBuilderIterateTasksFlowControl(t *testing.T) {
 				return []workflowFunc{
 					newSimpleWorkflowFunc("task-a", &model.TaskBase{
 						Then: &model.FlowDirective{
-							Value: "task-c",
+							Value: testConstTaskC,
 						},
 					}, runOrder),
 					newSimpleWorkflowFunc("task-b", &model.TaskBase{}, runOrder),
-					newSimpleWorkflowFunc("task-c", &model.TaskBase{}, runOrder),
+					newSimpleWorkflowFunc(testConstTaskC, &model.TaskBase{}, runOrder),
 				}
 			},
-			expectedRun: []string{"task-a", "task-c"},
+			expectedRun: []string{"task-a", testConstTaskC},
 		},
 		{
 			name: "missing target returns descriptive error",
@@ -149,7 +149,7 @@ func TestDoTaskBuilderIterateTasksFlowControl(t *testing.T) {
 				return []workflowFunc{
 					newSimpleWorkflowFunc("task-a", &model.TaskBase{
 						Then: &model.FlowDirective{
-							Value: "task-c",
+							Value: testConstTaskC,
 						},
 					}, runOrder),
 					newSimpleWorkflowFunc("task-b", &model.TaskBase{}, runOrder),
@@ -280,7 +280,7 @@ func TestDoTaskBuilderContinueAsNew(t *testing.T) {
 	var s testsuite.WorkflowTestSuite
 	env := s.NewTestWorkflowEnvironment()
 	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return nil, builder.continueAsNew(ctx, builder.GetTaskName(), "task-one-0", map[string]any{"request_id": "123"}, state)
+		return nil, builder.continueAsNew(ctx, builder.GetTaskName(), "task-one-0", map[string]any{testConstRequestID: "123"}, state)
 	}, workflow.RegisterOptions{Name: builder.GetTaskName()})
 
 	env.ExecuteWorkflow(builder.GetTaskName())
@@ -333,7 +333,7 @@ func TestDoTaskBuilderIterateTasksSkipsCompletedTasks(t *testing.T) {
 
 	tasks := []workflowFunc{
 		newSimpleWorkflowFunc("task-one", &model.TaskBase{}, &runOrder),
-		newSimpleWorkflowFunc("task-two", &model.TaskBase{}, &runOrder),
+		newSimpleWorkflowFunc(testConstTaskTwo, &model.TaskBase{}, &runOrder),
 	}
 
 	var s testsuite.WorkflowTestSuite
@@ -345,7 +345,7 @@ func TestDoTaskBuilderIterateTasksSkipsCompletedTasks(t *testing.T) {
 	env.ExecuteWorkflow(builder.GetTaskName())
 
 	assert.NoError(t, env.GetWorkflowError())
-	assert.Equal(t, []string{"task-two"}, runOrder)
+	assert.Equal(t, []string{testConstTaskTwo}, runOrder)
 	assert.Nil(t, state.CANStartFrom)
 }
 
@@ -385,8 +385,8 @@ func TestDoTaskBuilderShouldSkip(t *testing.T) {
 			name: "matching task ID resumes execution",
 			task: func() workflowFunc {
 				return workflowFunc{
-					TaskBuilder: newFakeTaskBuilder("task-two", &model.TaskBase{}),
-					Name:        "task-two",
+					TaskBuilder: newFakeTaskBuilder(testConstTaskTwo, &model.TaskBase{}),
+					Name:        testConstTaskTwo,
 				}
 			}(),
 			taskID: "task-two-1",
@@ -526,7 +526,7 @@ func newOutputWorkflowFuncs(runOrder *[]string, capturedState **utils.State) []w
 	}
 
 	taskOneBuilder := newFakeTaskBuilder("task-one", taskOneBase)
-	taskTwoBuilder := newFakeTaskBuilder("task-two", taskTwoBase)
+	taskTwoBuilder := newFakeTaskBuilder(testConstTaskTwo, taskTwoBase)
 
 	return []workflowFunc{
 		{
@@ -536,7 +536,7 @@ func newOutputWorkflowFuncs(runOrder *[]string, capturedState **utils.State) []w
 				*capturedState = state
 				*runOrder = append(*runOrder, "task-one")
 				return map[string]any{
-					"value": "one",
+					testConstValue: "one",
 				}, nil
 			},
 		},
@@ -544,9 +544,9 @@ func newOutputWorkflowFuncs(runOrder *[]string, capturedState **utils.State) []w
 			TaskBuilder: taskTwoBuilder,
 			Name:        taskTwoBuilder.GetTaskName(),
 			Func: func(ctx workflow.Context, input any, state *utils.State) (any, error) {
-				*runOrder = append(*runOrder, "task-two")
+				*runOrder = append(*runOrder, testConstTaskTwo)
 				return map[string]any{
-					"value": "two",
+					testConstValue: "two",
 				}, nil
 			},
 		},

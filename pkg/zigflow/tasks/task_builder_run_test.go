@@ -33,7 +33,7 @@ func TestRunTaskBuilderPostLoadSetsAwaitDefault(t *testing.T) {
 	task := &model.RunTask{
 		Run: model.RunTaskConfiguration{
 			Workflow: &model.RunWorkflow{
-				Namespace: "default",
+				Namespace: constDefaultNamespace,
 				Name:      "child-runner",
 				Version:   "1.0.0",
 			},
@@ -91,7 +91,7 @@ func TestRunTaskBuilderRunWorkflow(t *testing.T) {
 				Run: model.RunTaskConfiguration{
 					Await: tc.await,
 					Workflow: &model.RunWorkflow{
-						Namespace: "default",
+						Namespace: constDefaultNamespace,
 						Name:      "child-runner",
 						Version:   "1.0.0",
 					},
@@ -109,14 +109,14 @@ func TestRunTaskBuilderRunWorkflow(t *testing.T) {
 
 			env.RegisterWorkflowWithOptions(func(ctx workflow.Context, input any, state *utils.State) (any, error) {
 				return map[string]any{
-					"child": "done",
+					testConstChild: testConstDone,
 				}, nil
 			}, workflow.RegisterOptions{Name: task.Run.Workflow.Name})
 
 			state := utils.NewState()
 
 			env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-				return fn(ctx, map[string]any{"request": "data"}, state)
+				return fn(ctx, map[string]any{testConstRequest: testConstData}, state)
 			}, workflow.RegisterOptions{Name: "run-" + tc.name})
 
 			env.ExecuteWorkflow("run-" + tc.name)
@@ -130,7 +130,7 @@ func TestRunTaskBuilderRunWorkflow(t *testing.T) {
 				assert.Nil(t, result)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, map[string]any{"child": "done"}, result)
+				assert.Equal(t, map[string]any{testConstChild: testConstDone}, result)
 			}
 
 			val, ok := state.Data["run-task"]
@@ -138,7 +138,7 @@ func TestRunTaskBuilderRunWorkflow(t *testing.T) {
 			if tc.expectNilResp {
 				assert.Nil(t, val)
 			} else {
-				assert.Equal(t, map[string]any{"child": "done"}, val)
+				assert.Equal(t, map[string]any{testConstChild: testConstDone}, val)
 			}
 		})
 	}
@@ -170,7 +170,7 @@ func TestRunTaskBuilderRunScriptValidation(t *testing.T) {
 			task: &model.RunTask{
 				Run: model.RunTaskConfiguration{
 					Script: &model.Script{
-						Language: "python",
+						Language: constScriptLanguagePython,
 					},
 				},
 			},
@@ -182,7 +182,7 @@ func TestRunTaskBuilderRunScriptValidation(t *testing.T) {
 				Run: model.RunTaskConfiguration{
 					Await: utils.Ptr(false),
 					Script: &model.Script{
-						Language:   "python",
+						Language:   constScriptLanguagePython,
 						InlineCode: utils.Ptr(inline),
 					},
 				},
@@ -194,7 +194,7 @@ func TestRunTaskBuilderRunScriptValidation(t *testing.T) {
 			task: &model.RunTask{
 				Run: model.RunTaskConfiguration{
 					Script: &model.Script{
-						Language:   "python",
+						Language:   constScriptLanguagePython,
 						InlineCode: utils.Ptr(inline),
 						External: &model.ExternalResource{
 							Endpoint: model.NewEndpoint("file:///scripts/run.py"),
@@ -209,7 +209,7 @@ func TestRunTaskBuilderRunScriptValidation(t *testing.T) {
 			task: &model.RunTask{
 				Run: model.RunTaskConfiguration{
 					Script: &model.Script{
-						Language: "python",
+						Language: constScriptLanguagePython,
 						External: &model.ExternalResource{
 							// Endpoint intentionally nil
 						},
@@ -227,7 +227,7 @@ func TestRunTaskBuilderRunScriptValidation(t *testing.T) {
 		task := &model.RunTask{
 			Run: model.RunTaskConfiguration{
 				Script: &model.Script{
-					Language: "python",
+					Language: constScriptLanguagePython,
 					External: &model.ExternalResource{
 						Endpoint: model.NewEndpoint("file:///scripts/run.py"),
 					},
@@ -267,7 +267,7 @@ func TestRunTaskBuilderRunScriptExecutesActivity(t *testing.T) {
 	task := &model.RunTask{
 		Run: model.RunTaskConfiguration{
 			Script: &model.Script{
-				Language:   "python",
+				Language:   constScriptLanguagePython,
 				InlineCode: utils.Ptr("print('hello')"),
 			},
 		},
@@ -291,7 +291,7 @@ func TestRunTaskBuilderRunScriptExecutesActivity(t *testing.T) {
 
 	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
 		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
-		return fn(ctx, map[string]any{"request": "data"}, state)
+		return fn(ctx, map[string]any{testConstRequest: testConstData}, state)
 	}, workflow.RegisterOptions{Name: "script-run"})
 
 	env.ExecuteWorkflow("script-run")
@@ -307,7 +307,7 @@ func TestRunTaskBuilderRunScriptExecutesActivity(t *testing.T) {
 func TestRunTaskBuilderPostLoadSetsAwaitToTrueWhenNil(t *testing.T) {
 	task := &model.RunTask{
 		Run: model.RunTaskConfiguration{
-			Shell: &model.Shell{Command: "echo"},
+			Shell: &model.Shell{Command: testConstEcho},
 			// Await intentionally omitted
 		},
 	}
@@ -323,7 +323,7 @@ func TestRunTaskBuilderPostLoadSetsAwaitToTrueWhenNil(t *testing.T) {
 func TestRunTaskBuilderPostLoadPreservesExplicitAwait(t *testing.T) {
 	task := &model.RunTask{
 		Run: model.RunTaskConfiguration{
-			Shell: &model.Shell{Command: "echo"},
+			Shell: &model.Shell{Command: testConstEcho},
 			Await: utils.Ptr(false),
 		},
 	}
@@ -403,14 +403,14 @@ func TestRunTaskBuilderPostLoadDefaultsEmptyNamespaceAndVersion(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, builder.PostLoad())
 
-	assert.Equal(t, "default", task.Run.Workflow.Namespace, "empty namespace should receive default")
+	assert.Equal(t, constDefaultNamespace, task.Run.Workflow.Namespace, "empty namespace should receive default")
 	assert.Equal(t, "0.0.1", task.Run.Workflow.Version, "empty version should receive default")
 }
 
 func TestRunTaskBuilderPostLoadNilWorkflowIsNoop(t *testing.T) {
 	task := &model.RunTask{
 		Run: model.RunTaskConfiguration{
-			Shell: &model.Shell{Command: "echo"},
+			Shell: &model.Shell{Command: testConstEcho},
 			// Workflow is nil — PostLoad must not panic
 		},
 	}
@@ -428,7 +428,7 @@ func TestRunTaskBuilderRunShellExecutesActivity(t *testing.T) {
 	task := &model.RunTask{
 		Run: model.RunTaskConfiguration{
 			Shell: &model.Shell{
-				Command: "echo",
+				Command: testConstEcho,
 			},
 		},
 	}
@@ -451,7 +451,7 @@ func TestRunTaskBuilderRunShellExecutesActivity(t *testing.T) {
 
 	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
 		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
-		return fn(ctx, map[string]any{"request": "data"}, state)
+		return fn(ctx, map[string]any{testConstRequest: testConstData}, state)
 	}, workflow.RegisterOptions{Name: "shell-run"})
 
 	env.ExecuteWorkflow("shell-run")
