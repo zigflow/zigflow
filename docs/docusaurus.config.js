@@ -255,6 +255,10 @@ const config = {
                 label: 'GitHub',
                 href: githubURL,
               },
+              {
+                label: 'Releases',
+                href: `${githubURL}/releases`,
+              },
             ],
           },
         ],
