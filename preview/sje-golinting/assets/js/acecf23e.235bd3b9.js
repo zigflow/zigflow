@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkzigflow=self.webpackChunkzigflow||[]).push([["3220"],{1912(e){e.exports=JSON.parse('{"blogBasePath":"/preview/sje-golinting/articles","blogTitle":"Blog","authorsListPath":"/preview/sje-golinting/articles/authors"}')}}]);
