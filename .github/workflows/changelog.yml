@@ -1,0 +1,38 @@
+name: Update Changelog
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+
+      - name: Install script dependencies
+        working-directory: ./scripts
+        run: npm ci
+
+      - name: Generate changelog
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./scripts/bin/cli.mjs generate-changelog CHANGELOG.md
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          if ! git diff --quiet CHANGELOG.md; then
+            git add CHANGELOG.md
+            git commit -m "chore: update changelog"
+            git push
+          fi
