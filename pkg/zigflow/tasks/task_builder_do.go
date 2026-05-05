@@ -207,8 +207,8 @@ func (t *DoTaskBuilder) workflowExecutor(tasks []workflowFunc) TemporalWorkflowF
 		t.eventEmitter.Emit(context.Background(), "workflow.started", func(e *ceSDK.Event) {
 			e.SetID(workflow.GetInfo(ctx).WorkflowExecution.ID)
 			_ = e.SetData(ceSDK.ApplicationJSON, map[string]any{
-				"input": input,
-				"state": state,
+				constKeyInput: input,
+				constKeyState: state,
 			})
 		})
 
@@ -407,9 +407,9 @@ func (t *DoTaskBuilder) runTask(ctx workflow.Context, task workflowFunc, input a
 		e.SetID(workflowID)
 		e.SetSubject(task.Name)
 		_ = e.SetData(ceSDK.ApplicationJSON, map[string]any{
-			"attempt": info.Attempt,
-			"input":   input,
-			"state":   state,
+			"attempt":     info.Attempt,
+			constKeyInput: input,
+			constKeyState: state,
 		})
 	})
 
@@ -461,9 +461,9 @@ func (t *DoTaskBuilder) runTask(ctx workflow.Context, task workflowFunc, input a
 		e.SetID(workflowID)
 		e.SetSubject(task.Name)
 		_ = e.SetData(ceSDK.ApplicationJSON, map[string]any{
-			"input":  input,
-			"output": output,
-			"state":  state,
+			constKeyInput: input,
+			"output":      output,
+			constKeyState: state,
 		})
 	})
 

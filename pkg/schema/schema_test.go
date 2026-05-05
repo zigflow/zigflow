@@ -23,21 +23,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testCronExpr = "0 0 * * *"
+
 // minimalWorkflow returns a minimal structurally valid workflow document.
 // It is used as a baseline for validation tests so that each test only
 // introduces one deviation from a known-good state.
 func minimalWorkflow() map[string]any {
 	return map[string]any{
-		"document": map[string]any{
-			"dsl":          "1.0.0",
-			"taskQueue":    "default",
-			"workflowType": "test",
-			"version":      "1.0.0",
+		propDocument: map[string]any{
+			propDSL:          "1.0.0",
+			propTaskQueue:    "default",
+			propWorkflowType: "test",
+			propVersion:      "1.0.0",
 		},
-		"do": []any{
+		propDo: []any{
 			map[string]any{
 				"step1": map[string]any{
-					"set": map[string]any{"x": "y"},
+					propSet: map[string]any{"x": "y"},
 				},
 			},
 		},
@@ -61,7 +63,7 @@ func TestSchema_DocumentFields(t *testing.T) {
 	t.Run("old name field is rejected", func(t *testing.T) {
 		doc := minimalWorkflow()
 		document := doc["document"].(map[string]any)
-		delete(document, "workflowType")
+		delete(document, propWorkflowType)
 		document["name"] = "test"
 
 		err := resolved.Validate(doc)
@@ -71,7 +73,7 @@ func TestSchema_DocumentFields(t *testing.T) {
 	t.Run("old namespace field is rejected", func(t *testing.T) {
 		doc := minimalWorkflow()
 		document := doc["document"].(map[string]any)
-		delete(document, "taskQueue")
+		delete(document, propTaskQueue)
 		document["namespace"] = "default"
 
 		err := resolved.Validate(doc)
@@ -80,7 +82,7 @@ func TestSchema_DocumentFields(t *testing.T) {
 
 	t.Run("missing workflowType is rejected", func(t *testing.T) {
 		doc := minimalWorkflow()
-		delete(doc["document"].(map[string]any), "workflowType")
+		delete(doc["document"].(map[string]any), propWorkflowType)
 
 		err := resolved.Validate(doc)
 		assert.Error(t, err, "document without workflowType must fail validation")
@@ -88,7 +90,7 @@ func TestSchema_DocumentFields(t *testing.T) {
 
 	t.Run("missing taskQueue is rejected", func(t *testing.T) {
 		doc := minimalWorkflow()
-		delete(doc["document"].(map[string]any), "taskQueue")
+		delete(doc["document"].(map[string]any), propTaskQueue)
 
 		err := resolved.Validate(doc)
 		assert.Error(t, err, "document without taskQueue must fail validation")
@@ -103,7 +105,7 @@ func TestSchema_ScheduleRequiresScheduleWorkflowName(t *testing.T) {
 
 	t.Run("schedule present without document.metadata is rejected", func(t *testing.T) {
 		doc := minimalWorkflow()
-		doc["schedule"] = map[string]any{"cron": "0 0 * * *"}
+		doc["schedule"] = map[string]any{propCron: testCronExpr}
 
 		err := resolved.Validate(doc)
 		assert.Error(t, err, "schedule without document.metadata must fail validation")
@@ -111,9 +113,9 @@ func TestSchema_ScheduleRequiresScheduleWorkflowName(t *testing.T) {
 
 	t.Run("schedule present with document.metadata but missing scheduleWorkflowName is rejected", func(t *testing.T) {
 		doc := minimalWorkflow()
-		doc["schedule"] = map[string]any{"cron": "0 0 * * *"}
+		doc["schedule"] = map[string]any{propCron: testCronExpr}
 		doc["document"].(map[string]any)["metadata"] = map[string]any{
-			"scheduleId": "my-schedule",
+			propScheduleID: "my-schedule",
 		}
 
 		err := resolved.Validate(doc)
@@ -122,9 +124,9 @@ func TestSchema_ScheduleRequiresScheduleWorkflowName(t *testing.T) {
 
 	t.Run("schedule present with valid document.metadata.scheduleWorkflowName is accepted", func(t *testing.T) {
 		doc := minimalWorkflow()
-		doc["schedule"] = map[string]any{"cron": "0 0 * * *"}
+		doc["schedule"] = map[string]any{propCron: testCronExpr}
 		doc["document"].(map[string]any)["metadata"] = map[string]any{
-			"scheduleWorkflowName": "my-workflow",
+			propScheduleWorkflowName: "my-workflow",
 		}
 
 		err := resolved.Validate(doc)

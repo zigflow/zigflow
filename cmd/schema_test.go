@@ -30,15 +30,15 @@ func TestNewSchemaCmd(t *testing.T) {
 	}{
 		{
 			Name: "JSON output",
-			Args: []string{"--output", "json"},
+			Args: []string{testFlagOutput, "json"},
 		},
 		{
 			Name: "YAML output",
-			Args: []string{"--output", "yaml"},
+			Args: []string{testFlagOutput, "yaml"},
 		},
 		{
-			Name:        "unsupported output format",
-			Args:        []string{"--output", "toml"},
+			Name:        testNameUnsupportedFormat,
+			Args:        []string{testFlagOutput, "toml"},
 			ExpectError: true,
 		},
 	}

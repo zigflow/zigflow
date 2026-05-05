@@ -85,9 +85,9 @@ func TestChangedFilesDeduplication(t *testing.T) {
 	changedFiles := make(map[string]struct{})
 
 	events := []fsnotify.Event{
-		{Name: "/a/workflow.yaml", Op: fsnotify.Write},
-		{Name: "/a/workflow.yaml", Op: fsnotify.Write},
-		{Name: "/a/workflow.yaml", Op: fsnotify.Rename},
+		{Name: testWorkflowPathA, Op: fsnotify.Write},
+		{Name: testWorkflowPathA, Op: fsnotify.Write},
+		{Name: testWorkflowPathA, Op: fsnotify.Rename},
 		{Name: "/b/other.yaml", Op: fsnotify.Create},
 	}
 
@@ -98,7 +98,7 @@ func TestChangedFilesDeduplication(t *testing.T) {
 	}
 
 	assert.Len(t, changedFiles, 2, "duplicate paths must be deduplicated")
-	assert.Contains(t, changedFiles, "/a/workflow.yaml")
+	assert.Contains(t, changedFiles, testWorkflowPathA)
 	assert.Contains(t, changedFiles, "/b/other.yaml")
 }
 
@@ -106,8 +106,8 @@ func TestChangedFilesNonWatchableEventsIgnored(t *testing.T) {
 	changedFiles := make(map[string]struct{})
 
 	events := []fsnotify.Event{
-		{Name: "/a/workflow.yaml", Op: fsnotify.Remove},
-		{Name: "/a/workflow.yaml", Op: fsnotify.Chmod},
+		{Name: testWorkflowPathA, Op: fsnotify.Remove},
+		{Name: testWorkflowPathA, Op: fsnotify.Chmod},
 	}
 
 	for _, e := range events {
@@ -131,7 +131,7 @@ func TestRefreshWatcher_AddsDiscoveredFiles(t *testing.T) {
 
 	opts := &runOptions{
 		Files:         []string{p},
-		DirectoryGlob: "*.yaml",
+		DirectoryGlob: testDirectoryGlob,
 	}
 
 	require.NoError(t, refreshWatcher(w, opts))
@@ -157,7 +157,7 @@ func TestRefreshWatcher_RemovesStaleAndReAdds(t *testing.T) {
 	// refreshWatcher should remove p1 and add both p1 and p2.
 	opts := &runOptions{
 		Files:         []string{p1, p2},
-		DirectoryGlob: "*.yaml",
+		DirectoryGlob: testDirectoryGlob,
 	}
 	require.NoError(t, refreshWatcher(w, opts))
 
@@ -173,7 +173,7 @@ func TestRefreshWatcher_ReturnsErrorWhenNoFiles(t *testing.T) {
 	defer func() { _ = w.Close() }()
 
 	// No files and no directory: discoverWorkflowFiles must fail.
-	opts := &runOptions{DirectoryGlob: "*.yaml"}
+	opts := &runOptions{DirectoryGlob: testDirectoryGlob}
 	err = refreshWatcher(w, opts)
 	assert.Error(t, err)
 }
@@ -206,7 +206,7 @@ func TestRefreshWatcher_PreservesWatchesOnAddFailure(t *testing.T) {
 	nonExistent := filepath.Join(dir, "does-not-exist.yaml")
 	opts := &runOptions{
 		Files:         []string{nonExistent, p},
-		DirectoryGlob: "*.yaml",
+		DirectoryGlob: testDirectoryGlob,
 	}
 
 	err = refreshWatcher(w, opts)
@@ -234,7 +234,7 @@ func TestRefreshWatcher_RemovesStaleWatch(t *testing.T) {
 	// Target only p1; p2 should be removed.
 	opts := &runOptions{
 		Files:         []string{p1},
-		DirectoryGlob: "*.yaml",
+		DirectoryGlob: testDirectoryGlob,
 	}
 	require.NoError(t, refreshWatcher(w, opts))
 
@@ -260,7 +260,7 @@ func TestHandleDebounce_EmptyChangedFilesIsNoop(t *testing.T) {
 	current := []worker.Worker(nil)
 	changedFiles := make(map[string]struct{})
 
-	next, remaining := handleDebounce(w, nil, &runOptions{Files: []string{p}, DirectoryGlob: "*.yaml"}, nil, changedFiles, current)
+	next, remaining := handleDebounce(w, nil, &runOptions{Files: []string{p}, DirectoryGlob: testDirectoryGlob}, nil, changedFiles, current)
 
 	assert.Equal(t, current, next, "worker slice must be unchanged when changedFiles is empty")
 	assert.Empty(t, remaining)
@@ -283,7 +283,7 @@ func TestHandleDebounce_KeepsCurrentWorkersOnReloadFailure(t *testing.T) {
 
 	// opts with no files: prepareRegistrations will fail before reaching
 	// buildWorkersByTaskQueue, so no Temporal client is needed.
-	opts := &runOptions{DirectoryGlob: "*.yaml"}
+	opts := &runOptions{DirectoryGlob: testDirectoryGlob}
 	next, remaining := handleDebounce(w, nil, opts, nil, changedFiles, current)
 
 	assert.Empty(t, remaining, "changedFiles must be cleared regardless of reload outcome")

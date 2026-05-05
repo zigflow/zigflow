@@ -52,7 +52,7 @@ func (m *MCP) ValidateWorkflow(
 	if strings.TrimSpace(input.YAML) == "" {
 		return nil, ValidateWorkflowOutput{
 			Errors: []ValidateWorkflowError{{
-				Stage:   "input",
+				Stage:   stageInput,
 				Message: "yaml is required",
 			}},
 		}, nil

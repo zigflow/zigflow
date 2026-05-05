@@ -50,4 +50,66 @@ const (
 	urlPattern = `^[A-Za-z][A-Za-z0-9+\-.]*://.*`
 
 	ref = "#/$defs/%s"
+
+	// Definition keys used in buildDefinitions() and SchemaRef().
+	defCommonMetadata   = "commonMetadata"
+	defDocumentMetadata = "documentMetadata"
+
+	// Schema property names used across schema definitions and tests.
+	propDo              = "do"
+	propDocument        = "document"
+	propCall            = "call"
+	propArguments       = "arguments"
+	propActivityOptions = "activityOptions"
+	propDisableEager    = "disableEagerExecution"
+	propCanMaxHistory   = "canMaxHistoryLength"
+	propZigflowID       = "__zigflow_id"
+	propCommand         = "command"
+	propCron            = "cron"
+
+	// JSON Schema type values.
+	typeArray   = "array"
+	typeBoolean = "boolean"
+	typeInteger = "integer"
+	typeObject  = "object"
+	typeString  = "string"
+
+	// Definition keys used in buildDefinitions() and SchemaRef().
+	defOutput       = "output"
+	defSchema       = "schema"
+	defTaskMetadata = "taskMetadata"
+	defTimeout      = "timeout"
+
+	// Additional schema property names.
+	propEndpoint             = "endpoint"
+	propError                = "error"
+	propExport               = "export"
+	propInput                = "input"
+	propMethod               = "method"
+	propMetadata             = "metadata"
+	propHeartbeatTimeout     = "heartbeatTimeout"
+	propMaximumAttempts      = "maximumAttempts"
+	propHeartbeat            = "heartbeat"
+	propEnvironment          = "environment"
+	propDSL                  = "dsl"
+	propMinutes              = "minutes"
+	propWith                 = "with"
+	propName                 = "name"
+	propOutput               = "output"
+	propSchema               = "schema"
+	propRetryPolicy          = "retryPolicy"
+	propTaskQueue            = "taskQueue"
+	propType                 = "type"
+	propScheduleWorkflowName = "scheduleWorkflowName"
+	propScheduleID           = "scheduleId"
+	propScheduleInput        = "scheduleInput"
+	propSeconds              = "seconds"
+	propStartToCloseTimeout  = "startToCloseTimeout"
+	propSummary              = "summary"
+	propURI                  = "uri"
+	propSource               = "source"
+	propSet                  = "set"
+	propThen                 = "then"
+	propWorkflowType         = "workflowType"
+	propVersion              = "version"
 )

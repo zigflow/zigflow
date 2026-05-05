@@ -27,6 +27,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	testKeyName     = "name"
+	testKeyValue    = "value"
+	testKeyStatic   = "static"
+	testKeyItems    = "items"
+	testKeyEnv      = "env"
+	testKeyNested   = "nested"
+	testKeyHOST     = "HOST"
+	testKeyPORT     = "PORT"
+	testValHi       = "hi"
+	testValPlain    = "plain"
+	testValHost     = "localhost"
+	testExprInvalid = "${ @@@ }"
+	testExprMsg     = "${ .msg }"
+	testExprA       = "${ .a }"
+	testKeyGreeting = "greeting"
+)
+
 func newState(input, output, ctx any, data map[string]any) *State {
 	s := NewState()
 	s.Input = input
@@ -68,7 +86,7 @@ func TestEvaluateString(t *testing.T) {
 		{
 			Name:     "simple field access on context",
 			Str:      "${ .name }",
-			Ctx:      map[string]any{"name": "zigflow"},
+			Ctx:      map[string]any{testKeyName: "zigflow"},
 			State:    NewState(),
 			Expected: "zigflow",
 		},
@@ -125,18 +143,18 @@ func TestEvaluateString(t *testing.T) {
 			Name:     "jq string literal expression",
 			Str:      `${ "static" }`,
 			State:    NewState(),
-			Expected: "static",
+			Expected: testKeyStatic,
 		},
 		{
 			Name:     "expression without spaces inside braces",
 			Str:      "${.name}",
-			Ctx:      map[string]any{"name": "compact"},
+			Ctx:      map[string]any{testKeyName: "compact"},
 			State:    NewState(),
 			Expected: "compact",
 		},
 		{
 			Name:      "invalid jq expression returns error",
-			Str:       "${ @@@ }",
+			Str:       testExprInvalid,
 			State:     NewState(),
 			ExpectErr: true,
 		},
@@ -282,15 +300,15 @@ func TestLeadingNonDeterministicFunc(t *testing.T) {
 		Expected string
 	}{
 		// Registered non-deterministic functions
-		{Name: "uuid is detected", Expr: "uuid", Expected: "uuid"},
-		{Name: "timestamp is detected", Expr: "timestamp", Expected: "timestamp"},
-		{Name: "timestamp_iso8601 is detected", Expr: "timestamp_iso8601", Expected: "timestamp_iso8601"},
+		{Name: "uuid is detected", Expr: jqFuncUUID, Expected: jqFuncUUID},
+		{Name: "timestamp is detected", Expr: jqFuncTimestamp, Expected: jqFuncTimestamp},
+		{Name: "timestamp_iso8601 is detected", Expr: jqFuncTimestampISO, Expected: jqFuncTimestampISO},
 
 		// Leading whitespace is trimmed
-		{Name: "uuid with leading spaces", Expr: "  uuid", Expected: "uuid"},
+		{Name: "uuid with leading spaces", Expr: "  uuid", Expected: jqFuncUUID},
 
 		// Only the leading identifier matters; a pipe still makes it non-det
-		{Name: "uuid piped to length", Expr: "uuid | length", Expected: "uuid"},
+		{Name: "uuid piped to length", Expr: "uuid | length", Expected: jqFuncUUID},
 
 		// Field accesses and variable references are NOT function calls
 		{Name: "field access .uuid is not a function", Expr: ".uuid", Expected: ""},
@@ -382,39 +400,39 @@ func TestTraverseAndEvaluateObj(t *testing.T) {
 		},
 		{
 			Name:  "map with expression value",
-			Obj:   model.NewObjectOrRuntimeExpr(map[string]any{"greeting": "${ .msg }"}),
-			Ctx:   map[string]any{"msg": "hi"},
+			Obj:   model.NewObjectOrRuntimeExpr(map[string]any{testKeyGreeting: testExprMsg}),
+			Ctx:   map[string]any{"msg": testValHi},
 			State: NewState(),
 			Expected: map[string]any{
-				"greeting": "hi",
+				testKeyGreeting: testValHi,
 			},
 		},
 		{
 			Name: "map with mixed plain and expression values",
 			Obj: model.NewObjectOrRuntimeExpr(map[string]any{
-				"static":  "constant",
-				"dynamic": "${ .value }",
+				testKeyStatic: "constant",
+				"dynamic":     "${ .value }",
 			}),
-			Ctx:   map[string]any{"value": "evaluated"},
+			Ctx:   map[string]any{testKeyValue: "evaluated"},
 			State: NewState(),
 			Expected: map[string]any{
-				"static":  "constant",
-				"dynamic": "evaluated",
+				testKeyStatic: "constant",
+				"dynamic":     "evaluated",
 			},
 		},
 		{
 			Name: "map containing an array of expressions",
 			Obj: model.NewObjectOrRuntimeExpr(map[string]any{
-				"items": []any{
-					"${ .a }",
+				testKeyItems: []any{
+					testExprA,
 					"${ .b }",
-					"plain",
+					testValPlain,
 				},
 			}),
 			Ctx:   map[string]any{"a": 1, "b": 2},
 			State: NewState(),
 			Expected: map[string]any{
-				"items": []any{1, 2, "plain"},
+				testKeyItems: []any{1, 2, testValPlain},
 			},
 		},
 		{
@@ -432,7 +450,7 @@ func TestTraverseAndEvaluateObj(t *testing.T) {
 			Obj: model.NewObjectOrRuntimeExpr(map[string]any{
 				"inputVal": "${ $input.name }",
 			}),
-			State: newState(map[string]any{"name": "from-input"}, nil, nil, nil),
+			State: newState(map[string]any{testKeyName: "from-input"}, nil, nil, nil),
 			Expected: map[string]any{
 				"inputVal": "from-input",
 			},
@@ -440,7 +458,7 @@ func TestTraverseAndEvaluateObj(t *testing.T) {
 		{
 			Name: "map with invalid expression returns error",
 			Obj: model.NewObjectOrRuntimeExpr(map[string]any{
-				"bad": "${ @@@ }",
+				"bad": testExprInvalid,
 			}),
 			State:     NewState(),
 			ExpectErr: true,
@@ -448,7 +466,7 @@ func TestTraverseAndEvaluateObj(t *testing.T) {
 		{
 			Name: "map containing array with invalid expression returns error",
 			Obj: model.NewObjectOrRuntimeExpr(map[string]any{
-				"items": []any{"${ @@@ }"},
+				testKeyItems: []any{testExprInvalid},
 			}),
 			State:     NewState(),
 			ExpectErr: true,
@@ -470,9 +488,9 @@ func TestTraverseAndEvaluateObj(t *testing.T) {
 
 func TestTraverseAndEvaluateObjMapStringStringNilCoercedToEmpty(t *testing.T) {
 	obj := model.NewObjectOrRuntimeExpr(map[string]any{
-		"env": map[string]string{
+		testKeyEnv: map[string]string{
 			"NULLABLE": "${ null }",
-			"PLAIN":    "value",
+			"PLAIN":    testKeyValue,
 		},
 	})
 
@@ -480,9 +498,9 @@ func TestTraverseAndEvaluateObjMapStringStringNilCoercedToEmpty(t *testing.T) {
 	require.NoError(t, err)
 	// A null result must become "" not "<nil>".
 	assert.Equal(t, map[string]any{
-		"env": map[string]string{
+		testKeyEnv: map[string]string{
 			"NULLABLE": "",
-			"PLAIN":    "value",
+			"PLAIN":    testKeyValue,
 		},
 	}, result)
 }
@@ -492,7 +510,7 @@ func TestTraverseAndEvaluateObjMapStringString(t *testing.T) {
 	state.Env["OPENAI_API_KEY"] = "secret-key"
 
 	obj := model.NewObjectOrRuntimeExpr(map[string]any{
-		"env": map[string]string{
+		testKeyEnv: map[string]string{
 			"OPENAI_API_KEY": "${ $env.OPENAI_API_KEY }",
 		},
 	})
@@ -500,7 +518,7 @@ func TestTraverseAndEvaluateObjMapStringString(t *testing.T) {
 	result, err := TraverseAndEvaluateObj(obj, nil, state)
 	require.NoError(t, err)
 	assert.Equal(t, map[string]any{
-		"env": map[string]string{
+		testKeyEnv: map[string]string{
 			"OPENAI_API_KEY": "secret-key",
 		},
 	}, result)
@@ -508,25 +526,25 @@ func TestTraverseAndEvaluateObjMapStringString(t *testing.T) {
 
 func TestTraverseAndEvaluateObjDoesNotMutateMapStringString(t *testing.T) {
 	env := map[string]string{
-		"HOST": "${ .host }",
-		"PORT": "8080",
+		testKeyHOST: "${ .host }",
+		testKeyPORT: "8080",
 	}
-	obj := model.NewObjectOrRuntimeExpr(map[string]any{"env": env})
+	obj := model.NewObjectOrRuntimeExpr(map[string]any{testKeyEnv: env})
 
-	result, err := TraverseAndEvaluateObj(obj, map[string]any{"host": "localhost"}, NewState())
+	result, err := TraverseAndEvaluateObj(obj, map[string]any{"host": testValHost}, NewState())
 	require.NoError(t, err)
 	assert.Equal(t, map[string]any{
-		"env": map[string]string{
-			"HOST": "localhost",
-			"PORT": "8080",
+		testKeyEnv: map[string]string{
+			testKeyHOST: testValHost,
+			testKeyPORT: "8080",
 		},
 	}, result)
 
 	// Original map[string]string must not be mutated.
 	// DeepCloneValue does not clone map[string]string, so traverseAndEvaluate
 	// must allocate its own copy before writing evaluated values.
-	assert.Equal(t, "${ .host }", env["HOST"], "original map[string]string was mutated")
-	assert.Equal(t, "8080", env["PORT"])
+	assert.Equal(t, "${ .host }", env[testKeyHOST], "original map[string]string was mutated")
+	assert.Equal(t, "8080", env[testKeyPORT])
 }
 
 func TestTraverseAndEvaluateObjMapStringStringConcurrent(t *testing.T) {
@@ -534,10 +552,10 @@ func TestTraverseAndEvaluateObjMapStringStringConcurrent(t *testing.T) {
 	// a map[string]string. The race detector will catch any concurrent writes to
 	// the original map if the clone is missing.
 	env := map[string]string{
-		"HOST": "${ .host }",
-		"PORT": "8080",
+		testKeyHOST: "${ .host }",
+		testKeyPORT: "8080",
 	}
-	obj := model.NewObjectOrRuntimeExpr(map[string]any{"env": env})
+	obj := model.NewObjectOrRuntimeExpr(map[string]any{testKeyEnv: env})
 
 	const goroutines = 200
 	var wg sync.WaitGroup
@@ -545,40 +563,40 @@ func TestTraverseAndEvaluateObjMapStringStringConcurrent(t *testing.T) {
 	for range goroutines {
 		go func() {
 			defer wg.Done()
-			_, _ = TraverseAndEvaluateObj(obj, map[string]any{"host": "localhost"}, NewState())
+			_, _ = TraverseAndEvaluateObj(obj, map[string]any{"host": testValHost}, NewState())
 		}()
 	}
 	wg.Wait()
 
-	assert.Equal(t, "${ .host }", env["HOST"], "original map[string]string was mutated")
+	assert.Equal(t, "${ .host }", env[testKeyHOST], "original map[string]string was mutated")
 }
 
 func TestTraverseAndEvaluateObjDoesNotMutateOriginal(t *testing.T) {
 	obj := model.NewObjectOrRuntimeExpr(map[string]any{
-		"greeting": "${ .msg }",
-		"nested": map[string]any{
-			"items": []any{"${ .a }", "plain"},
+		testKeyGreeting: testExprMsg,
+		testKeyNested: map[string]any{
+			testKeyItems: []any{testExprA, testValPlain},
 		},
 	})
 
 	result, err := TraverseAndEvaluateObj(obj, map[string]any{
-		"msg": "hi",
+		"msg": testValHi,
 		"a":   1,
 	}, NewState())
 	require.NoError(t, err)
 	assert.Equal(t, map[string]any{
-		"greeting": "hi",
-		"nested": map[string]any{
-			"items": []any{1, "plain"},
+		testKeyGreeting: testValHi,
+		testKeyNested: map[string]any{
+			testKeyItems: []any{1, testValPlain},
 		},
 	}, result)
 
 	// The original workflow definition object should be unchanged so it can be
 	// safely reused by concurrent workflow executions.
 	assert.Equal(t, map[string]any{
-		"greeting": "${ .msg }",
-		"nested": map[string]any{
-			"items": []any{"${ .a }", "plain"},
+		testKeyGreeting: testExprMsg,
+		testKeyNested: map[string]any{
+			testKeyItems: []any{testExprA, testValPlain},
 		},
 	}, obj.AsStringOrMap())
 }
@@ -593,11 +611,11 @@ func TestTraverseAndEvaluateObjWithWrapper(t *testing.T) {
 
 		obj := model.NewObjectOrRuntimeExpr(map[string]any{
 			"a": "${ .x }",
-			"b": "plain",
+			"b": testValPlain,
 		})
 		result, err := TraverseAndEvaluateObj(obj, map[string]any{"x": 1}, NewState(), wrapper)
 		require.NoError(t, err)
-		assert.Equal(t, map[string]any{"a": 1, "b": "plain"}, result)
+		assert.Equal(t, map[string]any{"a": 1, "b": testValPlain}, result)
 		assert.Equal(t, 1, callCount, "wrapper should be called once for the single expression value")
 	})
 
@@ -609,11 +627,11 @@ func TestTraverseAndEvaluateObjWithWrapper(t *testing.T) {
 		})
 
 		obj := model.NewObjectOrRuntimeExpr(map[string]any{
-			"items": []any{"${ .a }", "${ .b }", "plain"},
+			testKeyItems: []any{testExprA, "${ .b }", testValPlain},
 		})
 		result, err := TraverseAndEvaluateObj(obj, map[string]any{"a": 10, "b": 20}, NewState(), wrapper)
 		require.NoError(t, err)
-		assert.Equal(t, map[string]any{"items": []any{10, 20, "plain"}}, result)
+		assert.Equal(t, map[string]any{testKeyItems: []any{10, 20, testValPlain}}, result)
 		assert.Equal(t, 2, callCount, "wrapper should be called once per expression in the array")
 	})
 
@@ -729,7 +747,7 @@ func TestCheckIfStatement(t *testing.T) {
 		},
 		{
 			Name:        "invalid jq expression returns non-retryable error",
-			Expression:  model.NewExpr("${ @@@ }"),
+			Expression:  model.NewExpr(testExprInvalid),
 			State:       NewState(),
 			ExpectErr:   true,
 			ErrContains: "Error parsing if statement",

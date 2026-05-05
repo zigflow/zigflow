@@ -96,36 +96,36 @@ func TestBuildDefinitionsKeys(t *testing.T) {
 
 	expected := []string{
 		"callTask",
-		"commonMetadata",
+		defCommonMetadata,
 		"containerLifetime",
 		"doTask",
-		"documentMetadata",
+		defDocumentMetadata,
 		"duration",
-		"endpoint",
-		"error",
+		propEndpoint,
+		propError,
 		"eventConsumptionStrategy",
 		"eventFilter",
 		"eventProperties",
-		"export",
+		propExport,
 		"externalResource",
 		"flowDirective",
 		"forkTask",
 		"forTask",
-		"input",
+		propInput,
 		"listenTask",
-		"output",
+		defOutput,
 		"raiseTask",
 		"runTask",
 		"runtimeExpression",
-		"schema",
+		defSchema,
 		"setTask",
 		"subscriptionIterator",
 		"switchTask",
 		"task",
 		"taskBase",
 		"taskList",
-		"taskMetadata",
-		"timeout",
+		defTaskMetadata,
+		defTimeout,
 		"tryTask",
 		"uriTemplate",
 		"waitTask",
@@ -174,9 +174,9 @@ func TestDurationDefinitionShape(t *testing.T) {
 	assert.Len(t, d.OneOf, 1, "duration must have exactly one OneOf branch (object form only)")
 
 	branch := d.OneOf[0]
-	assert.Equal(t, "object", branch.Type, "the single duration branch must be an object")
+	assert.Equal(t, typeObject, branch.Type, "the single duration branch must be an object")
 
-	for _, prop := range []string{"days", "hours", "minutes", "seconds", "milliseconds"} {
+	for _, prop := range []string{"days", "hours", propMinutes, propSeconds, "milliseconds"} {
 		assert.Contains(t, branch.Properties, prop, "duration object must have property %q", prop)
 	}
 
@@ -196,7 +196,7 @@ func TestTryTaskDefinitionCatch(t *testing.T) {
 	catch := tryTaskDefinition.AllOf[1].Properties["catch"]
 	require.NotNil(t, catch, "catch property must be present")
 
-	assert.Equal(t, "object", catch.Type)
+	assert.Equal(t, typeObject, catch.Type)
 	assert.Contains(t, catch.Required, "do")
 
 	doField := catchProperty("do")

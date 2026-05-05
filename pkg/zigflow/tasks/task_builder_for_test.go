@@ -42,7 +42,7 @@ func TestForTaskBuilderAddIterationResult(t *testing.T) {
 		{
 			name:     "adds map response to state data",
 			taskName: "map-task",
-			response: map[string]any{"key": "value"},
+			response: map[string]any{"key": testConstValue},
 		},
 		{
 			name:     "adds nil response to state data",
@@ -61,7 +61,7 @@ func TestForTaskBuilderAddIterationResult(t *testing.T) {
 					eventEmitter: testEvents,
 					name:         tc.taskName,
 					task: &model.ForTask{
-						For: model.ForTaskConfiguration{In: "${ .data.items }"},
+						For: model.ForTaskConfiguration{In: testConstForDataItems},
 						Do:  &model.TaskList{},
 					},
 				},
@@ -98,7 +98,7 @@ func TestForTaskBuilderCheckWhile(t *testing.T) {
 		},
 		{
 			name:  "boolean true expression",
-			while: "${ $data.flag }",
+			while: testConstDataFlag,
 			stateData: map[string]any{
 				"flag": true,
 			},
@@ -106,7 +106,7 @@ func TestForTaskBuilderCheckWhile(t *testing.T) {
 		},
 		{
 			name:  "boolean false expression",
-			while: "${ $data.flag }",
+			while: testConstDataFlag,
 			stateData: map[string]any{
 				"flag": false,
 			},
@@ -137,7 +137,7 @@ func TestForTaskBuilderCheckWhile(t *testing.T) {
 					eventEmitter: testEvents,
 					name:         "for-task",
 					task: &model.ForTask{
-						For:   model.ForTaskConfiguration{In: "${ .data.items }"},
+						For:   model.ForTaskConfiguration{In: testConstForDataItems},
 						While: tc.while,
 						Do:    &model.TaskList{},
 					},
@@ -172,7 +172,7 @@ func TestForTaskBuilderCheckWhile(t *testing.T) {
 func TestForTaskBuilderIterator(t *testing.T) {
 	state := utils.NewState()
 	state.Input = map[string]any{
-		"request_id": "abc",
+		testConstRequestID: "abc",
 	}
 
 	builder := &ForTaskBuilder{
@@ -182,9 +182,9 @@ func TestForTaskBuilderIterator(t *testing.T) {
 			name:         "iterate",
 			task: &model.ForTask{
 				For: model.ForTaskConfiguration{
-					Each: "value",
-					At:   "idx",
-					In:   "${ .data.items }",
+					Each: testConstValue,
+					At:   testConstIdx,
+					In:   testConstForDataItems,
 				},
 				Do: &model.TaskList{
 					&model.TaskItem{Key: "first", Task: &model.DoTask{}},
@@ -199,17 +199,17 @@ func TestForTaskBuilderIterator(t *testing.T) {
 
 	env.RegisterWorkflowWithOptions(func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
 		return forChildResult{
-			Output:  map[string]any{"child_value": st.Data["value"]},
+			Output:  map[string]any{testConstChildValue: st.Data[testConstValue]},
 			Context: nil,
 		}, nil
 	}, workflow.RegisterOptions{Name: builder.childWorkflowName})
 
 	state.AddData(map[string]any{
-		"items": []any{"item-value"},
+		testConstItems: []any{testConstItemValue},
 	})
 
 	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return builder.iterator(ctx, 0, "item-value", state)
+		return builder.iterator(ctx, 0, testConstItemValue, state)
 	}, workflow.RegisterOptions{Name: "iterator-test"})
 
 	env.ExecuteWorkflow("iterator-test")
@@ -218,14 +218,14 @@ func TestForTaskBuilderIterator(t *testing.T) {
 	var result map[string]any
 	assert.NoError(t, env.GetWorkflowResult(&result))
 
-	assert.Equal(t, map[string]any{"child_value": "item-value"}, result)
+	assert.Equal(t, map[string]any{testConstChildValue: testConstItemValue}, result)
 	// iterator() propagates the child's output back onto the working state (the
 	// state passed as the workingState parameter, which in this test is state itself).
-	assert.Equal(t, map[string]any{"child_value": "item-value"}, state.Output)
+	assert.Equal(t, map[string]any{testConstChildValue: testConstItemValue}, state.Output)
 	// Loop-local variables must not appear on the state passed to iterator()
 	// because they are placed on a per-iteration clone (iterState) inside iterator().
-	assert.Nil(t, state.Data["value"])
-	assert.Nil(t, state.Data["idx"])
+	assert.Nil(t, state.Data[testConstValue])
+	assert.Nil(t, state.Data[testConstIdx])
 }
 
 // TestForIteratorContextPropagates verifies that $context set by an export in
@@ -239,8 +239,8 @@ func TestForIteratorContextPropagates(t *testing.T) {
 			eventEmitter: testEvents,
 			name:         "ctx-prop",
 			task: &model.ForTask{
-				For: model.ForTaskConfiguration{Each: "item", At: "idx", In: "${ .data.items }"},
-				Do:  &model.TaskList{&model.TaskItem{Key: "step", Task: &model.DoTask{}}},
+				For: model.ForTaskConfiguration{Each: constDefaultItemVar, At: testConstIdx, In: testConstForDataItems},
+				Do:  &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 			},
 		},
 		childWorkflowName: childWorkflowName,
@@ -256,8 +256,8 @@ func TestForIteratorContextPropagates(t *testing.T) {
 		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
 			receivedContexts = append(receivedContexts, st.Context)
 			return forChildResult{
-				Output:  st.Data["item"],
-				Context: map[string]any{"last": st.Data["item"]},
+				Output:  st.Data[constDefaultItemVar],
+				Context: map[string]any{testConstLast: st.Data[constDefaultItemVar]},
 			}, nil
 		},
 		workflow.RegisterOptions{Name: childWorkflowName},
@@ -282,9 +282,9 @@ func TestForIteratorContextPropagates(t *testing.T) {
 	// First iteration starts with no exported context.
 	assert.Nil(t, receivedContexts[0])
 	// Second iteration sees the context exported by the first iteration.
-	assert.Equal(t, map[string]any{"last": "alpha"}, receivedContexts[1])
+	assert.Equal(t, map[string]any{testConstLast: "alpha"}, receivedContexts[1])
 	// Parent state ends with the context from the final iteration.
-	assert.Equal(t, map[string]any{"last": "beta"}, state.Context)
+	assert.Equal(t, map[string]any{testConstLast: "beta"}, state.Context)
 }
 
 // TestForIteratorWhileSeesOutput verifies that the while condition for iteration
@@ -300,8 +300,8 @@ func TestForIteratorWhileSeesOutput(t *testing.T) {
 			task: &model.ForTask{
 				// Continue while $output.continue is true.
 				While: "${ $output.continue }",
-				For:   model.ForTaskConfiguration{Each: "item", At: "idx", In: "${ .data.items }"},
-				Do:    &model.TaskList{&model.TaskItem{Key: "step", Task: &model.DoTask{}}},
+				For:   model.ForTaskConfiguration{Each: constDefaultItemVar, At: testConstIdx, In: testConstForDataItems},
+				Do:    &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 			},
 		},
 		childWorkflowName: childWorkflowName,
@@ -372,11 +372,11 @@ func TestForExecArrayAccumulatesResults(t *testing.T) {
 			name:         "accum",
 			task: &model.ForTask{
 				For: model.ForTaskConfiguration{
-					Each: "item",
-					At:   "idx",
-					In:   "${ $data.items }",
+					Each: constDefaultItemVar,
+					At:   testConstIdx,
+					In:   testConstForRefDataItems,
 				},
-				Do: &model.TaskList{&model.TaskItem{Key: "step", Task: &model.DoTask{}}},
+				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 			},
 		},
 		childWorkflowName: childWorkflowName,
@@ -388,7 +388,7 @@ func TestForExecArrayAccumulatesResults(t *testing.T) {
 	env.RegisterWorkflowWithOptions(
 		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
 			return forChildResult{
-				Output:  map[string]any{"processed": st.Data["item"]},
+				Output:  map[string]any{testConstProcessed: st.Data[constDefaultItemVar]},
 				Context: nil,
 			}, nil
 		},
@@ -396,7 +396,7 @@ func TestForExecArrayAccumulatesResults(t *testing.T) {
 	)
 
 	state := utils.NewState()
-	state.AddData(map[string]any{"items": []any{"x", "y", "z"}})
+	state.AddData(map[string]any{testConstItems: []any{"x", "y", "z"}})
 
 	execFn, err := b.exec()
 	assert.NoError(t, err)
@@ -412,9 +412,9 @@ func TestForExecArrayAccumulatesResults(t *testing.T) {
 	assert.NoError(t, env.GetWorkflowResult(&result))
 
 	assert.Equal(t, []any{
-		map[string]any{"processed": "x"},
-		map[string]any{"processed": "y"},
-		map[string]any{"processed": "z"},
+		map[string]any{testConstProcessed: "x"},
+		map[string]any{testConstProcessed: "y"},
+		map[string]any{testConstProcessed: "z"},
 	}, result)
 }
 
@@ -432,9 +432,9 @@ func TestForExecObjectAccumulatesResults(t *testing.T) {
 				For: model.ForTaskConfiguration{
 					Each: "val",
 					At:   "key",
-					In:   "${ $data.items }",
+					In:   testConstForRefDataItems,
 				},
-				Do: &model.TaskList{&model.TaskItem{Key: "step", Task: &model.DoTask{}}},
+				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 			},
 		},
 		childWorkflowName: childWorkflowName,
@@ -454,7 +454,7 @@ func TestForExecObjectAccumulatesResults(t *testing.T) {
 	)
 
 	state := utils.NewState()
-	state.AddData(map[string]any{"items": map[string]any{"a": 1, "b": 2}})
+	state.AddData(map[string]any{testConstItems: map[string]any{"a": 1, "b": 2}})
 
 	execFn, err := b.exec()
 	assert.NoError(t, err)
@@ -486,10 +486,10 @@ func TestForExecNumericAccumulatesResults(t *testing.T) {
 			task: &model.ForTask{
 				For: model.ForTaskConfiguration{
 					Each: "val",
-					At:   "idx",
+					At:   testConstIdx,
 					In:   "${ $data.count }",
 				},
-				Do: &model.TaskList{&model.TaskItem{Key: "step", Task: &model.DoTask{}}},
+				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 			},
 		},
 		childWorkflowName: childWorkflowName,
@@ -500,7 +500,7 @@ func TestForExecNumericAccumulatesResults(t *testing.T) {
 
 	env.RegisterWorkflowWithOptions(
 		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			return forChildResult{Output: st.Data["idx"], Context: nil}, nil
+			return forChildResult{Output: st.Data[testConstIdx], Context: nil}, nil
 		},
 		workflow.RegisterOptions{Name: childWorkflowName},
 	)
@@ -538,11 +538,11 @@ func TestForExecLoopVarsDoNotLeakToParent(t *testing.T) {
 			name:         "leak-check",
 			task: &model.ForTask{
 				For: model.ForTaskConfiguration{
-					Each: "item",
-					At:   "idx",
-					In:   "${ $data.items }",
+					Each: constDefaultItemVar,
+					At:   testConstIdx,
+					In:   testConstForRefDataItems,
 				},
-				Do: &model.TaskList{&model.TaskItem{Key: "step", Task: &model.DoTask{}}},
+				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 			},
 		},
 		childWorkflowName: childWorkflowName,
@@ -553,13 +553,13 @@ func TestForExecLoopVarsDoNotLeakToParent(t *testing.T) {
 
 	env.RegisterWorkflowWithOptions(
 		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			return forChildResult{Output: st.Data["item"], Context: nil}, nil
+			return forChildResult{Output: st.Data[constDefaultItemVar], Context: nil}, nil
 		},
 		workflow.RegisterOptions{Name: childWorkflowName},
 	)
 
 	state := utils.NewState()
-	state.AddData(map[string]any{"items": []any{"a", "b"}})
+	state.AddData(map[string]any{testConstItems: []any{"a", "b"}})
 
 	execFn, err := b.exec()
 	assert.NoError(t, err)
@@ -572,10 +572,10 @@ func TestForExecLoopVarsDoNotLeakToParent(t *testing.T) {
 	assert.NoError(t, env.GetWorkflowError())
 
 	// Loop-local variables must not appear in parent state after the loop exits.
-	assert.Nil(t, state.Data["item"], "item must not leak to parent state")
-	assert.Nil(t, state.Data["idx"], "idx must not leak to parent state")
+	assert.Nil(t, state.Data[constDefaultItemVar], "item must not leak to parent state")
+	assert.Nil(t, state.Data[testConstIdx], "idx must not leak to parent state")
 	// The pre-loop data must be unmodified.
-	assert.Equal(t, []any{"a", "b"}, state.Data["items"])
+	assert.Equal(t, []any{"a", "b"}, state.Data[testConstItems])
 }
 
 // TestForExecContextDoesNotLeakToParent verifies that $context updated by an
@@ -592,11 +592,11 @@ func TestForExecContextDoesNotLeakToParent(t *testing.T) {
 			name:         "ctx-leak",
 			task: &model.ForTask{
 				For: model.ForTaskConfiguration{
-					Each: "item",
-					At:   "idx",
-					In:   "${ $data.items }",
+					Each: constDefaultItemVar,
+					At:   testConstIdx,
+					In:   testConstForRefDataItems,
 				},
-				Do: &model.TaskList{&model.TaskItem{Key: "step", Task: &model.DoTask{}}},
+				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 			},
 		},
 		childWorkflowName: childWorkflowName,
@@ -608,15 +608,15 @@ func TestForExecContextDoesNotLeakToParent(t *testing.T) {
 	env.RegisterWorkflowWithOptions(
 		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
 			return forChildResult{
-				Output:  st.Data["item"],
-				Context: map[string]any{"last": st.Data["item"]},
+				Output:  st.Data[constDefaultItemVar],
+				Context: map[string]any{testConstLast: st.Data[constDefaultItemVar]},
 			}, nil
 		},
 		workflow.RegisterOptions{Name: childWorkflowName},
 	)
 
 	state := utils.NewState()
-	state.AddData(map[string]any{"items": []any{"x", "y"}})
+	state.AddData(map[string]any{testConstItems: []any{"x", "y"}})
 
 	execFn, err := b.exec()
 	assert.NoError(t, err)
@@ -649,11 +649,11 @@ func TestForExecOutputIsAggregatedResult(t *testing.T) {
 			name:         "no-out-leak",
 			task: &model.ForTask{
 				For: model.ForTaskConfiguration{
-					Each: "item",
-					At:   "idx",
-					In:   "${ $data.items }",
+					Each: constDefaultItemVar,
+					At:   testConstIdx,
+					In:   testConstForRefDataItems,
 				},
-				Do: &model.TaskList{&model.TaskItem{Key: "step", Task: &model.DoTask{}}},
+				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 			},
 		},
 		childWorkflowName: childWorkflowName,
@@ -670,7 +670,7 @@ func TestForExecOutputIsAggregatedResult(t *testing.T) {
 	)
 
 	state := utils.NewState()
-	state.AddData(map[string]any{"items": []any{"a"}})
+	state.AddData(map[string]any{testConstItems: []any{"a"}})
 
 	execFn, err := b.exec()
 	assert.NoError(t, err)
@@ -703,11 +703,11 @@ func TestForExecErrorLeavesParentStateUnchanged(t *testing.T) {
 			name:         "err-unchanged",
 			task: &model.ForTask{
 				For: model.ForTaskConfiguration{
-					Each: "item",
-					At:   "idx",
-					In:   "${ $data.items }",
+					Each: constDefaultItemVar,
+					At:   testConstIdx,
+					In:   testConstForRefDataItems,
 				},
-				Do: &model.TaskList{&model.TaskItem{Key: "step", Task: &model.DoTask{}}},
+				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 			},
 		},
 		childWorkflowName: childWorkflowName,
@@ -726,7 +726,7 @@ func TestForExecErrorLeavesParentStateUnchanged(t *testing.T) {
 	state := utils.NewState()
 	state.Context = map[string]any{"original": true}
 	state.Output = "original-output"
-	state.AddData(map[string]any{"items": []any{"a"}})
+	state.AddData(map[string]any{testConstItems: []any{"a"}})
 
 	execFn, err := b.exec()
 	assert.NoError(t, err)
@@ -744,12 +744,12 @@ func TestForExecErrorLeavesParentStateUnchanged(t *testing.T) {
 		"exec() must not modify state.Context when an iteration fails")
 	assert.Equal(t, "original-output", state.Output,
 		"exec() must not modify state.Output when an iteration fails")
-	assert.Equal(t, []any{"a"}, state.Data["items"],
+	assert.Equal(t, []any{"a"}, state.Data[testConstItems],
 		"pre-loop Data must be unchanged when an iteration fails")
 	assert.Nil(t, state.Data["err-unchanged"],
 		"loop task result must not appear in parent Data when an iteration fails")
-	assert.Nil(t, state.Data["item"],
+	assert.Nil(t, state.Data[constDefaultItemVar],
 		"loop-local variable must not leak into parent Data when an iteration fails")
-	assert.Nil(t, state.Data["idx"],
+	assert.Nil(t, state.Data[testConstIdx],
 		"loop-local variable must not leak into parent Data when an iteration fails")
 }

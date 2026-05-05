@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package tasks
-
-const customCallFunctionActivity = "activity"
+package cmd
 
 const (
-	constKeyInput             = "input"
-	constKeyState             = "state"
-	constDefaultItemVar       = "item"
-	constDefaultNamespace     = "default"
-	constScriptLanguagePython = "python"
+	testFlagOutput            = "--output"
+	testFlagWorkflow          = "--workflow"
+	testOutputFlowchartTD     = "flowchart TD"
+	testNameUnsupportedFormat = "unsupported output format"
+	testPlaceholderWorkflow   = "PLACEHOLDER_WORKFLOW"
 )

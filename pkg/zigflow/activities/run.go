@@ -35,6 +35,12 @@ import (
 	"go.temporal.io/sdk/temporal"
 )
 
+const (
+	scriptLangJS     = "js"
+	scriptLangPython = "python"
+	scriptCmdNode    = "node"
+)
+
 func init() {
 	Registry = append(Registry, &Run{})
 }
@@ -79,11 +85,11 @@ func (r *Run) CallScriptActivity(ctx context.Context, task *model.RunTask, input
 	lang := script.Language
 	logger.Debug("Detecting script language", "language", lang)
 	switch lang {
-	case "js":
-		command = append(command, "node")
+	case scriptLangJS:
+		command = append(command, scriptCmdNode)
 		file = "script.js"
-	case "python":
-		command = append(command, "python")
+	case scriptLangPython:
+		command = append(command, scriptLangPython)
 		file = "script.py"
 	default:
 		logger.Error("Unknown script language", "language", lang)

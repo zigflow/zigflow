@@ -28,6 +28,8 @@ import (
 	"go.temporal.io/sdk/client"
 )
 
+const keyUserID = "userId"
+
 func exec() error {
 	// The client is a heavyweight object that should be created once per process.
 	c, err := temporal.NewConnectionWithEnvvars(
@@ -54,13 +56,13 @@ func exec() error {
 		},
 		"data": []any{
 			map[string]any{
-				"userId": 3,
+				keyUserID: 3,
 			},
 			map[string]any{
-				"userId": 4,
+				keyUserID: 4,
 			},
 			map[string]any{
-				"userId": 5,
+				keyUserID: 5,
 			},
 		},
 	})

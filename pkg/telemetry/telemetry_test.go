@@ -25,6 +25,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const expectedCountryGB = "GB"
+
 func TestParseCloudflareTrace(t *testing.T) {
 	tests := []struct {
 		Name     string
@@ -36,7 +38,7 @@ func TestParseCloudflareTrace(t *testing.T) {
 			Body: "fl=123abc\nh=www.cloudflare.com\nip=1.2.3.4\nts=1234567890.123\n" +
 				"visit_scheme=https\nuag=Go-http-client/1.1\ncolo=LHR\nsliver=none\n" +
 				"http=http/1.1\nloc=GB\ntls=TLSv1.3\nsni=plaintext\nwarp=off",
-			Expected: "GB",
+			Expected: expectedCountryGB,
 		},
 		{
 			Name:     "lowercase country code",
@@ -152,7 +154,7 @@ func TestFetchCountry(t *testing.T) {
 			Name:     "200 with valid loc",
 			Status:   http.StatusOK,
 			Body:     validBody,
-			Expected: "GB",
+			Expected: expectedCountryGB,
 		},
 		{
 			Name:     "500 response returns empty",
@@ -177,7 +179,7 @@ func TestFetchCountry(t *testing.T) {
 			Status: http.StatusOK,
 			// loc=GB within the first 4KB, padded well beyond the limit
 			Body:     "fl=123abc\nloc=GB\npadding=" + strings.Repeat("x", 12*1024),
-			Expected: "GB",
+			Expected: expectedCountryGB,
 		},
 		{
 			Name:   "200 with oversized body where loc is beyond limit",

@@ -38,19 +38,19 @@ func TestNewGraphCmd(t *testing.T) {
 		{
 			Name:           "valid workflow produces mermaid output",
 			Content:        validWorkflowYAML,
-			OutputContains: []string{"flowchart TD", "step"},
+			OutputContains: []string{testOutputFlowchartTD, "step"},
 		},
 		{
 			Name:           "explicit --output mermaid flag",
 			Content:        validWorkflowYAML,
-			ExtraArgs:      []string{"--output", "mermaid"},
-			OutputContains: []string{"flowchart TD"},
+			ExtraArgs:      []string{testFlagOutput, "mermaid"},
+			OutputContains: []string{testOutputFlowchartTD},
 		},
 		{
 			Name:           "explicit -o shorthand flag",
 			Content:        validWorkflowYAML,
 			ExtraArgs:      []string{"-o", "mermaid"},
-			OutputContains: []string{"flowchart TD"},
+			OutputContains: []string{testOutputFlowchartTD},
 		},
 		{
 			Name:        "non-existent file",
@@ -68,9 +68,9 @@ func TestNewGraphCmd(t *testing.T) {
 			ExpectError: true,
 		},
 		{
-			Name:        "unsupported output format",
+			Name:        testNameUnsupportedFormat,
 			Content:     validWorkflowYAML,
-			ExtraArgs:   []string{"--output", "unknown"},
+			ExtraArgs:   []string{testFlagOutput, "unknown"},
 			ExpectError: true,
 		},
 	}

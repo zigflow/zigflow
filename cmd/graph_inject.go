@@ -112,7 +112,7 @@ Default markers:
 func execGraphInjectAuto(targetFile, outputFormat, endMarker string) error {
 	data, err := os.ReadFile(targetFile)
 	if err != nil {
-		return gh.FatalError{Cause: err, Msg: "Unable to read target file"}
+		return gh.FatalError{Cause: err, Msg: errMsgUnableToReadTargetFile}
 	}
 
 	workflowPath, startMarker, found := graph.ParseEmbeddedPath(string(data), graph.DefaultWorkflowFile)
@@ -136,7 +136,7 @@ func execGraphInject(workflowFile, targetFile, outputFormat, startMarker, endMar
 
 	wf, err := zigflow.LoadFromFile(workflowFile)
 	if err != nil {
-		return gh.FatalError{Cause: err, Msg: "Unable to load workflow file"}
+		return gh.FatalError{Cause: err, Msg: errMsgUnableToLoadWorkflowFile}
 	}
 
 	gen, err := graph.New(graph.Format(outputFormat))
@@ -154,12 +154,12 @@ func execGraphInject(workflowFile, targetFile, outputFormat, startMarker, endMar
 
 	info, err := os.Stat(absTarget)
 	if err != nil {
-		return gh.FatalError{Cause: err, Msg: "Unable to read target file"}
+		return gh.FatalError{Cause: err, Msg: errMsgUnableToReadTargetFile}
 	}
 
 	fileData, err := os.ReadFile(absTarget)
 	if err != nil {
-		return gh.FatalError{Cause: err, Msg: "Unable to read target file"}
+		return gh.FatalError{Cause: err, Msg: errMsgUnableToReadTargetFile}
 	}
 
 	result, err := graph.InjectGraph(string(fileData), startMarker, endMarker, codeBlock)
