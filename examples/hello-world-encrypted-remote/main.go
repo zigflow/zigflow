@@ -54,7 +54,7 @@ func exec() error {
 	// The client is a heavyweight object that should be created once per process.
 	c, err := temporal.NewConnectionWithEnvvars(
 		temporal.WithZerolog(&log.Logger),
-		temporal.WithDataConverter(remoteConverter),
+		temporal.WithDataAndFailureConverter(remoteConverter),
 	)
 	if err != nil {
 		return gh.FatalError{
