@@ -2,21 +2,6 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
-## [v0.11.2](https://github.com/zigflow/zigflow/releases/tag/v0.11.2) - 2026-05-06
-
-## What's Changed
-* refactor(mcp): embed example workflow files in MCP implementation by @mrsimonemms in https://github.com/zigflow/zigflow/pull/379
-* docs: update readme to make more impactful by @mrsimonemms in https://github.com/zigflow/zigflow/pull/381
-* ci: remove helm version by @mrsimonemms in https://github.com/zigflow/zigflow/pull/363
-* chore: bump go version to 1.26 by @mrsimonemms in https://github.com/zigflow/zigflow/pull/383
-* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/384
-* chore: update the codebase for the newer `golangci-lint` configuration by @mrsimonemms in https://github.com/zigflow/zigflow/pull/387
-* feat: run failures through the data converter by @mrsimonemms in https://github.com/zigflow/zigflow/pull/386
-* chore: generate a changelog by @mrsimonemms in https://github.com/zigflow/zigflow/pull/388
-
-
-**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.11.1...v0.11.2
-
 ## [v0.11.1](https://github.com/zigflow/zigflow/releases/tag/v0.11.1) - 2026-04-20
 
 ## What's Changed
