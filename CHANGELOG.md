@@ -2,7 +2,7 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
-## v0.11.2 - 2026-05-06
+## [v0.11.2](https://github.com/zigflow/zigflow/releases/tag/v0.11.2) - 2026-05-06
 
 ## What's Changed
 * refactor(mcp): embed example workflow files in MCP implementation by @mrsimonemms in https://github.com/zigflow/zigflow/pull/379
@@ -17,7 +17,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.11.1...v0.11.2
 
-## v0.11.1 - 2026-04-20
+## [v0.11.1](https://github.com/zigflow/zigflow/releases/tag/v0.11.1) - 2026-04-20
 
 ## What's Changed
 * docs: remove h1 title in favour of the logo by @mrsimonemms in https://github.com/zigflow/zigflow/pull/373
@@ -28,7 +28,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.11.0...v0.11.1
 
-## v0.11.0 - 2026-04-18
+## [v0.11.0](https://github.com/zigflow/zigflow/releases/tag/v0.11.0) - 2026-04-18
 
 ## What's Changed
 * Add helm smoke tests by @mrsimonemms in https://github.com/zigflow/zigflow/pull/364
@@ -42,7 +42,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.10.2...v0.11.0
 
-## v0.10.2 - 2026-04-12
+## [v0.10.2](https://github.com/zigflow/zigflow/releases/tag/v0.10.2) - 2026-04-12
 
 ## What's Changed
 * ci: add skaffold version by @mrsimonemms in https://github.com/zigflow/zigflow/pull/352
@@ -58,7 +58,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.10.1...v0.10.2
 
-## v0.10.1 - 2026-04-09
+## [v0.10.1](https://github.com/zigflow/zigflow/releases/tag/v0.10.1) - 2026-04-09
 
 ## What's Changed
 * feat(telemetry): add coarse server country to worker_started event by @mrsimonemms in https://github.com/zigflow/zigflow/pull/346
@@ -68,7 +68,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.10.0...v0.10.1
 
-## v0.10.0 - 2026-04-08
+## [v0.10.0](https://github.com/zigflow/zigflow/releases/tag/v0.10.0) - 2026-04-08
 
 ## What's Changed
 * docs: add some articles by @mrsimonemms in https://github.com/zigflow/zigflow/pull/317
@@ -93,7 +93,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.9.1...v0.10.0
 
-## v0.9.1 - 2026-03-21
+## [v0.9.1](https://github.com/zigflow/zigflow/releases/tag/v0.9.1) - 2026-03-21
 
 ## What's Changed
 * docs: create testing guide by @mrsimonemms in https://github.com/zigflow/zigflow/pull/307
@@ -105,7 +105,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.9.0...v0.9.1
 
-## v0.9.0 - 2026-03-10
+## [v0.9.0](https://github.com/zigflow/zigflow/releases/tag/v0.9.0) - 2026-03-10
 
 ## What's Changed
 * [Breaking]: move repo to zigflow org by @mrsimonemms in https://github.com/zigflow/zigflow/pull/298
@@ -115,7 +115,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.8.2...v0.9.0
 
-## v0.8.3-rc2 - 2026-03-09
+## [v0.8.3-rc2](https://github.com/zigflow/zigflow/releases/tag/v0.8.3-rc2) - 2026-03-09
 
 ## What's Changed
 * [Breaking]: move repo to zigflow org by @mrsimonemms in https://github.com/zigflow/zigflow/pull/298
@@ -124,7 +124,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.8.2...v0.8.3-rc2
 
-## v0.8.2 - 2026-03-07
+## [v0.8.2](https://github.com/zigflow/zigflow/releases/tag/v0.8.2) - 2026-03-07
 
 ## What's Changed
 * docs: add contributing instructions by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/254
@@ -163,7 +163,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.8.0...v0.8.2
 
-## v0.8.0 - 2026-02-20
+## [v0.8.0](https://github.com/zigflow/zigflow/releases/tag/v0.8.0) - 2026-02-20
 
 ## What's Changed
 * [Breaking] make commands testable by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/251
@@ -172,7 +172,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.7.2...v0.8.0
 
-## v0.7.2 - 2026-02-19
+## [v0.7.2](https://github.com/zigflow/zigflow/releases/tag/v0.7.2) - 2026-02-19
 
 ## What's Changed
 * Sje/release mechanism by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/233
@@ -191,27 +191,27 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.7.1...v0.7.2
 
-## v0.7.2-rc5 - 2026-02-15
+## [v0.7.2-rc5](https://github.com/zigflow/zigflow/releases/tag/v0.7.2-rc5) - 2026-02-15
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.7.1...v0.7.2-rc5
 
-## v0.7.2-rc4 - 2026-02-15
+## [v0.7.2-rc4](https://github.com/zigflow/zigflow/releases/tag/v0.7.2-rc4) - 2026-02-15
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.7.1...v0.7.2-rc4
 
-## v0.7.2-rc3 - 2026-02-15
+## [v0.7.2-rc3](https://github.com/zigflow/zigflow/releases/tag/v0.7.2-rc3) - 2026-02-15
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.7.1...v0.7.2-rc3
 
-## v0.7.2-rc2 - 2026-02-15
+## [v0.7.2-rc2](https://github.com/zigflow/zigflow/releases/tag/v0.7.2-rc2) - 2026-02-15
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.7.1...v0.7.2-rc2
 
-## v0.7.2-rc1 - 2026-02-15
+## [v0.7.2-rc1](https://github.com/zigflow/zigflow/releases/tag/v0.7.2-rc1) - 2026-02-15
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.7.1...v0.7.2-rc1
 
-## v0.7.1 - 2026-02-15
+## [v0.7.1](https://github.com/zigflow/zigflow/releases/tag/v0.7.1) - 2026-02-15
 
 ## What's Changed
 * chore: add make task to install js dependencies by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/225
@@ -223,7 +223,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.7.0...v0.7.1
 
-## v0.7.0 - 2026-02-09
+## [v0.7.0](https://github.com/zigflow/zigflow/releases/tag/v0.7.0) - 2026-02-09
 
 ## What's Changed
 * ci(stale): never apply stale to anything with 'never-stale' by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/223
@@ -234,7 +234,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.6.11...v0.7.0
 
-## v0.6.11 - 2026-01-31
+## [v0.6.11](https://github.com/zigflow/zigflow/releases/tag/v0.6.11) - 2026-01-31
 
 ## What's Changed
 * chore(deps): bump protobuf from 6.33.0 to 6.33.5 in /examples/python in the uv group across 1 directory by @dependabot[bot] in https://github.com/mrsimonemms/zigflow/pull/213
@@ -244,7 +244,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.6.10...v0.6.11
 
-## v0.6.10 - 2026-01-29
+## [v0.6.10](https://github.com/zigflow/zigflow/releases/tag/v0.6.10) - 2026-01-29
 
 ## What's Changed
 * Add star button to homepage by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/205
@@ -256,7 +256,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.6.9...v0.6.10
 
-## v0.6.9 - 2026-01-23
+## [v0.6.9](https://github.com/zigflow/zigflow/releases/tag/v0.6.9) - 2026-01-23
 
 ## What's Changed
 * chore(examples): add encryption example by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/196
@@ -272,7 +272,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.6.8...v0.6.9
 
-## v0.6.8 - 2026-01-18
+## [v0.6.8](https://github.com/zigflow/zigflow/releases/tag/v0.6.8) - 2026-01-18
 
 ## What's Changed
 * Add time functions to runtime_expressions by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/195
@@ -280,7 +280,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.6.7...v0.6.8
 
-## v0.6.7 - 2026-01-15
+## [v0.6.7](https://github.com/zigflow/zigflow/releases/tag/v0.6.7) - 2026-01-15
 
 ## What's Changed
 * fix: return result from switch tasks by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/193
@@ -288,7 +288,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.6.6...v0.6.7
 
-## v0.6.6 - 2026-01-11
+## [v0.6.6](https://github.com/zigflow/zigflow/releases/tag/v0.6.6) - 2026-01-11
 
 ## What's Changed
 * fix: add unit test to check nested tasks are added correctly by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/185
@@ -297,7 +297,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.6.5...v0.6.6
 
-## v0.6.5 - 2026-01-09
+## [v0.6.5](https://github.com/zigflow/zigflow/releases/tag/v0.6.5) - 2026-01-09
 
 ## What's Changed
 * fix: prevent nested do tasks being added to the workflow by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/184
@@ -305,7 +305,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.6.4...v0.6.5
 
-## v0.6.4 - 2026-01-08
+## [v0.6.4](https://github.com/zigflow/zigflow/releases/tag/v0.6.4) - 2026-01-08
 
 ## What's Changed
 * ci: update pr job to work with checkout v6 by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/178
@@ -315,7 +315,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.6.3...v0.6.4
 
-## v0.6.3 - 2026-01-07
+## [v0.6.3](https://github.com/zigflow/zigflow/releases/tag/v0.6.3) - 2026-01-07
 
 ## What's Changed
 * ci: bump github actions versions by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/175
@@ -324,7 +324,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.6.2...v0.6.3
 
-## v0.6.2 - 2026-01-06
+## [v0.6.2](https://github.com/zigflow/zigflow/releases/tag/v0.6.2) - 2026-01-06
 
 ## What's Changed
 * fix: add ambient envvars to run exec command by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/174
@@ -332,7 +332,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.6.1...v0.6.2
 
-## v0.6.1 - 2026-01-05
+## [v0.6.1](https://github.com/zigflow/zigflow/releases/tag/v0.6.1) - 2026-01-05
 
 ## What's Changed
 * chore: update copyright year on docs website by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/165
@@ -346,7 +346,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.6.0...v0.6.1
 
-## v0.6.0 - 2026-01-02
+## [v0.6.0](https://github.com/zigflow/zigflow/releases/tag/v0.6.0) - 2026-01-02
 
 ## What's Changed
 * chore: update the tagline to include the word "dsl" by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/160
@@ -359,7 +359,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.5.0...v0.6.0
 
-## v0.5.0 - 2025-12-25
+## [v0.5.0](https://github.com/zigflow/zigflow/releases/tag/v0.5.0) - 2025-12-25
 
 ## What's Changed
 * feat: update logo by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/144
@@ -376,7 +376,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.4.1...v0.5.0
 
-## v0.4.1 - 2025-12-11
+## [v0.4.1](https://github.com/zigflow/zigflow/releases/tag/v0.4.1) - 2025-12-11
 
 ## What's Changed
 * fix: runtime_expression couldn't handle a slice of strings by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/143
@@ -384,7 +384,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.4.0...v0.4.1
 
-## v0.4.0 - 2025-12-10
+## [v0.4.0](https://github.com/zigflow/zigflow/releases/tag/v0.4.0) - 2025-12-10
 
 ## What's Changed
 * chore: add commitlint to makefile by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/138
@@ -394,14 +394,14 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.3.0...v0.4.0
 
-## v0.3.0 - 2025-12-08
+## [v0.3.0](https://github.com/zigflow/zigflow/releases/tag/v0.3.0) - 2025-12-08
 
 ## What's Changed
 * feat: implement call activity by @mrsimonemms and @maver1ck  (https://github.com/mrsimonemms/zigflow/pull/136)
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.2.1...v0.3.0
 
-## v0.2.1 - 2025-12-04
+## [v0.2.1](https://github.com/zigflow/zigflow/releases/tag/v0.2.1) - 2025-12-04
 
 ## What's Changed
 * fix(listener): add acceptIf on listeners by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/133
@@ -409,7 +409,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.2.0...v0.2.1
 
-## v0.2.0 - 2025-12-03
+## [v0.2.0](https://github.com/zigflow/zigflow/releases/tag/v0.2.0) - 2025-12-03
 
 ## What's Changed
 * Update logo by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/114
@@ -472,7 +472,7 @@ This changelog is generated from [GitHub Releases](https://github.com/zigflow/zi
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.1.0...v0.2.0
 
-## v0.1.0 - 2025-11-24
+## [v0.1.0](https://github.com/zigflow/zigflow/releases/tag/v0.1.0) - 2025-11-24
 
 Complete rewrite from v0.0.7. We're now in public preview 🎉
 
@@ -521,7 +521,7 @@ Complete rewrite from v0.0.7. We're now in public preview 🎉
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.0.7...v0.1.0
 
-## v0.1.0-rc2 - 2025-11-19
+## [v0.1.0-rc2](https://github.com/zigflow/zigflow/releases/tag/v0.1.0-rc2) - 2025-11-19
 
 ## What's Changed
 * Revert "fix: clone the state for each task" by @mrsimonemms in https://github.com/mrsimonemms/zigflow/pull/101
@@ -537,7 +537,7 @@ Complete rewrite from v0.0.7. We're now in public preview 🎉
 
 **Full Changelog**: https://github.com/mrsimonemms/zigflow/compare/v0.1.0-rc1...v0.1.0-rc2
 
-## v0.1.0-rc1 - 2025-11-08
+## [v0.1.0-rc1](https://github.com/zigflow/zigflow/releases/tag/v0.1.0-rc1) - 2025-11-08
 
 ## What's Changed
 * chore: update examples to use connection with envvars by @mrsimonemms in https://github.com/mrsimonemms/temporal-dsl/pull/52
@@ -570,7 +570,7 @@ Complete rewrite from v0.0.7. We're now in public preview 🎉
 
 **Full Changelog**: https://github.com/mrsimonemms/temporal-dsl/compare/v0.0.7...v0.1.0-rc1
 
-## v0.0.7 - 2025-09-08
+## [v0.0.7](https://github.com/zigflow/zigflow/releases/tag/v0.0.7) - 2025-09-08
 
 ## What's Changed
 * refactor: use a fatal error rather than log.Fatal by @mrsimonemms in https://github.com/mrsimonemms/temporal-dsl/pull/45
@@ -582,7 +582,7 @@ Complete rewrite from v0.0.7. We're now in public preview 🎉
 
 **Full Changelog**: https://github.com/mrsimonemms/temporal-dsl/compare/v0.0.6...v0.0.7
 
-## v0.0.6 - 2025-08-29
+## [v0.0.6](https://github.com/zigflow/zigflow/releases/tag/v0.0.6) - 2025-08-29
 
 ## What's Changed
 * feat: implement schedules by @mrsimonemms in https://github.com/mrsimonemms/temporal-dsl/pull/26
@@ -593,7 +593,7 @@ Complete rewrite from v0.0.7. We're now in public preview 🎉
 
 **Full Changelog**: https://github.com/mrsimonemms/temporal-dsl/compare/v0.0.4...v0.0.6
 
-## v0.0.4 - 2025-08-28
+## [v0.0.4](https://github.com/zigflow/zigflow/releases/tag/v0.0.4) - 2025-08-28
 
 ## What's Changed
 * A bit of refactoring by @mrsimonemms in https://github.com/mrsimonemms/temporal-dsl/pull/31
@@ -612,7 +612,7 @@ Complete rewrite from v0.0.7. We're now in public preview 🎉
 
 **Full Changelog**: https://github.com/mrsimonemms/temporal-dsl/compare/v0.0.3...v0.0.4
 
-## v0.0.3 - 2025-08-22
+## [v0.0.3](https://github.com/zigflow/zigflow/releases/tag/v0.0.3) - 2025-08-22
 
 ## What's Changed
 * fix: update state in human in loop part of money transfer by @mrsimonemms in https://github.com/mrsimonemms/temporal-dsl/pull/20
@@ -625,7 +625,7 @@ Complete rewrite from v0.0.7. We're now in public preview 🎉
 
 **Full Changelog**: https://github.com/mrsimonemms/temporal-dsl/compare/v0.0.2...v0.0.3
 
-## v0.0.2 - 2025-08-15
+## [v0.0.2](https://github.com/zigflow/zigflow/releases/tag/v0.0.2) - 2025-08-15
 
 ## What's Changed
 * feat: add aes encryption by @mrsimonemms in https://github.com/mrsimonemms/temporal-serverless-workflow/pull/5
@@ -640,7 +640,7 @@ Complete rewrite from v0.0.7. We're now in public preview 🎉
 
 **Full Changelog**: https://github.com/mrsimonemms/temporal-serverless-workflow/compare/v0.0.1...v0.0.2
 
-## v0.0.1 - 2025-08-13
+## [v0.0.1](https://github.com/zigflow/zigflow/releases/tag/v0.0.1) - 2025-08-13
 
 ## What's Changed
 * docs: fix typo by @mrsimonemms in https://github.com/mrsimonemms/temporal-serverless-workflow/pull/6

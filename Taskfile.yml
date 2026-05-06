@@ -7,6 +7,11 @@ vars:
   TMP_IMG_TAG: 24h
 
 tasks:
+  changelog:
+    desc: Generate the changelog
+    cmds:
+      - ./scripts/bin/cli.mjs generate-changelog CHANGELOG.md
+
   commitlint:
     desc: Run commitlint
     cmds:

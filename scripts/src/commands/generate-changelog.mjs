@@ -62,10 +62,12 @@ export const handler = async (argv) => {
 
     lines.push('');
 
+    const tagLink = `[${tag}](https://github.com/${repo}/releases/tag/${tag})`;
+
     if (name && name !== tag) {
-      lines.push(`## ${tag} - ${name} - ${published}`);
+      lines.push(`## ${tagLink} - ${name} - ${published}`);
     } else {
-      lines.push(`## ${tag} - ${published}`);
+      lines.push(`## ${tagLink} - ${published}`);
     }
 
     if (body) {
