@@ -1,11 +1,13 @@
 ---
+title: Introduction
 sidebar_position: 1
+description: "Introduction to Zigflow, a worker that runs YAML-defined workflows on Temporal, with guidance on when to use it and a short first workflow walkthrough."
 ---
-# Introduction
 
 Zigflow runs workflows defined in YAML on [Temporal](https://temporal.io).
 You write a workflow definition file; Zigflow compiles it, validates it and
-registers it as a Temporal worker.
+registers it as a Temporal worker with
+[durable execution](/docs/concepts/durable-execution-in-yaml) guarantees.
 
 **Zigflow is for teams that want to:**
 
@@ -15,7 +17,7 @@ registers it as a Temporal worker.
 
 **Zigflow is not for:**
 
-- Teams who prefer writing workflow code directly in a Temporal SDK
+- Teams who prefer writing workflow code directly in a [Temporal SDK](/docs/concepts/comparing-zigflow-and-temporal-sdks)
 - Users seeking an official Temporal product. Zigflow is an independent project.
 
 ---

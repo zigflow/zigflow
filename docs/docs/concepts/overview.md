@@ -1,8 +1,8 @@
 ---
+title: Overview
 sidebar_position: 1
+description: "Conceptual overview of Zigflow as a Temporal worker: how it compiles and runs YAML workflows, what it does not provide and common usage mistakes."
 ---
-
-# Overview
 
 ## What you will learn
 

@@ -1,8 +1,8 @@
 ---
+title: Deploying Zigflow
 sidebar_position: 1
+description: "How to deploy a Zigflow worker via binary, Docker or Kubernetes, including connection flags and environment variables for a Temporal server."
 ---
-
-# Deploying Zigflow
 
 ## What you will learn
 

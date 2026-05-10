@@ -1,10 +1,16 @@
 ---
+title: Quickstart
 sidebar_position: 0
+description: "End-to-end walkthrough that installs Zigflow, starts a local Temporal server and runs a hello-world YAML workflow, with troubleshooting for common errors."
 ---
 
-# Quickstart
-
 Get Zigflow installed and run your first workflow in under five minutes.
+
+:::tip
+Still deciding between Zigflow and the
+[Temporal SDK](/docs/concepts/comparing-zigflow-and-temporal-sdks)?
+Read the comparison first.
+:::
 
 ## What you will learn
 
