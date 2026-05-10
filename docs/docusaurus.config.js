@@ -116,6 +116,8 @@ const config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl: `${githubURL}/tree/main/docs/`,
+          showLastUpdateAuthor: false,
+          showLastUpdateTime: true,
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -126,6 +128,30 @@ const config = {
           showReadingTime: true,
           routeBasePath: 'articles',
           path: './articles',
+        },
+        sitemap: {
+          filename: 'sitemap.xml',
+          lastmod: 'date',
+          changefreq: null,
+          priority: null,
+          ignorePatterns: ['/tags/**', '/articles/tags/**', '/search', '/404'],
+          createSitemapItems: async (params) => {
+            const { defaultCreateSitemapItems, ...rest } = params;
+            const items = await defaultCreateSitemapItems(rest);
+
+            return items.filter((item) => {
+              const url = item.url;
+
+              if (url.includes('/page/')) return false;
+              if (url.includes('/tags/')) return false;
+              if (url.endsWith('/articles/archive')) return false;
+              if (url.endsWith('/articles/authors')) return false;
+              if (url.endsWith('/search')) return false;
+              if (url.includes('/search')) return false;
+
+              return true;
+            });
+          },
         },
       }),
     ],
