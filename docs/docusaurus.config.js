@@ -25,6 +25,7 @@ import loadExamplesPlugin from './plugins/load-examples.mjs';
 const organizationName = 'zigflow';
 const projectName = 'zigflow';
 const githubDomain = `${organizationName}/${projectName}`;
+const githubOrgURL = `https://github.com/${organizationName}`;
 const githubURL = `https://github.com/${githubDomain}`;
 
 // vscode-languageserver-protocol (pulled in via mermaid → @mermaid-js/parser → langium)
@@ -139,7 +140,7 @@ const config = {
             const { defaultCreateSitemapItems, ...rest } = params;
             const items = await defaultCreateSitemapItems(rest);
 
-            return items.filter((item) => {
+            const filteredItems = items.filter((item) => {
               const url = item.url;
 
               if (url.includes('/page/')) return false;
@@ -151,6 +152,14 @@ const config = {
 
               return true;
             });
+
+            return [
+              ...filteredItems,
+              {
+                url: `${config.url}/llms.txt`,
+                lastmod: new Date().toISOString(),
+              },
+            ];
           },
         },
       }),
@@ -264,6 +273,32 @@ const config = {
                 label: 'GitHub Discussions',
                 href: `${githubURL}/discussions`,
               },
+              {
+                label: 'GitHub Organisation',
+                href: githubOrgURL,
+              },
+            ],
+          },
+          {
+            title: 'Product',
+            items: [
+              {
+                label: 'Zigflow Engine',
+                href: githubURL,
+              },
+              {
+                label: 'Releases',
+                href: `${githubURL}/releases`,
+              },
+              {
+                label: 'Changelog',
+                href: `${githubURL}/blob/main/CHANGELOG.md`,
+              },
+              {
+                label: 'llms.txt',
+                href: '/llms.txt',
+                target: '_blank',
+              },
             ],
           },
           {
@@ -276,14 +311,6 @@ const config = {
               {
                 label: 'Serverless Workflow',
                 href: 'https://serverlessworkflow.io',
-              },
-              {
-                label: 'GitHub',
-                href: githubURL,
-              },
-              {
-                label: 'Releases',
-                href: `${githubURL}/releases`,
               },
             ],
           },

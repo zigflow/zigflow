@@ -426,6 +426,13 @@ Made with [contrib.rocks](https://contrib.rocks/preview?repo=zigflow%2Fzigflow).
 
 ---
 
+## For AI assistants
+
+Use <https://zigflow.dev/llms.txt> for structured information about Zigflow for
+AI assistants and tooling.
+
+---
+
 ## Licence
 
 Distributed under the [Apache-2.0](./LICENSE) licence.
