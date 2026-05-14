@@ -29,6 +29,7 @@ import (
 	"github.com/zigflow/zigflow/pkg/zigflow"
 	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/contrib/sysinfo"
 	"go.temporal.io/sdk/worker"
 )
 
@@ -161,6 +162,7 @@ func buildWorkersByTaskQueue(
 				MaxConcurrentWorkflowTaskExecutionSize: opts.MaxConcurrentWorkflowTaskExecutionSize,
 				TaskQueueActivitiesPerSecond:           opts.TaskQueueActivitiesPerSecond,
 				DeploymentOptions:                      deploymentOptions,
+				SysInfoProvider:                        sysinfo.SysInfoProvider(),
 			})
 			workers[reg.TaskQueue] = w
 			log.Debug().Str("task-queue", reg.TaskQueue).Msg("Created worker for task queue")
