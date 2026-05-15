@@ -2,6 +2,21 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.11.3](https://github.com/zigflow/zigflow/releases/tag/v0.11.3) - 2026-05-15
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/391
+* chore(deps): bump fast-uri from 3.1.0 to 3.1.2 in /docs by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/393
+* Website improvements by @mrsimonemms in https://github.com/zigflow/zigflow/pull/394
+* docs: update llms.txt and place on website by @mrsimonemms in https://github.com/zigflow/zigflow/pull/395
+* fix: update formatting for latest version of gofmt by @mrsimonemms in https://github.com/zigflow/zigflow/pull/397
+* feat: add system information to worker status by @mrsimonemms in https://github.com/zigflow/zigflow/pull/398
+* chore: install vscode-languageserver-types by @mrsimonemms in https://github.com/zigflow/zigflow/pull/400
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/401
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.11.2...v0.11.3
+
 ## [v0.11.2](https://github.com/zigflow/zigflow/releases/tag/v0.11.2) - 2026-05-06
 
 ## What's Changed
