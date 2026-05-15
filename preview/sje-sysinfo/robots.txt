@@ -1,6 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /preview/
-Sitemap: https://zigflow.dev/sitemap.xml
-
-# Algolia-Crawler-Verif: 1726E0A39C3A74F0
