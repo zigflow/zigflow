@@ -45,7 +45,8 @@
     "globals": "^17.1.0",
     "js-yaml": "^4.1.1",
     "prettier": "^3.8.1",
-    "prop-types": "^15.8.1"
+    "prop-types": "^15.8.1",
+    "vscode-languageserver-types": "^3.17.5"
   },
   "browserslist": {
     "production": [
