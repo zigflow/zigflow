@@ -82,7 +82,8 @@ func main() {
 					Timeout: golanghelpers.Ptr(time.Second * 5),
 				},
 			},
-		})
+		},
+	)
 
 	// Define a gRPC command
 	//

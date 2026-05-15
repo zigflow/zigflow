@@ -264,7 +264,8 @@ func (t *ListenTaskBuilder) configureUpdate(
 			Validator: func(ctx workflow.Context, _ any) error {
 				return nil
 			},
-		})
+		},
+	)
 }
 
 // Search for an acceptIf

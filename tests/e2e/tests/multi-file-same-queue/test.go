@@ -30,11 +30,13 @@ var testCase = utils.TestCase{
 	WorkflowPath: "workflow-a.yaml",
 	ExtraFiles:   []string{"workflow-b.yaml"},
 	Test: func(t *testing.T, test *utils.TestCase) {
-		utils.RunToCompletionNamed[map[string]any](t,
+		utils.RunToCompletionNamed[map[string]any](
+			t,
 			"mf-same", "workflow-a", nil,
 			map[string]any{"data": map[string]any{"source": "workflow-a"}},
 		)
-		utils.RunToCompletionNamed[map[string]any](t,
+		utils.RunToCompletionNamed[map[string]any](
+			t,
 			"mf-same", "workflow-b", nil,
 			map[string]any{"data": map[string]any{"source": "workflow-b"}},
 		)

@@ -295,7 +295,8 @@ func (r *Run) runExecCommand(
 	if err := cmd.Run(); err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			// The command received an exit code above 0 - return as-is
-			logger.Error("Shell error",
+			logger.Error(
+				"Shell error",
 				"error", err,
 				"command", command,
 				"stderr", r.stdToString(stdout),
