@@ -144,7 +144,8 @@ func TestE2E(t *testing.T) {
 			for _, f := range test.ExtraFiles {
 				args = append(args, "--file", f)
 			}
-			args = append(args,
+			args = append(
+				args,
 				"--health-listen-address", fmt.Sprintf("localhost:%d", healthPort),
 				"--metrics-listen-address", fmt.Sprintf("localhost:%d", metricsPort),
 			)
@@ -187,7 +188,8 @@ func TestE2EMultiFileDuplicateRejected(t *testing.T) {
 	require.NoError(t, err)
 
 	var stderr bytes.Buffer
-	cmd := exec.Command("go", //nolint
+	cmd := exec.Command(
+		"go", //nolint
 		"run", ".",
 		"run",
 		"--file", path.Join(fixtureDir, "workflow-a.yaml"),
@@ -209,7 +211,8 @@ func TestE2EMultiFileDuplicateRejected(t *testing.T) {
 	case runErr := <-done:
 		assert.Error(t, runErr, "expected Zigflow to exit with a non-zero status")
 		output := stderr.String()
-		assert.True(t,
+		assert.True(
+			t,
 			strings.Contains(output, "Duplicate workflow name") ||
 				strings.Contains(output, "duplicate"),
 			"expected duplicate-name error in stderr, got: %s", output,

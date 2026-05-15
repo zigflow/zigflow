@@ -78,7 +78,8 @@ func TestMermaid_FlowchartHeader(t *testing.T) {
 
 func TestMermaid_SingleWorkflow_StartEnd(t *testing.T) {
 	gen, _ := graph.New(graph.FormatMermaid)
-	wf := makeWF("mywf",
+	wf := makeWF(
+		"mywf",
 		taskItem("step1", setTask(map[string]interface{}{"key": "val"})),
 		taskItem("step2", waitTaskSeconds(5)),
 	)
@@ -102,7 +103,8 @@ func TestMermaid_WaitLabel(t *testing.T) {
 
 func TestMermaid_SetLabel(t *testing.T) {
 	gen, _ := graph.New(graph.FormatMermaid)
-	wf := makeWF("mywf",
+	wf := makeWF(
+		"mywf",
 		taskItem("init", setTask(map[string]interface{}{"aaa": 1, "bbb": 2})),
 	)
 	out, err := gen.Generate(wf)
@@ -113,7 +115,8 @@ func TestMermaid_SetLabel(t *testing.T) {
 func TestMermaid_HTTPLabel(t *testing.T) {
 	gen, _ := graph.New(graph.FormatMermaid)
 	ep := model.NewEndpoint("https://example.com/api")
-	wf := makeWF("mywf",
+	wf := makeWF(
+		"mywf",
 		taskItem("fetch", &model.CallHTTP{
 			Call: callHTTP,
 			With: model.HTTPArguments{Method: methodGet, Endpoint: ep},
@@ -127,7 +130,8 @@ func TestMermaid_HTTPLabel(t *testing.T) {
 func TestMermaid_SwitchNode(t *testing.T) {
 	gen, _ := graph.New(graph.FormatMermaid)
 	then := &model.FlowDirective{Value: "end"}
-	wf := makeWF("mywf",
+	wf := makeWF(
+		"mywf",
 		taskItem("router", &model.SwitchTask{
 			Switch: []model.SwitchItem{
 				{
@@ -145,7 +149,8 @@ func TestMermaid_SwitchNode(t *testing.T) {
 func TestMermaid_SwitchTerminationEdge(t *testing.T) {
 	gen, _ := graph.New(graph.FormatMermaid)
 	endDir := &model.FlowDirective{Value: "end"}
-	wf := makeWF("mywf",
+	wf := makeWF(
+		"mywf",
 		taskItem("check", &model.SwitchTask{
 			Switch: []model.SwitchItem{
 				{
@@ -168,7 +173,8 @@ func TestMermaid_ForNode(t *testing.T) {
 	inner := model.TaskList([]*model.TaskItem{
 		taskItem("body", setTask(map[string]interface{}{"i": 0})),
 	})
-	wf := makeWF("mywf",
+	wf := makeWF(
+		"mywf",
 		taskItem("loop", &model.ForTask{
 			For: model.ForTaskConfiguration{
 				Each: "item",
@@ -201,7 +207,8 @@ func TestMermaid_ForkNode(t *testing.T) {
 		taskItem("branch1", &model.DoTask{Do: &b1Tasks}),
 		taskItem("branch2", &model.DoTask{Do: &b2Tasks}),
 	})
-	wf := makeWF("mywf",
+	wf := makeWF(
+		"mywf",
 		taskItem("fan", &model.ForkTask{
 			Fork: model.ForkTaskConfiguration{
 				Branches: &branches,
@@ -224,7 +231,8 @@ func TestMermaid_ForkCompete(t *testing.T) {
 			return &tl
 		}()}),
 	})
-	wf := makeWF("mywf",
+	wf := makeWF(
+		"mywf",
 		taskItem("race", &model.ForkTask{
 			Fork: model.ForkTaskConfiguration{Branches: &branches, Compete: true},
 		}),
@@ -248,7 +256,8 @@ func TestMermaid_TryNode(t *testing.T) {
 	catchTasks := model.TaskList([]*model.TaskItem{
 		taskItem("recover", setTask(map[string]interface{}{"err": "caught"})),
 	})
-	wf := makeWF("mywf",
+	wf := makeWF(
+		"mywf",
 		taskItem("safe", &model.TryTask{
 			Try:   &tryTasks,
 			Catch: &model.TryTaskCatch{Do: &catchTasks},
@@ -275,7 +284,8 @@ func TestMermaid_MultipleWorkflows(t *testing.T) {
 		taskItem("pong", waitTaskSeconds(2)),
 	})
 	// All top-level tasks are DoTasks → multiple independent workflows.
-	wf := makeWF("root",
+	wf := makeWF(
+		"root",
 		taskItem("wf1", &model.DoTask{Do: &wf1Tasks}),
 		taskItem("wf2", &model.DoTask{Do: &wf2Tasks}),
 	)
@@ -298,7 +308,8 @@ func TestMermaid_SubWorkflowCrossEdge(t *testing.T) {
 
 	switchThen := &model.FlowDirective{Value: "handler"}
 	// Mixed: switch (non-DoTask) followed by handler (DoTask) = sub-workflow
-	wf := makeWF("main",
+	wf := makeWF(
+		"main",
 		taskItem("router", &model.SwitchTask{
 			Switch: []model.SwitchItem{
 				{"go": model.SwitchCase{
@@ -335,7 +346,8 @@ func TestMermaid_EmptyWorkflow(t *testing.T) {
 func TestMermaid_ConditionalTask(t *testing.T) {
 	gen, _ := graph.New(graph.FormatMermaid)
 	ifExpr := &model.RuntimeExpression{Value: "${ $input.run }"}
-	wf := makeWF("mywf",
+	wf := makeWF(
+		"mywf",
 		taskItem("maybe", &model.SetTask{
 			TaskBase: model.TaskBase{If: ifExpr},
 			Set:      map[string]interface{}{"x": 1},
@@ -350,7 +362,8 @@ func TestMermaid_LabelTruncation(t *testing.T) {
 	gen, _ := graph.New(graph.FormatMermaid)
 	longURL := "https://very.long.example.com/api/v1/users/profile/settings/preferences/items"
 	ep := model.NewEndpoint(longURL)
-	wf := makeWF("mywf",
+	wf := makeWF(
+		"mywf",
 		taskItem("fetch", &model.CallHTTP{
 			Call: callHTTP,
 			With: model.HTTPArguments{Method: methodGet, Endpoint: ep},

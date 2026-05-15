@@ -477,7 +477,8 @@ func (t *DoTaskBuilder) shouldContinueAsNew(ctx workflow.Context) bool {
 	currentHistoryLength := info.GetCurrentHistoryLength()
 	isSuggested := info.GetContinueAsNewSuggested()
 
-	logger.Debug("Checking continue-as-new state",
+	logger.Debug(
+		"Checking continue-as-new state",
 		"suggested", isSuggested,
 		"maxHistoryOverride", t.opts.MaxHistoryLength,
 		"currentHistoryLength", currentHistoryLength,

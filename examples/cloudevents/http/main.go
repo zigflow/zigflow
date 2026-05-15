@@ -38,7 +38,8 @@ func main() {
 }
 
 func receive(ctx context.Context, event cloudevents.Event) {
-	log.Printf("Received event %s of type %s from %s",
+	log.Printf(
+		"Received event %s of type %s from %s",
 		event.ID(),
 		event.Type(),
 		event.Source(),

@@ -37,6 +37,7 @@ type stubWorker struct{}
 func (stubWorker) RegisterWorkflowWithOptions(_ any, _ workflow.RegisterOptions) {}
 func (stubWorker) RegisterWorkflow(_ any)                                        {}
 func (stubWorker) RegisterActivity(_ any)                                        { panic("unimplemented") }
+
 func (stubWorker) RegisterActivityWithOptions(_ any, _ activity.RegisterOptions) {
 	panic("unimplemented")
 }
