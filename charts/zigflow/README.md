@@ -85,6 +85,7 @@ false
 			<td>object</td>
 			<td><pre lang="json">
 {
+  "container-runtime": "kubernetes",
   "log-level": "info"
 }
 </pre>
@@ -506,6 +507,42 @@ true
 </pre>
 </td>
 			<td>Use the inline workflow. If false, you must declare a secret with the workflow in <code>workflow.yaml</code></td>
+		</tr>
+		<tr>
+			<td>workloadServiceAccount.annotations</td>
+			<td>object</td>
+			<td><pre lang="json">
+{}
+</pre>
+</td>
+			<td>Annotations to add to the workload service account</td>
+		</tr>
+		<tr>
+			<td>workloadServiceAccount.automount</td>
+			<td>bool</td>
+			<td><pre lang="json">
+false
+</pre>
+</td>
+			<td>Whether the workload pod automatically mounts the service account token. The default workflow container does not need to talk to the Kubernetes API, so the token is not mounted. Override with care.</td>
+		</tr>
+		<tr>
+			<td>workloadServiceAccount.create</td>
+			<td>bool</td>
+			<td><pre lang="json">
+true
+</pre>
+</td>
+			<td>Specifies whether the workload service account should be created</td>
+		</tr>
+		<tr>
+			<td>workloadServiceAccount.name</td>
+			<td>string</td>
+			<td><pre lang="json">
+""
+</pre>
+</td>
+			<td>The name of the workload service account to use. If not set and create is true, a name is generated using the fullname template with a <code>-workload</code> suffix. The Zigflow worker reads this via the <code>CONTAINER_RUNTIME_SERVICE_ACCOUNT</code> environment variable and passes it to <code>--container-runtime-service-account</code>.</td>
 		</tr>
 	</tbody>
 </table>

@@ -49,6 +49,9 @@ func TestNewRunCmd_Flags(t *testing.T) {
 	assert.NotNil(t, cmd.Flags().Lookup("default-versioning-type"))
 	assert.NotNil(t, cmd.Flags().Lookup("temporal-worker-build-id"))
 	assert.NotNil(t, cmd.Flags().Lookup("temporal-deployment-name"))
+	assert.NotNil(t, cmd.Flags().Lookup("container-runtime"))
+	assert.NotNil(t, cmd.Flags().Lookup("container-runtime-namespace"))
+	assert.NotNil(t, cmd.Flags().Lookup("container-runtime-service-account"))
 }
 
 // ---- --temporal-server-name flag ----
@@ -134,6 +137,61 @@ func TestNewRunCmd_WorkerTuningFlagsBoundToOpts(t *testing.T) {
 	assert.Equal(t, "10", cmd.Flags().Lookup("max-concurrent-activity-execution-size").Value.String())
 	assert.Equal(t, "5", cmd.Flags().Lookup("max-concurrent-workflow-task-execution-size").Value.String())
 	assert.Equal(t, "2.5", cmd.Flags().Lookup("task-queue-activities-per-second").Value.String())
+}
+
+// ---- container runtime flags ----
+
+func TestNewRunCmd_ContainerRuntimeFlagDefaultsToDocker(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	flag := cmd.Flags().Lookup("container-runtime")
+	require.NotNil(t, flag)
+	assert.Equal(t, "docker", flag.DefValue, "container-runtime must default to docker")
+	assert.Equal(t, "docker", flag.Value.String())
+}
+
+func TestNewRunCmd_ContainerRuntimeFlagAcceptsKubernetes(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	require.NoError(t, cmd.Flags().Set("container-runtime", "kubernetes"))
+	assert.Equal(t, "kubernetes", cmd.Flags().Lookup("container-runtime").Value.String())
+}
+
+func TestNewRunCmd_ContainerRuntimeFlagAcceptsDocker(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	require.NoError(t, cmd.Flags().Set("container-runtime", "docker"))
+	assert.Equal(t, "docker", cmd.Flags().Lookup("container-runtime").Value.String())
+}
+
+func TestNewRunCmd_ContainerRuntimeNamespaceFlagDefaultIsEmpty(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	flag := cmd.Flags().Lookup("container-runtime-namespace")
+	require.NotNil(t, flag)
+	assert.Equal(t, "", flag.DefValue)
+}
+
+func TestNewRunCmd_ContainerRuntimeNamespaceFlagBoundToOpts(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	require.NoError(t, cmd.Flags().Set("container-runtime-namespace", "my-namespace"))
+	assert.Equal(t, "my-namespace", cmd.Flags().Lookup("container-runtime-namespace").Value.String())
+}
+
+func TestNewRunCmd_ContainerRuntimeServiceAccountFlagDefaultIsEmpty(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	flag := cmd.Flags().Lookup("container-runtime-service-account")
+	require.NotNil(t, flag)
+	assert.Equal(t, "", flag.DefValue)
+}
+
+func TestNewRunCmd_ContainerRuntimeServiceAccountFlagBoundToOpts(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	require.NoError(t, cmd.Flags().Set("container-runtime-service-account", "workflow-sa"))
+	assert.Equal(t, "workflow-sa", cmd.Flags().Lookup("container-runtime-service-account").Value.String())
 }
 
 // ---- versioning flags ----

@@ -31,6 +31,7 @@ func NewCallHTTPTaskBuilder(
 	taskName string,
 	doc *model.Workflow,
 	emitter *cloudevents.Events,
+	taskOpts *TaskOpts,
 ) (*CallHTTPTaskBuilder, error) {
 	return &CallHTTPTaskBuilder{
 		builder: builder[*model.CallHTTP]{
@@ -38,6 +39,7 @@ func NewCallHTTPTaskBuilder(
 			eventEmitter:   emitter,
 			name:           taskName,
 			task:           task,
+			taskOpts:       taskOpts,
 			temporalWorker: temporalWorker,
 		},
 	}, nil

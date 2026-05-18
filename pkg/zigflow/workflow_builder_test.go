@@ -85,7 +85,7 @@ func TestNewWorkflowRunsPostLoadBeforeBuild_RunScriptNilAwait(t *testing.T) {
 		},
 	}
 
-	err := zigflow.NewWorkflow(stubWorker{}, newTestWorkflow("run-script-test", task), nil, nil, nil)
+	err := zigflow.NewWorkflow(stubWorker{}, newTestWorkflow("run-script-test", task), nil, nil, nil, nil)
 	require.NoError(t, err, "NewWorkflow must not panic or error when Await is nil before PostLoad")
 
 	assert.NotNil(t, task.Run.Await, "PostLoad must have set Await before Build ran")
@@ -106,7 +106,7 @@ func TestNewWorkflowRunsPostLoadBeforeBuild_GRPCEmptyHostPort(t *testing.T) {
 		},
 	}
 
-	err := zigflow.NewWorkflow(stubWorker{}, newTestWorkflow("grpc-test", task), nil, nil, nil)
+	err := zigflow.NewWorkflow(stubWorker{}, newTestWorkflow("grpc-test", task), nil, nil, nil, nil)
 	require.NoError(t, err, "NewWorkflow must not error when gRPC host/port are absent")
 
 	assert.Equal(t, "localhost", task.With.Service.Host, "PostLoad must have set the default Host")

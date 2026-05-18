@@ -26,6 +26,53 @@ import (
 	"github.com/zigflow/zigflow/pkg/telemetry"
 )
 
+// ---- PreRunE: container runtime validation ----
+
+func TestPreRunE_ContainerRuntimeValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		runtime     string
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:    "default (docker) succeeds",
+			runtime: "docker",
+		},
+		{
+			name:    "kubernetes succeeds",
+			runtime: "kubernetes",
+		},
+		{
+			name:        "unknown runtime returns error",
+			runtime:     "podman",
+			wantErr:     true,
+			errContains: "invalid container-runtime",
+		},
+		{
+			name:        "empty runtime returns error",
+			runtime:     "",
+			wantErr:     true,
+			errContains: "invalid container-runtime",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := New(func() *telemetry.Telemetry { return nil })
+			require.NoError(t, cmd.Flags().Set("container-runtime", tc.runtime))
+
+			err := cmd.PreRunE(cmd, []string{})
+			if tc.wantErr {
+				assert.Error(t, err)
+				assert.ErrorContains(t, err, tc.errContains)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 // ---- PreRunE: versioning validation ----
 
 func TestPreRunE_VersioningValidation(t *testing.T) {

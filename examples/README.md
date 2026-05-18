@@ -39,7 +39,8 @@ A collection of examples
 | [Python](./python) | The basic example, but in Python |
 | [Query Listeners](./query) | Listen for Temporal query events |
 | [Throw an error](./raise) | Throw an error from a Temporal workflow |
-| [Run Task](./run-task) | How to execute code in NodeJS, Python and Shell |
+| [Run Task](./run-task) | How to execute code in a container, NodeJS, Python and Shell |
+| [Run Container Task Kubernetes](./run-task-kubernetes) | Run container tasks in a Kubernetes environment |
 | [Scheduling](./schedule) | Schedule the tasks to be triggered automatically |
 | [Custom Search Attributes](./search-attributes) | How to add custom search attribute data into your Temporal workflows |
 | [Signal Listeners](./signal) | Listen for Temporal signal events |

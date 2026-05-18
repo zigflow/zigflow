@@ -33,6 +33,7 @@ func NewSwitchTaskBuilder(
 	taskName string,
 	doc *model.Workflow,
 	emitter *cloudevents.Events,
+	taskOpts *TaskOpts,
 ) (*SwitchTaskBuilder, error) {
 	return &SwitchTaskBuilder{
 		builder: builder[*model.SwitchTask]{
@@ -40,6 +41,7 @@ func NewSwitchTaskBuilder(
 			eventEmitter:   emitter,
 			name:           taskName,
 			task:           task,
+			taskOpts:       taskOpts,
 			temporalWorker: temporalWorker,
 		},
 	}, nil

@@ -78,6 +78,18 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
+Create the name of the service account used by workload Jobs created from
+run.container tasks. This is distinct from "zigflow.serviceAccountName" so
+workload pods do not inherit the worker's control-plane RBAC.
+*/}}
+{{- define "zigflow.workloadServiceAccountName" -}}
+{{- if and (not .Values.workloadServiceAccount.create) (empty .Values.workloadServiceAccount.name) -}}
+{{- fail "workloadServiceAccount.name is required when workloadServiceAccount.create=false" -}}
+{{- end -}}
+{{- default (printf "%s-workload" (include "zigflow.fullname" .)) .Values.workloadServiceAccount.name }}
+{{- end }}
+
+{{/*
 Render the shared Pod template used by both Deployment and TemporalWorkerDeployment.
 */}}
 {{- define "zigflow.podTemplate" -}}
@@ -134,6 +146,18 @@ template:
         env:
           - name: ENABLE_VERSIONING
             value: {{ .Values.controller.enabled | quote }}
+          # Workload Jobs run under a distinct service account from the
+          # worker itself, so they do not inherit the worker's RBAC.
+          - name: CONTAINER_RUNTIME_SERVICE_ACCOUNT
+            value: {{ include "zigflow.workloadServiceAccountName" . | quote }}
+          - name: CONTAINER_RUNTIME_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: CONTAINER_RUNTIME_CONTAINER_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
           - name: HEALTH_LISTEN_ADDRESS
             value: {{ printf "0.0.0.0:%.0f" .Values.service.health.port | quote }}
           - name: METRICS_LISTEN_ADDRESS

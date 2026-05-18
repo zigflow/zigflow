@@ -47,16 +47,42 @@ func init() {
 
 type Run struct{}
 
-func (r *Run) CallContainerActivity(ctx context.Context, task *model.RunTask, input any, state *utils.State) (any, error) {
+// CallContainerActivity executes a run.container task. The namespace, runtime
+// and serviceAccount arguments are passed through from RunTaskBuilder so the
+// activity can dispatch to the correct container runtime. Only the Docker path
+// is wired up so far; Kubernetes support is implemented in a follow-up change.
+func (r *Run) CallContainerActivity(
+	ctx context.Context,
+	task *model.RunTask,
+	input any,
+	state *utils.State,
+	namespace string,
+	runtime ContainerRuntime,
+	serviceAccount string,
+) (any, error) {
 	logger := activity.GetLogger(ctx)
-	// @todo(sje): support Kubernetes (and other container runtimes) in addition to Docker #181
-	logger.Debug("Running call Docker container activity")
+	logger.Debug(
+		"Running call container activity",
+		"runtime", runtime,
+		"namespace", namespace,
+		"serviceAccount", serviceAccount,
+	)
 
 	if task.Run.Container.Name == "" {
 		n := uuid.NewString()
 		logger.Debug("Container name not set", "name", n)
 		task.Run.Container.Name = n
 	}
+
+	if runtime == ContainerRuntimeKubernetes {
+		// Use Kubernetes
+		logger.Debug("Running call Kubernetes job activity")
+
+		return r.runKubernetesJob(ctx, task, state, namespace, serviceAccount)
+	}
+
+	// Default to Docker
+	logger.Debug("Running call Docker container activity")
 
 	return r.runDockerCommand(ctx, task, state)
 }

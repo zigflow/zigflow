@@ -21,14 +21,36 @@ a JavaScript or Python script or another Zigflow workflow.
 ## Container
 
 :::info
-Currently, this only supports Docker containers run via the `docker` binary on
-your local machine. Additional container runtimes are planned - please upvote
-[#181](https://github.com/zigflow/zigflow/issues/181) to influence prioritsation.
+Zigflow supports two container runtimes: `docker` (the default) and
+`kubernetes`. The runtime is selected on the worker, not in the workflow, so
+the same `run.container` task definition works against either runtime.
+
+In Kubernetes mode the worker creates a Kubernetes Job for each task, waits
+for it to finish and streams the pod's stdout back as the task result. This
+requires the worker to run inside a Kubernetes cluster with in-cluster API
+access and RBAC permitting it to manage Jobs and read pod logs.
+
+For a runnable end-to-end setup see the
+[run-task-kubernetes example](https://github.com/zigflow/zigflow/tree/main/examples/run-task-kubernetes).
 :::
 
 Enables the execution of external processes encapsulated within a containerised
 environment, allowing workflows to interact with and execute complex operations
 using containerised applications, scripts, or commands.
+
+The runtime is selected with CLI flags on `zigflow run`:
+
+```bash
+zigflow run \
+  --container-runtime=kubernetes \
+  --container-runtime-namespace=<namespace> \
+  --container-runtime-service-account=<service-account>
+```
+
+`--container-runtime` defaults to `docker`. The `--container-runtime-namespace`
+and `--container-runtime-service-account` flags are only used by the
+`kubernetes` runtime and identify the namespace Jobs are created in and the
+ServiceAccount the workload pods run under.
 
 ### Properties {/*#container-properties*/}
 
@@ -358,9 +380,12 @@ do:
 
 ## Gotchas
 
-**Container execution requires the `docker` binary.** The Zigflow worker
-process must have access to Docker on the host machine. The container runtime
-is Docker only at this time; other runtimes are not yet supported.
+**Container execution has runtime-dependent prerequisites.** The runtime is
+selected by the worker via `--container-runtime`. The `docker` runtime
+requires the local Docker daemon and the `docker` binary on the worker host.
+The `kubernetes` runtime requires the worker to run inside a Kubernetes
+cluster with in-cluster API access and RBAC allowing it to manage Jobs and
+read pod logs.
 
 **Script execution requires the language runtime in the worker image.** The
 official Docker image includes Node.js and Python. For other languages or

@@ -20,9 +20,14 @@ import (
 	"testing"
 
 	"github.com/mrsimonemms/golang-helpers/temporal"
+	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/codec"
+	"github.com/zigflow/zigflow/pkg/telemetry"
+	"github.com/zigflow/zigflow/pkg/zigflow/activities"
+	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
 	"go.temporal.io/sdk/client"
 	sdkworker "go.temporal.io/sdk/worker"
 )
@@ -271,6 +276,83 @@ func TestBuildWorkersByTaskQueue_VersioningDisabledNoDeploymentOptions(t *testin
 	require.Len(t, captured, 1)
 
 	assert.False(t, captured[0].opts.DeploymentOptions.UseVersioning)
+}
+
+// stubNewWorkflow replaces newWorkflow with a test double that captures the
+// taskOpts argument from every call and returns nil so that no real Temporal
+// workflow registration happens. It returns a restore function that must be
+// deferred by the caller.
+func stubNewWorkflow(captured *[]*tasks.TaskOpts) func() {
+	original := newWorkflow
+	newWorkflow = func(
+		_ sdkworker.Worker,
+		_ *model.Workflow,
+		_ map[string]any,
+		_ *cloudevents.Events,
+		_ *telemetry.Telemetry,
+		taskOpts *tasks.TaskOpts,
+	) error {
+		*captured = append(*captured, taskOpts)
+		return nil
+	}
+	return func() { newWorkflow = original }
+}
+
+func TestBuildWorkersByTaskQueue_PassesContainerRuntimeOptionsToTaskOpts(t *testing.T) {
+	dir := t.TempDir()
+	file := writeTempWorkflow(t, dir, "test-queue", "test-workflow")
+	regs, err := loadWorkflows([]string{file}, "", newTestValidator(t), false)
+	require.NoError(t, err)
+
+	defer stubNewWorker(&[]capturedWorker{})()
+
+	var captured []*tasks.TaskOpts
+	defer stubNewWorkflow(&captured)()
+
+	opts := &runOptions{
+		ContainerRuntime:               "kubernetes",
+		ContainerRuntimeNamespace:      "workflows-ns",
+		ContainerRuntimeServiceAccount: "workflows-sa",
+	}
+
+	ws, err := buildWorkersByTaskQueue(nil, regs, nil, opts)
+	require.NoError(t, err)
+	require.NotNil(t, ws)
+	require.Len(t, captured, 1, "expected exactly one workflow registration")
+
+	got := captured[0]
+	require.NotNil(t, got)
+	require.NotNil(t, got.Run)
+	assert.Equal(t, activities.ContainerRuntimeKubernetes, got.Run.Runtime)
+	assert.Equal(t, "workflows-ns", got.Run.Namespace)
+	assert.Equal(t, "workflows-sa", got.Run.ServiceAccount)
+}
+
+func TestBuildWorkersByTaskQueue_DefaultRuntimeOptionsAreEmptyWhenUnset(t *testing.T) {
+	dir := t.TempDir()
+	file := writeTempWorkflow(t, dir, "test-queue", "test-workflow")
+	regs, err := loadWorkflows([]string{file}, "", newTestValidator(t), false)
+	require.NoError(t, err)
+
+	defer stubNewWorker(&[]capturedWorker{})()
+
+	var captured []*tasks.TaskOpts
+	defer stubNewWorkflow(&captured)()
+
+	// runOptions are zero-valued: this exercises the wiring without simulating
+	// PreRunE defaults. Verifying the empty case prevents a regression where
+	// the workers layer silently injects values that PreRunE did not set.
+	ws, err := buildWorkersByTaskQueue(nil, regs, nil, &runOptions{})
+	require.NoError(t, err)
+	require.NotNil(t, ws)
+	require.Len(t, captured, 1)
+
+	got := captured[0]
+	require.NotNil(t, got)
+	require.NotNil(t, got.Run)
+	assert.Equal(t, activities.ContainerRuntime(""), got.Run.Runtime)
+	assert.Equal(t, "", got.Run.Namespace)
+	assert.Equal(t, "", got.Run.ServiceAccount)
 }
 
 func TestBuildDataConverter(t *testing.T) {

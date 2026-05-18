@@ -7,6 +7,7 @@ replicaCount: 1
 
 # -- Accepts any of the command line arguments
 config:
+  container-runtime: kubernetes
   log-level: info
   # temporal-address: temporal:7233
 
@@ -84,6 +85,25 @@ serviceAccount:
   # -- Annotations to add to the service account
   annotations: {}
   # -- The name of the service account to use. If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# Separate identity for workload pods (Kubernetes Jobs created by run.container).
+# This MUST stay distinct from <code>serviceAccount</code> so that workflow-defined
+# containers do not inherit the worker's RBAC (create/delete Jobs, read pod logs).
+workloadServiceAccount:
+  # -- Specifies whether the workload service account should be created
+  create: true
+  # -- Whether the workload pod automatically mounts the service account token.
+  # The default workflow container does not need to talk to the Kubernetes API,
+  # so the token is not mounted. Override with care.
+  automount: false
+  # -- Annotations to add to the workload service account
+  annotations: {}
+  # -- The name of the workload service account to use. If not set and create
+  # is true, a name is generated using the fullname template with a
+  # <code>-workload</code> suffix. The Zigflow worker reads this via the
+  # <code>CONTAINER_RUNTIME_SERVICE_ACCOUNT</code> environment variable and
+  # passes it to <code>--container-runtime-service-account</code>.
   name: ""
 
 # -- Pod <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations" target="_blank">annotations</a>

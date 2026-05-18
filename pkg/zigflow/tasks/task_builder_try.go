@@ -33,6 +33,7 @@ func NewTryTaskBuilder(
 	taskName string,
 	doc *model.Workflow,
 	emitter *cloudevents.Events,
+	taskOpts *TaskOpts,
 ) (*TryTaskBuilder, error) {
 	return &TryTaskBuilder{
 		builder: builder[*model.TryTask]{
@@ -40,6 +41,7 @@ func NewTryTaskBuilder(
 			eventEmitter:   emitter,
 			name:           taskName,
 			task:           task,
+			taskOpts:       taskOpts,
 			temporalWorker: temporalWorker,
 		},
 	}, nil
@@ -139,7 +141,7 @@ func (t *TryTaskBuilder) createBuilder(
 
 	childWorkflowName = utils.GenerateChildWorkflowName(taskType, t.GetTaskName())
 
-	b, err := NewTaskBuilder(childWorkflowName, &model.DoTask{Do: list}, t.temporalWorker, t.doc, t.eventEmitter)
+	b, err := NewTaskBuilder(childWorkflowName, &model.DoTask{Do: list}, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts)
 	if err != nil {
 		l.Error().Msg("Error creating the for task builder")
 		err = fmt.Errorf("error creating the for task builder: %w", err)

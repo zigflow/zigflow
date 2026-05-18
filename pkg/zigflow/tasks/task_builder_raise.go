@@ -35,6 +35,7 @@ func NewRaiseTaskBuilder(
 	taskName string,
 	doc *model.Workflow,
 	emitter *cloudevents.Events,
+	taskOpts *TaskOpts,
 ) (*RaiseTaskBuilder, error) {
 	return &RaiseTaskBuilder{
 		builder: builder[*model.RaiseTask]{
@@ -42,6 +43,7 @@ func NewRaiseTaskBuilder(
 			eventEmitter:   emitter,
 			name:           taskName,
 			task:           task,
+			taskOpts:       taskOpts,
 			temporalWorker: temporalWorker,
 		},
 	}, nil
