@@ -26,6 +26,7 @@ import (
 	"github.com/zigflow/zigflow/pkg/codec"
 	"github.com/zigflow/zigflow/pkg/telemetry"
 	"github.com/zigflow/zigflow/pkg/utils"
+	"github.com/zigflow/zigflow/pkg/zigflow/activities"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -48,6 +49,9 @@ type runOptions struct {
 	CloudEventsConfig                      string
 	CodecEndpoint                          string
 	CodecHeaders                           map[string]string
+	ContainerRuntime                       string
+	ContainerRuntimeNamespace              string
+	ContainerRuntimeServiceAccount         string
 	ConvertData                            string
 	ConvertKeyPath                         string
 	DefaultVersioningBehaviour             string
@@ -198,6 +202,15 @@ from local development to production.`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if _, err := codec.ParseCodecType(opts.ConvertData); err != nil {
 				return err
+			}
+
+			if _, ok := activities.ValidContainerRuntimes[activities.ContainerRuntime(opts.ContainerRuntime)]; !ok {
+				return fmt.Errorf(
+					"invalid container-runtime %q (must be %q or %q)",
+					opts.ContainerRuntime,
+					activities.ContainerRuntimeDocker,
+					activities.ContainerRuntimeKubernetes,
+				)
 			}
 
 			if opts.EnableVersioning {

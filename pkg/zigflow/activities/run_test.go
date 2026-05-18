@@ -175,7 +175,7 @@ func TestCallContainerActivityEnvExpressionsUseActivityEnrichedState(t *testing.
 		},
 	}
 
-	_, err := env.ExecuteActivity(run.CallContainerActivity, task, nil, utils.NewState())
+	_, err := env.ExecuteActivity(run.CallContainerActivity, task, nil, utils.NewState(), "", ContainerRuntimeDocker, "")
 	require.Error(t, err)
 	// With enriched state the expression resolves; docker then fails normally.
 	assert.Contains(t, err.Error(), "Error calling command")
@@ -208,7 +208,7 @@ func TestCallContainerActivityNonStringEnvVarFormattedCorrectly(t *testing.T) {
 		},
 	}
 
-	_, err := env.ExecuteActivity(run.CallContainerActivity, task, nil, utils.NewState())
+	_, err := env.ExecuteActivity(run.CallContainerActivity, task, nil, utils.NewState(), "", ContainerRuntimeDocker, "")
 	require.Error(t, err)
 	// Docker fails (image not found) — but the env flags must not carry %!s(...)
 	// format artefacts from incorrect %s interpolation of non-string values.
@@ -240,7 +240,7 @@ func TestCallContainerActivityNilEnvVarCoercedToEmpty(t *testing.T) {
 		},
 	}
 
-	_, err := env.ExecuteActivity(run.CallContainerActivity, task, nil, utils.NewState())
+	_, err := env.ExecuteActivity(run.CallContainerActivity, task, nil, utils.NewState(), "", ContainerRuntimeDocker, "")
 	// Docker will fail (image not found), but the error must not contain the
 	// nil format artefact that would appear if the nil guard were absent.
 	require.Error(t, err)

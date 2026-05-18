@@ -127,10 +127,33 @@ func registerVersioningFlags(cmd *cobra.Command, opts *runOptions) {
 	)
 }
 
+// registerContainerRuntimeFlags registers the flags that control how
+// run.container tasks dispatch to a container runtime: which runtime to use,
+// and the namespace and service account that runtime should run workloads
+// under.
+func registerContainerRuntimeFlags(cmd *cobra.Command, opts *runOptions) {
+	viper.SetDefault("container_runtime", "docker")
+	cmd.Flags().StringVar(
+		&opts.ContainerRuntime, "container-runtime",
+		viper.GetString("container_runtime"), "Container runtime to use for `run.container` tasks. Can be `docker` or `kubernetes`",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ContainerRuntimeNamespace, "container-runtime-namespace",
+		viper.GetString("container_runtime_namespace"), "Namespace to use for the container runtime",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ContainerRuntimeServiceAccount, "container-runtime-service-account",
+		viper.GetString("container_runtime_service_account"), "Service account to use for the container runtime",
+	)
+}
+
 func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
 	registerWorkflowSourceFlags(cmd, opts)
 	registerTemporalConnectionFlags(cmd, opts)
 	registerVersioningFlags(cmd, opts)
+	registerContainerRuntimeFlags(cmd, opts)
 
 	cmd.Flags().StringVar(
 		&opts.CodecEndpoint, "codec-endpoint",

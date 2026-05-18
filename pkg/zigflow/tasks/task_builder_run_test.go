@@ -40,7 +40,7 @@ func TestRunTaskBuilderPostLoadSetsAwaitDefault(t *testing.T) {
 		},
 	}
 
-	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 
 	// PostLoad must run before Build in production; tests must reflect the same order.
@@ -98,7 +98,7 @@ func TestRunTaskBuilderRunWorkflow(t *testing.T) {
 				},
 			}
 
-			builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+			builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents, nil)
 			assert.NoError(t, err)
 
 			fn, err := builder.Build()
@@ -234,7 +234,7 @@ func TestRunTaskBuilderRunScriptValidation(t *testing.T) {
 				},
 			},
 		}
-		builder, err := NewRunTaskBuilder(nil, task, "script-task", nil, testEvents)
+		builder, err := NewRunTaskBuilder(nil, task, "script-task", nil, testEvents, nil)
 		assert.NoError(t, err)
 		assert.NoError(t, builder.PostLoad())
 		fn, err := builder.Build()
@@ -246,7 +246,7 @@ func TestRunTaskBuilderRunScriptValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			builder, err := NewRunTaskBuilder(nil, tc.task, "script-task", nil, testEvents)
+			builder, err := NewRunTaskBuilder(nil, tc.task, "script-task", nil, testEvents, nil)
 			assert.NoError(t, err)
 
 			// PostLoad must precede Build in the production lifecycle; replicate that here
@@ -273,7 +273,7 @@ func TestRunTaskBuilderRunScriptExecutesActivity(t *testing.T) {
 		},
 	}
 
-	builder, err := NewRunTaskBuilder(nil, task, "script-task", nil, testEvents)
+	builder, err := NewRunTaskBuilder(nil, task, "script-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 	assert.NoError(t, builder.PostLoad())
 
@@ -312,7 +312,7 @@ func TestRunTaskBuilderPostLoadSetsAwaitToTrueWhenNil(t *testing.T) {
 		},
 	}
 
-	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 	assert.NoError(t, builder.PostLoad())
 
@@ -328,7 +328,7 @@ func TestRunTaskBuilderPostLoadPreservesExplicitAwait(t *testing.T) {
 		},
 	}
 
-	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 	assert.NoError(t, builder.PostLoad())
 
@@ -339,13 +339,13 @@ func TestRunTaskBuilderPostLoadSetsContainerLifetimeDefault(t *testing.T) {
 	task := &model.RunTask{
 		Run: model.RunTaskConfiguration{
 			Container: &model.Container{
-				Image: "alpine",
+				Image: testConstAlpineImage,
 				// Lifetime intentionally omitted
 			},
 		},
 	}
 
-	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 	assert.NoError(t, builder.PostLoad())
 
@@ -357,13 +357,13 @@ func TestRunTaskBuilderPostLoadPreservesExplicitContainerLifetime(t *testing.T) 
 	task := &model.RunTask{
 		Run: model.RunTaskConfiguration{
 			Container: &model.Container{
-				Image:    "alpine",
+				Image:    testConstAlpineImage,
 				Lifetime: &model.ContainerLifetime{Cleanup: "never"},
 			},
 		},
 	}
 
-	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 	assert.NoError(t, builder.PostLoad())
 
@@ -381,7 +381,7 @@ func TestRunTaskBuilderPostLoadPreservesExplicitNamespaceAndVersion(t *testing.T
 		},
 	}
 
-	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 	assert.NoError(t, builder.PostLoad())
 
@@ -399,7 +399,7 @@ func TestRunTaskBuilderPostLoadDefaultsEmptyNamespaceAndVersion(t *testing.T) {
 		},
 	}
 
-	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 	assert.NoError(t, builder.PostLoad())
 
@@ -415,9 +415,118 @@ func TestRunTaskBuilderPostLoadNilWorkflowIsNoop(t *testing.T) {
 		},
 	}
 
-	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents)
+	builder, err := NewRunTaskBuilder(nil, task, "run-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 	assert.NoError(t, builder.PostLoad())
+}
+
+// TestRunTaskBuilderRunContainerPassesRuntimeOptions verifies that
+// runContainer forwards the namespace, runtime and service account from the
+// supplied TaskOpts into the container activity. These are positional args
+// after (ctx, task, input, state).
+func TestRunTaskBuilderRunContainerPassesRuntimeOptions(t *testing.T) {
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+	runActivities := &activities.Run{}
+
+	task := &model.RunTask{
+		Run: model.RunTaskConfiguration{
+			Container: &model.Container{
+				Image: testConstAlpineImage,
+			},
+		},
+	}
+
+	taskOpts := &TaskOpts{
+		Run: &RunTaskOpts{
+			Namespace:      "workflows-ns",
+			Runtime:        activities.ContainerRuntimeKubernetes,
+			ServiceAccount: "workflows-sa",
+		},
+	}
+
+	builder, err := NewRunTaskBuilder(nil, task, "container-task", nil, testEvents, taskOpts)
+	assert.NoError(t, err)
+	assert.NoError(t, builder.PostLoad())
+
+	fn, err := builder.Build()
+	assert.NoError(t, err)
+
+	state := utils.NewState()
+
+	// Matchers: ctx, task, input, state, namespace, runtime, serviceAccount.
+	// The runtime arg is the strongly typed activities.ContainerRuntime, so the
+	// matcher must use the same type rather than the raw string value.
+	env.OnActivity(
+		runActivities.CallContainerActivity,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		"workflows-ns",
+		activities.ContainerRuntimeKubernetes,
+		"workflows-sa",
+	).Return("container-success", nil).Once()
+
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+		return fn(ctx, map[string]any{testConstRequest: testConstData}, state)
+	}, workflow.RegisterOptions{Name: "container-run"})
+
+	env.ExecuteWorkflow("container-run")
+	assert.NoError(t, env.GetWorkflowError())
+
+	var result string
+	assert.NoError(t, env.GetWorkflowResult(&result))
+	assert.Equal(t, "container-success", result)
+	assert.Equal(t, "container-success", state.Data["container-task"])
+}
+
+// TestRunTaskBuilderRunContainerPassesEmptyRuntimeOptionsWhenTaskOptsNil
+// pins the behaviour that a nil TaskOpts produces empty strings for runtime,
+// namespace and service account. The activity receives the args either way,
+// so this prevents a silent regression where a nil opts crashes the builder
+// or skips the args entirely.
+func TestRunTaskBuilderRunContainerPassesEmptyRuntimeOptionsWhenTaskOptsNil(t *testing.T) {
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+	runActivities := &activities.Run{}
+
+	task := &model.RunTask{
+		Run: model.RunTaskConfiguration{
+			Container: &model.Container{
+				Image: testConstAlpineImage,
+			},
+		},
+	}
+
+	builder, err := NewRunTaskBuilder(nil, task, "container-task", nil, testEvents, nil)
+	assert.NoError(t, err)
+	assert.NoError(t, builder.PostLoad())
+
+	fn, err := builder.Build()
+	assert.NoError(t, err)
+
+	state := utils.NewState()
+
+	env.OnActivity(
+		runActivities.CallContainerActivity,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		"",
+		activities.ContainerRuntime(""),
+		"",
+	).Return("container-success", nil).Once()
+
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+		return fn(ctx, map[string]any{testConstRequest: testConstData}, state)
+	}, workflow.RegisterOptions{Name: "container-run-nil-opts"})
+
+	env.ExecuteWorkflow("container-run-nil-opts")
+	assert.NoError(t, env.GetWorkflowError())
 }
 
 func TestRunTaskBuilderRunShellExecutesActivity(t *testing.T) {
@@ -433,7 +542,7 @@ func TestRunTaskBuilderRunShellExecutesActivity(t *testing.T) {
 		},
 	}
 
-	builder, err := NewRunTaskBuilder(nil, task, "shell-task", nil, testEvents)
+	builder, err := NewRunTaskBuilder(nil, task, "shell-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 	assert.NoError(t, builder.PostLoad())
 

@@ -33,7 +33,7 @@ func TestCallGRPCTaskBuilderPostLoadSetsHostDefault(t *testing.T) {
 		},
 	}
 
-	builder, err := NewCallGRPCTaskBuilder(nil, task, "grpc-task", nil, testEvents)
+	builder, err := NewCallGRPCTaskBuilder(nil, task, "grpc-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 	assert.NoError(t, builder.PostLoad())
 
@@ -51,7 +51,7 @@ func TestCallGRPCTaskBuilderPostLoadSetsPortDefault(t *testing.T) {
 		},
 	}
 
-	builder, err := NewCallGRPCTaskBuilder(nil, task, "grpc-task", nil, testEvents)
+	builder, err := NewCallGRPCTaskBuilder(nil, task, "grpc-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 	assert.NoError(t, builder.PostLoad())
 
@@ -69,7 +69,7 @@ func TestCallGRPCTaskBuilderPostLoadPreservesExplicitValues(t *testing.T) {
 		},
 	}
 
-	builder, err := NewCallGRPCTaskBuilder(nil, task, "grpc-task", nil, testEvents)
+	builder, err := NewCallGRPCTaskBuilder(nil, task, "grpc-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 	assert.NoError(t, builder.PostLoad())
 
@@ -86,7 +86,7 @@ func TestCallGRPCTaskBuilderBuildDoesNotMutateTask(t *testing.T) {
 		},
 	}
 
-	builder, err := NewCallGRPCTaskBuilder(nil, task, "grpc-task", nil, testEvents)
+	builder, err := NewCallGRPCTaskBuilder(nil, task, "grpc-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 
 	// Call Build() without PostLoad() to verify Build() no longer sets defaults.

@@ -198,6 +198,29 @@ volumeMounts:
 
 ---
 
+## Kubernetes container runtime
+
+When using `run.container` with the `kubernetes` runtime, the worker creates
+Kubernetes Jobs instead of using the local Docker daemon.
+
+Enable the runtime through the `config` map:
+
+```yaml title="values.yaml"
+config:
+  container-runtime: kubernetes
+  container-runtime-namespace: default
+  container-runtime-service-account: zigflow-workload
+```
+
+The worker must run inside Kubernetes with RBAC permissions to create and
+manage Jobs and read pod logs.
+
+See [Run container tasks](../dsl/tasks/run#container) and the
+[`examples/run-task-kubernetes`](https://github.com/zigflow/zigflow/tree/main/examples/run-task-kubernetes)
+example for more details.
+
+---
+
 ## Environment variables for workflows
 
 Workflow `$env` variables are passed with the `ZIGGY_` prefix by default.

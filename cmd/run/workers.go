@@ -27,6 +27,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/zigflow/zigflow/pkg/codec"
 	"github.com/zigflow/zigflow/pkg/zigflow"
+	"github.com/zigflow/zigflow/pkg/zigflow/activities"
 	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/contrib/sysinfo"
@@ -43,6 +44,11 @@ var newTemporalConnection = temporal.NewConnection
 // worker.Options (including DeploymentOptions) without spinning up a real
 // Temporal server.
 var newWorker = worker.New
+
+// newWorkflow registers a workflow definition on a Temporal worker. It is a
+// package-level variable so tests can substitute a test double that captures
+// the arguments passed in, without registering a real workflow.
+var newWorkflow = zigflow.NewWorkflow
 
 // runScheduleUpdates updates Temporal schedules for all workflow registrations
 // before any worker is started.
@@ -166,14 +172,22 @@ func buildWorkersByTaskQueue(
 			})
 			workers[reg.TaskQueue] = w
 			log.Debug().Str("task-queue", reg.TaskQueue).Msg("Created worker for task queue")
-			activities := tasks.ActivitiesList()
+			taskActivities := tasks.ActivitiesList()
 			log.Debug().
 				Str("task-queue", reg.TaskQueue).
-				Int("count", len(activities)).
+				Int("count", len(taskActivities)).
 				Msg("Registering shared activities on worker")
-			for _, a := range activities {
+			for _, a := range taskActivities {
 				w.RegisterActivity(a)
 			}
+		}
+
+		taskOpts := &tasks.TaskOpts{
+			Run: &tasks.RunTaskOpts{
+				Namespace:      opts.ContainerRuntimeNamespace,
+				Runtime:        activities.ContainerRuntime(opts.ContainerRuntime),
+				ServiceAccount: opts.ContainerRuntimeServiceAccount,
+			},
 		}
 
 		log.Info().
@@ -182,7 +196,7 @@ func buildWorkersByTaskQueue(
 			Str("file", reg.SourceFile).
 			Msg("Registering workflow")
 
-		if err := zigflow.NewWorkflow(w, reg.Definition, envvars, reg.Events, opts.Telemetry); err != nil {
+		if err := newWorkflow(w, reg.Definition, envvars, reg.Events, opts.Telemetry, taskOpts); err != nil {
 			return nil, gh.FatalError{
 				Cause: err,
 				WithParams: func(l *zerolog.Event) *zerolog.Event {

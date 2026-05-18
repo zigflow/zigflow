@@ -96,3 +96,14 @@ profiles:
         path: /deploy/helm/releases/0/setFiles
         value:
           workflow.rawFile: examples/heartbeat/workflow.yaml
+
+  - name: run-task
+    patches:
+      - op: add
+        path: /deploy/helm/releases/0/valuesFiles
+        value:
+          - examples/k8s-values.yaml
+      - op: add
+        path: /deploy/helm/releases/0/setFiles
+        value:
+          workflow.rawFile: examples/run-task-kubernetes/workflow.yaml

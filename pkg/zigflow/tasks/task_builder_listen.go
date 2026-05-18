@@ -44,6 +44,7 @@ func NewListenTaskBuilder(
 	taskName string,
 	doc *model.Workflow,
 	emitter *cloudevents.Events,
+	taskOpts *TaskOpts,
 ) (*ListenTaskBuilder, error) {
 	return &ListenTaskBuilder{
 		builder: builder[*model.ListenTask]{
@@ -52,6 +53,7 @@ func NewListenTaskBuilder(
 			name:           taskName,
 			neverSkipCAN:   true,
 			task:           task,
+			taskOpts:       taskOpts,
 			temporalWorker: temporalWorker,
 		},
 	}, nil

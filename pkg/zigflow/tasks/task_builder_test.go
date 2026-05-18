@@ -177,7 +177,7 @@ func TestNewTaskBuilderFactory(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			builder, err := NewTaskBuilder(tc.name, tc.task, nil, doc, testEvents)
+			builder, err := NewTaskBuilder(tc.name, tc.task, nil, doc, testEvents, nil)
 			if tc.expectErr {
 				assert.Error(t, err)
 				assert.Nil(t, builder)

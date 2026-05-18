@@ -30,12 +30,19 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
+type RunTaskOpts struct {
+	Namespace      string
+	Runtime        activities.ContainerRuntime
+	ServiceAccount string
+}
+
 func NewRunTaskBuilder(
 	temporalWorker worker.Worker,
 	task *model.RunTask,
 	taskName string,
 	doc *model.Workflow,
 	emitter *cloudevents.Events,
+	taskOpts *TaskOpts,
 ) (*RunTaskBuilder, error) {
 	return &RunTaskBuilder{
 		builder: builder[*model.RunTask]{
@@ -43,6 +50,7 @@ func NewRunTaskBuilder(
 			eventEmitter:   emitter,
 			name:           taskName,
 			task:           task,
+			taskOpts:       taskOpts,
 			temporalWorker: temporalWorker,
 		},
 	}, nil
@@ -137,12 +145,16 @@ func (t *RunTaskBuilder) PostLoad() error {
 	return nil
 }
 
-func (t *RunTaskBuilder) executeCommand(ctx workflow.Context, activityFn, input any, state *utils.State) (any, error) {
+func (t *RunTaskBuilder) executeCommand(ctx workflow.Context, activityFn, input any, state *utils.State, additional ...any) (any, error) {
 	logger := workflow.GetLogger(ctx)
 	logger.Debug("Executing a command", "task", t.GetTaskName())
 
+	args := append([]any{
+		t.task, input, state,
+	}, additional...)
+
 	var res any
-	if err := workflow.ExecuteActivity(ctx, activityFn, t.task, input, state).Get(ctx, &res); err != nil {
+	if err := workflow.ExecuteActivity(ctx, activityFn, args...).Get(ctx, &res); err != nil {
 		if temporal.IsCanceledError(err) {
 			return nil, nil
 		}
@@ -155,7 +167,16 @@ func (t *RunTaskBuilder) executeCommand(ctx workflow.Context, activityFn, input 
 }
 
 func (t *RunTaskBuilder) runContainer(ctx workflow.Context, input any, state *utils.State) (any, error) {
-	return t.executeCommand(ctx, (*activities.Run).CallContainerActivity, input, state)
+	var namespace, serviceAccount string
+	var runtime activities.ContainerRuntime
+
+	if t.taskOpts != nil && t.taskOpts.Run != nil {
+		namespace = t.taskOpts.Run.Namespace
+		runtime = t.taskOpts.Run.Runtime
+		serviceAccount = t.taskOpts.Run.ServiceAccount
+	}
+
+	return t.executeCommand(ctx, (*activities.Run).CallContainerActivity, input, state, namespace, runtime, serviceAccount)
 }
 
 func (t *RunTaskBuilder) runScript(ctx workflow.Context, input any, state *utils.State) (any, error) {

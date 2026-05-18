@@ -1,22 +1,25 @@
 document:
   dsl: 1.0.0
   taskQueue: zigflow
-  workflowType: run-task
+  workflowType: run-container-task-kubernetes
   version: 0.0.1
-  title: Run Task
-  summary: How to execute code in a container, NodeJS, Python and Shell
+  title: Run Container Task Kubernetes
+  summary: Run container tasks in a Kubernetes environment
   metadata:
     display: false
     tags:
       - run
-      - script
+      - container
+      - kubernetes
     activityOptions:
       startToCloseTimeout:
         minutes: 1
 do:
-# This is the same workflow as examples/run-task-kubernetes/workflow.yaml but with
-# a different workflowType and only the container task, to demonstrate running
-# container tasks in Docker.
+# This is the same workflow as examples/run-task/workflow.yaml but with a
+# different workflowType and only the container task, to demonstrate running
+# container tasks in Kubernetes. There are no script files examples, as need to
+# be baked into the container image or mounted via a volume in a real Kubernetes
+# environment.
   - container:
       export:
         as: '${ $context + { container: . } }'
@@ -28,14 +31,6 @@ do:
           environment:
             hello: world
             envvar: ${ $env.EXAMPLE_ENVVAR }
-  - nodejs_file:
-      export:
-        as: '${ $context + { nodejs_file: . } }'
-      run:
-        script:
-          language: js
-          source:
-            endpoint: file://./script.js # Allow http://, https:// and file://
   - nodejs:
       export:
         as: '${ $context + { nodejs: . } }'
@@ -52,14 +47,6 @@ do:
             - Hello
           environment:
             NAME: js
-  - python_file:
-      export:
-        as: '${ $context + { python_file: . } }'
-      run:
-        script:
-          language: python
-          source:
-            endpoint: ${ "file://./script.py" } # Can also use Runtime Expressions
   - python:
       export:
         as: '${ $context + { python: . } }'
@@ -83,14 +70,6 @@ do:
             - Hello
           environment:
             NAME: python
-  - shell_file:
-      export:
-        as: '${ $context + { shell_file: . } }'
-      run:
-        shell:
-          command: bash
-          arguments:
-            - ./script.sh
   - shell:
       output:
         as: '${ $context + { shell: . } }'

@@ -66,6 +66,8 @@ const (
 	testConstDone = "done"
 	// testConstRequest is the map key used for request payloads in run-task tests.
 	testConstRequest = "request"
+	// testConstAlpineImage is the container image string reused by run.container tests.
+	testConstAlpineImage = "alpine"
 )
 
 var (
