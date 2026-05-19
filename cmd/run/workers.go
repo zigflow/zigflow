@@ -251,17 +251,17 @@ func initTemporalClient(opts *runOptions) (client.Client, error) {
 
 	log.Trace().Msg("Connecting to Temporal")
 	tc, err := newTemporalConnection(
-		temporal.WithHostPort(opts.TemporalAddress),
-		temporal.WithNamespace(opts.TemporalNamespace),
-		temporal.WithTLS(opts.TemporalTLSEnabled, temporal.WithTLSServerName(opts.TemporalServerName)),
+		temporal.WithHostPort(opts.temporal.Address),
+		temporal.WithNamespace(opts.temporal.Namespace),
+		temporal.WithTLS(opts.temporal.TLSEnabled, temporal.WithTLSServerName(opts.temporal.ServerName)),
 		temporal.WithAuthDetection(
-			opts.TemporalAPIKey,
-			opts.TemporalMTLSCertPath,
-			opts.TemporalMTLSKeyPath,
+			opts.temporal.APIKey,
+			opts.temporal.MTLSCertPath,
+			opts.temporal.MTLSKeyPath,
 		),
 		temporal.WithDataAndFailureConverter(dataConverter),
 		temporal.WithZerolog(&log.Logger),
-		temporal.WithPrometheusMetrics(opts.MetricsListenAddress, opts.MetricsPrefix, nil),
+		temporal.WithPrometheusMetrics(opts.temporal.MetricsListenAddress, opts.temporal.MetricsPrefix, nil),
 	)
 	if err != nil {
 		return nil, gh.FatalError{Cause: err, Msg: "Unable to create client"}
@@ -288,7 +288,7 @@ func startInitialWorkers(
 	for tq := range workers {
 		taskQueues = append(taskQueues, tq)
 	}
-	temporal.NewHealthCheck(ctx, taskQueues, opts.HealthListenAddress, tc)
+	temporal.NewHealthCheck(ctx, taskQueues, opts.temporal.HealthListenAddress, tc)
 
 	if opts.Telemetry != nil {
 		opts.Telemetry.StartWorker()

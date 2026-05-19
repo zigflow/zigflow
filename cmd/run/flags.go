@@ -21,10 +21,10 @@ import (
 	"time"
 
 	gh "github.com/mrsimonemms/golang-helpers"
+	"github.com/mrsimonemms/golang-helpers/temporal"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/zigflow/zigflow/pkg/codec"
-	"go.temporal.io/sdk/client"
 )
 
 // registerWorkflowSourceFlags registers the flags that control where workflow
@@ -51,51 +51,6 @@ func registerWorkflowSourceFlags(cmd *cobra.Command, opts *runOptions) {
 	cmd.Flags().StringVar(
 		&opts.DirectoryGlob, "glob",
 		viper.GetString("workflow_directory_glob"), "Glob pattern when using --dir",
-	)
-}
-
-// registerTemporalConnectionFlags registers the flags that govern how the
-// process connects to Temporal: address, namespace, authentication, and TLS.
-func registerTemporalConnectionFlags(cmd *cobra.Command, opts *runOptions) {
-	viper.SetDefault("temporal_address", client.DefaultHostPort)
-	cmd.Flags().StringVarP(
-		&opts.TemporalAddress, "temporal-address", "H",
-		viper.GetString("temporal_address"), "Address of the Temporal server",
-	)
-
-	cmd.Flags().StringVar(
-		&opts.TemporalAPIKey, "temporal-api-key",
-		viper.GetString("temporal_api_key"), "API key for Temporal authentication",
-	)
-	// Hide the default value to avoid spaffing the API to command line
-	gh.HideCommandOutput(cmd, "temporal-api-key")
-
-	cmd.Flags().StringVar(
-		&opts.TemporalMTLSCertPath, "tls-client-cert-path",
-		viper.GetString("temporal_tls_client_cert_path"), "Path to mTLS client cert, usually ending in .pem",
-	)
-
-	cmd.Flags().StringVar(
-		&opts.TemporalMTLSKeyPath, "tls-client-key-path",
-		viper.GetString("temporal_tls_client_key_path"), "Path to mTLS client key, usually ending in .key",
-	)
-
-	viper.SetDefault("temporal_namespace", client.DefaultNamespace)
-	cmd.Flags().StringVarP(
-		&opts.TemporalNamespace, "temporal-namespace", "n",
-		viper.GetString("temporal_namespace"), "Temporal namespace to use",
-	)
-
-	cmd.Flags().StringVar(
-		&opts.TemporalServerName, "temporal-server-name",
-		viper.GetString("temporal_server_name"),
-		"Override the TLS server name (SNI) used for certificate validation. "+
-			"Required when the endpoint address does not match the certificate hostname, for example AWS PrivateLink.",
-	)
-
-	cmd.Flags().BoolVar(
-		&opts.TemporalTLSEnabled, "temporal-tls",
-		viper.GetBool("temporal_tls"), "Enable TLS Temporal connection",
 	)
 }
 
@@ -151,7 +106,7 @@ func registerContainerRuntimeFlags(cmd *cobra.Command, opts *runOptions) {
 
 func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
 	registerWorkflowSourceFlags(cmd, opts)
-	registerTemporalConnectionFlags(cmd, opts)
+	temporal.NewCobraOpts(cmd, opts.temporal)
 	registerVersioningFlags(cmd, opts)
 	registerContainerRuntimeFlags(cmd, opts)
 
@@ -189,12 +144,6 @@ func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
 		viper.GetDuration("graceful_shutdown_timeout"), "Maximum time to wait for in-flight work to complete on shutdown. Set to 0 to disable",
 	)
 
-	viper.SetDefault("health_listen_address", "0.0.0.0:3000")
-	cmd.Flags().StringVar(
-		&opts.HealthListenAddress, "health-listen-address",
-		viper.GetString("health_listen_address"), "Address of health server",
-	)
-
 	cmd.Flags().IntVar(
 		&opts.MaxConcurrentActivityExecutionSize, "max-concurrent-activity-execution-size",
 		viper.GetInt("max_concurrent_activity_execution_size"),
@@ -205,17 +154,6 @@ func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
 		&opts.MaxConcurrentWorkflowTaskExecutionSize, "max-concurrent-workflow-task-execution-size",
 		viper.GetInt("max_concurrent_workflow_task_execution_size"),
 		"Sets the maximum concurrent workflow task executions this worker can have.",
-	)
-
-	viper.SetDefault("metrics_listen_address", "0.0.0.0:9090")
-	cmd.Flags().StringVar(
-		&opts.MetricsListenAddress, "metrics-listen-address",
-		viper.GetString("metrics_listen_address"), "Address of Prometheus metrics server",
-	)
-
-	cmd.Flags().StringVar(
-		&opts.MetricsPrefix, "metrics-prefix",
-		viper.GetString("metrics_prefix"), "Prefix for metrics",
 	)
 
 	cmd.Flags().Float64Var(

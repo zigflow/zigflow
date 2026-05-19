@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/mrsimonemms/golang-helpers/temporal"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/zigflow/zigflow/pkg/codec"
@@ -63,22 +64,14 @@ type runOptions struct {
 	DirectoryPath                          string
 	Files                                  []string
 	GracefulShutdownTimeout                time.Duration
-	HealthListenAddress                    string
 	MaxConcurrentActivityExecutionSize     int
 	MaxConcurrentWorkflowTaskExecutionSize int
-	MetricsListenAddress                   string
-	MetricsPrefix                          string
 	TaskQueueActivitiesPerSecond           float64
-	TemporalAddress                        string
-	TemporalAPIKey                         string
-	TemporalMTLSCertPath                   string
-	TemporalMTLSKeyPath                    string
-	TemporalNamespace                      string
-	TemporalServerName                     string
-	TemporalTLSEnabled                     bool
 	Validate                               bool
 	Watch                                  bool
 	WatchDebounce                          time.Duration
+
+	temporal *temporal.TemporalOpts
 
 	Telemetry                  *telemetry.Telemetry
 	defaultVersioningBehaviour workflow.VersioningBehavior
@@ -177,7 +170,9 @@ func runRunCmd(ctx context.Context, opts *runOptions) error {
 // executes; by that point PersistentPreRunE will have populated the telemetry
 // instance, so it is safe to dereference.
 func New(telemetryFn func() *telemetry.Telemetry) *cobra.Command {
-	var opts runOptions
+	opts := runOptions{
+		temporal: &temporal.TemporalOpts{},
+	}
 
 	cmd := &cobra.Command{
 		Use:   "run",

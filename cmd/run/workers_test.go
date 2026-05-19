@@ -100,8 +100,10 @@ func TestInitTemporalClient_ServerNamePropagation(t *testing.T) {
 			defer stubTemporalConnection(&captured, &called)()
 
 			opts := &runOptions{
-				TemporalTLSEnabled: test.tlsEnabled,
-				TemporalServerName: test.serverName,
+				temporal: &temporal.TemporalOpts{
+					TLSEnabled: test.tlsEnabled,
+					ServerName: test.serverName,
+				},
 			}
 
 			_, err := initTemporalClient(opts)
