@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	ceSDK "github.com/cloudevents/sdk-go/v2"
 	"github.com/rs/zerolog/log"
@@ -263,25 +264,71 @@ func (t *ForTaskBuilder) iterate(ctx workflow.Context, workingState *utils.State
 			output = append(output, res)
 		}
 		return output, nil
-	case int:
-		logger.Debug("Iterating data as a number", "task", t.GetTaskName())
-		output := make([]any, 0)
-		for i := range v {
-			res, err := t.iterator(ctx, i, i, workingState)
-			if err != nil {
-				if errors.Is(err, errForkIterationStop) {
-					break
-				}
-				return nil, err
-			}
-			t.addIterationResult(ctx, workingState, res)
-			output = append(output, res)
-		}
-		return output, nil
-	default:
+	}
+
+	count, ok, err := t.iterationCount(data)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
 		logger.Error("For task data is not iterable", "task", t.GetTaskName())
 		return nil, fmt.Errorf("for task data is not iterable")
 	}
+
+	logger.Debug("Iterating data as a number", "task", t.GetTaskName())
+	output := make([]any, 0)
+	for i := range count {
+		res, err := t.iterator(ctx, i, i, workingState)
+		if err != nil {
+			if errors.Is(err, errForkIterationStop) {
+				break
+			}
+			return nil, err
+		}
+		t.addIterationResult(ctx, workingState, res)
+		output = append(output, res)
+	}
+	return output, nil
+}
+
+// iterationCount resolves a numeric for.in value into a concrete iteration
+// count. Variables decoded from JSON arrive as float64 even when authored as
+// integer literals, so float64 values that represent whole numbers are
+// accepted alongside native int. Fractional float64 values are rejected
+// rather than silently truncated so a surprising loop count can never occur.
+// NaN, infinite, and out-of-int-range float64 values are rejected explicitly
+// so that float-to-int conversion cannot produce an undefined or platform
+// dependent result. ok reports whether data was numeric at all; non-numeric
+// values are the caller's responsibility to handle.
+func (t *ForTaskBuilder) iterationCount(data any) (count int, ok bool, err error) {
+	switch n := data.(type) {
+	case int:
+		return n, true, nil
+	case float64:
+		if math.IsNaN(n) {
+			return 0, true, fmt.Errorf("for task numeric iteration value cannot be NaN")
+		}
+		if math.IsInf(n, 0) {
+			return 0, true, fmt.Errorf(
+				"for task numeric iteration value cannot be infinite: %v",
+				n,
+			)
+		}
+		if n > math.MaxInt || n < math.MinInt {
+			return 0, true, fmt.Errorf(
+				"for task numeric iteration value out of int range: %v",
+				n,
+			)
+		}
+		if n != math.Trunc(n) {
+			return 0, true, fmt.Errorf(
+				"for task numeric iteration value must be a whole number: %v",
+				n,
+			)
+		}
+		return int(n), true, nil
+	}
+	return 0, false, nil
 }
 
 // iterator runs one iteration of the for loop.

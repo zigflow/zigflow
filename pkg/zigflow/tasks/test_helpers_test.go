@@ -68,6 +68,12 @@ const (
 	testConstRequest = "request"
 	// testConstAlpineImage is the container image string reused by run.container tests.
 	testConstAlpineImage = "alpine"
+	// testConstVal is the value variable name used in for-task accumulator tests.
+	testConstVal = "val"
+	// testConstCount is the map key used for the iteration count in numeric for-task tests.
+	testConstCount = "count"
+	// testConstForRefDataCount is the jq expression used to reference a numeric iteration count via $data.count.
+	testConstForRefDataCount = "${ $data.count }"
 )
 
 var (
