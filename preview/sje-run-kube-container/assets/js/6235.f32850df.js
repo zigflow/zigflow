@@ -1,1 +1,0 @@
-"use strict";(globalThis.webpackChunkzigflow=globalThis.webpackChunkzigflow||[]).push([[6235],{56235(e,a,i){i.d(a,{createInfoServices:()=>l.v});var l=i(41009);i(6902)}}]);
