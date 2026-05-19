@@ -1,1 +1,0 @@
-"use strict";(globalThis.webpackChunkzigflow=globalThis.webpackChunkzigflow||[]).push([[1947],{1947(e,a,l){l.d(a,{createWardleyServices:()=>i.J});var i=l(22295);l(72519)}}]);
