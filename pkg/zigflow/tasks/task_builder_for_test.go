@@ -19,6 +19,7 @@ package tasks
 import (
 	"errors"
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/serverlessworkflow/sdk-go/v3/model"
@@ -165,6 +166,96 @@ func TestForTaskBuilderCheckWhile(t *testing.T) {
 			var res bool
 			assert.NoError(t, env.GetWorkflowResult(&res))
 			assert.Equal(t, tc.expect, res)
+		})
+	}
+}
+
+func TestForTaskBuilderIterationCount(t *testing.T) {
+	tests := []struct {
+		name        string
+		data        any
+		wantCount   int
+		wantOK      bool
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:      "int passes through unchanged",
+			data:      5,
+			wantCount: 5,
+			wantOK:    true,
+		},
+		{
+			name:      "whole-number float64 is accepted",
+			data:      float64(5),
+			wantCount: 5,
+			wantOK:    true,
+		},
+		{
+			name:        "fractional float64 is rejected",
+			data:        5.5,
+			wantOK:      true,
+			wantErr:     true,
+			errContains: "whole number",
+		},
+		{
+			name:        "NaN is rejected",
+			data:        math.NaN(),
+			wantOK:      true,
+			wantErr:     true,
+			errContains: "NaN",
+		},
+		{
+			name:        "positive infinity is rejected",
+			data:        math.Inf(1),
+			wantOK:      true,
+			wantErr:     true,
+			errContains: "infinite",
+		},
+		{
+			name:        "negative infinity is rejected",
+			data:        math.Inf(-1),
+			wantOK:      true,
+			wantErr:     true,
+			errContains: "infinite",
+		},
+		{
+			name:        "value above int range is rejected",
+			data:        1e20,
+			wantOK:      true,
+			wantErr:     true,
+			errContains: "out of int range",
+		},
+		{
+			name:        "value below int range is rejected",
+			data:        -1e20,
+			wantOK:      true,
+			wantErr:     true,
+			errContains: "out of int range",
+		},
+		{
+			name:   "non-numeric value is not numeric",
+			data:   "not-a-number",
+			wantOK: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			b := &ForTaskBuilder{}
+			count, ok, err := b.iterationCount(tc.data)
+
+			assert.Equal(t, tc.wantOK, ok)
+			if tc.wantErr {
+				assert.Error(t, err)
+				if tc.errContains != "" {
+					assert.Contains(t, err.Error(), tc.errContains)
+				}
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tc.wantCount, count)
 		})
 	}
 }
@@ -430,7 +521,7 @@ func TestForExecObjectAccumulatesResults(t *testing.T) {
 			name:         "obj-accum",
 			task: &model.ForTask{
 				For: model.ForTaskConfiguration{
-					Each: "val",
+					Each: testConstVal,
 					At:   "key",
 					In:   testConstForRefDataItems,
 				},
@@ -446,7 +537,7 @@ func TestForExecObjectAccumulatesResults(t *testing.T) {
 	env.RegisterWorkflowWithOptions(
 		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
 			return forChildResult{
-				Output:  st.Data["val"],
+				Output:  st.Data[testConstVal],
 				Context: nil,
 			}, nil
 		},
@@ -485,9 +576,9 @@ func TestForExecNumericAccumulatesResults(t *testing.T) {
 			name:         "num-accum",
 			task: &model.ForTask{
 				For: model.ForTaskConfiguration{
-					Each: "val",
+					Each: testConstVal,
 					At:   testConstIdx,
-					In:   "${ $data.count }",
+					In:   testConstForRefDataCount,
 				},
 				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 			},
@@ -506,7 +597,7 @@ func TestForExecNumericAccumulatesResults(t *testing.T) {
 	)
 
 	state := utils.NewState()
-	state.AddData(map[string]any{"count": 3})
+	state.AddData(map[string]any{testConstCount: 3})
 
 	execFn, err := b.exec()
 	assert.NoError(t, err)
@@ -523,6 +614,175 @@ func TestForExecNumericAccumulatesResults(t *testing.T) {
 
 	// JSON round-trip through the Temporal child workflow boundary converts integers to float64.
 	assert.Equal(t, []any{float64(0), float64(1), float64(2)}, result)
+}
+
+// TestForExecNumericFloat64Whole verifies that the numeric for.in variant
+// accepts a float64 value that represents a whole number (for example 5.0)
+// and iterates the expected number of times. Variables resolved through jq
+// may arrive as float64 after a JSON round trip even when they were authored
+// as integer literals, so this case must be supported.
+func TestForExecNumericFloat64Whole(t *testing.T) {
+	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-float64-whole")
+
+	b := &ForTaskBuilder{
+		builder: builder[*model.ForTask]{
+			doc:          testWorkflow,
+			eventEmitter: testEvents,
+			name:         "num-float64-whole",
+			task: &model.ForTask{
+				For: model.ForTaskConfiguration{
+					Each: testConstVal,
+					At:   testConstIdx,
+					In:   testConstForRefDataCount,
+				},
+				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+			},
+		},
+		childWorkflowName: childWorkflowName,
+	}
+
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+
+	callCount := 0
+	env.RegisterWorkflowWithOptions(
+		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
+			callCount++
+			return forChildResult{Output: st.Data[testConstIdx], Context: nil}, nil
+		},
+		workflow.RegisterOptions{Name: childWorkflowName},
+	)
+
+	state := utils.NewState()
+	// A float64 whole number must be accepted and treated as an iteration count.
+	state.AddData(map[string]any{testConstCount: float64(5)})
+
+	execFn, err := b.exec()
+	assert.NoError(t, err)
+
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+		return execFn(ctx, nil, state)
+	}, workflow.RegisterOptions{Name: "num-float64-whole-outer"})
+
+	env.ExecuteWorkflow("num-float64-whole-outer")
+	assert.NoError(t, env.GetWorkflowError())
+
+	var result []any
+	assert.NoError(t, env.GetWorkflowResult(&result))
+
+	// JSON round-trip through the Temporal child workflow boundary converts integers to float64.
+	assert.Equal(t, []any{float64(0), float64(1), float64(2), float64(3), float64(4)}, result)
+	assert.Equal(t, 5, callCount, "child workflow must be invoked once per iteration")
+}
+
+// TestForExecNumericFloat64Zero verifies that a float64 zero results in no
+// iterations rather than an error. Zero is a whole number so the trunc check
+// must accept it.
+func TestForExecNumericFloat64Zero(t *testing.T) {
+	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-float64-zero")
+
+	b := &ForTaskBuilder{
+		builder: builder[*model.ForTask]{
+			doc:          testWorkflow,
+			eventEmitter: testEvents,
+			name:         "num-float64-zero",
+			task: &model.ForTask{
+				For: model.ForTaskConfiguration{
+					Each: testConstVal,
+					At:   testConstIdx,
+					In:   testConstForRefDataCount,
+				},
+				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+			},
+		},
+		childWorkflowName: childWorkflowName,
+	}
+
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+
+	callCount := 0
+	env.RegisterWorkflowWithOptions(
+		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
+			callCount++
+			return forChildResult{Output: st.Data[testConstIdx], Context: nil}, nil
+		},
+		workflow.RegisterOptions{Name: childWorkflowName},
+	)
+
+	state := utils.NewState()
+	state.AddData(map[string]any{testConstCount: float64(0)})
+
+	execFn, err := b.exec()
+	assert.NoError(t, err)
+
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+		return execFn(ctx, nil, state)
+	}, workflow.RegisterOptions{Name: "num-float64-zero-outer"})
+
+	env.ExecuteWorkflow("num-float64-zero-outer")
+	assert.NoError(t, env.GetWorkflowError())
+
+	var result []any
+	assert.NoError(t, env.GetWorkflowResult(&result))
+
+	assert.Equal(t, []any{}, result, "zero count must produce no iterations")
+	assert.Equal(t, 0, callCount, "child workflow must not be invoked when count is zero")
+}
+
+// TestForExecNumericFloat64Fractional verifies that a for.in expression
+// resolving to a non-whole-number float64 fails with a clear, actionable
+// error that names the offending value. Silent truncation would violate the
+// determinism and explicit-validation principles of the engine.
+func TestForExecNumericFloat64Fractional(t *testing.T) {
+	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-float64-frac")
+
+	b := &ForTaskBuilder{
+		builder: builder[*model.ForTask]{
+			doc:          testWorkflow,
+			eventEmitter: testEvents,
+			name:         "num-float64-frac",
+			task: &model.ForTask{
+				For: model.ForTaskConfiguration{
+					Each: testConstVal,
+					At:   testConstIdx,
+					In:   testConstForRefDataCount,
+				},
+				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+			},
+		},
+		childWorkflowName: childWorkflowName,
+	}
+
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+
+	callCount := 0
+	env.RegisterWorkflowWithOptions(
+		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
+			callCount++
+			return forChildResult{Output: st.Data[testConstIdx], Context: nil}, nil
+		},
+		workflow.RegisterOptions{Name: childWorkflowName},
+	)
+
+	state := utils.NewState()
+	state.AddData(map[string]any{testConstCount: 5.5})
+
+	execFn, err := b.exec()
+	assert.NoError(t, err)
+
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+		return execFn(ctx, nil, state)
+	}, workflow.RegisterOptions{Name: "num-float64-frac-outer"})
+
+	env.ExecuteWorkflow("num-float64-frac-outer")
+
+	wfErr := env.GetWorkflowError()
+	assert.Error(t, wfErr)
+	assert.Contains(t, wfErr.Error(), "for task numeric iteration value must be a whole number")
+	assert.Contains(t, wfErr.Error(), "5.5")
+	assert.Equal(t, 0, callCount, "no iterations must run when the for.in value is invalid")
 }
 
 // TestForExecLoopVarsDoNotLeakToParent verifies that loop-local variables
