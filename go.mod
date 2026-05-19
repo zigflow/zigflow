@@ -17,7 +17,7 @@ require (
 	github.com/itchyny/gojq v0.12.19
 	github.com/matthewmueller/glob v0.1.1
 	github.com/modelcontextprotocol/go-sdk v1.6.0
-	github.com/mrsimonemms/golang-helpers v0.7.3
+	github.com/mrsimonemms/golang-helpers v0.7.4
 	github.com/mrsimonemms/temporal-codec-server/packages/golang v0.0.0-20260216220812-efae704c32dc
 	github.com/nexus-rpc/sdk-go v0.6.0
 	github.com/posthog/posthog-go v1.12.5
