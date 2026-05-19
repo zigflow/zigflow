@@ -1,0 +1,80 @@
+version: 2
+
+updates:
+  #
+  # GitHub Actions
+  #
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: 02:00
+      timezone: UTC
+
+    open-pull-requests-limit: 10
+
+    commit-message:
+      prefix: ci
+      include: scope
+
+    labels:
+      - dependencies
+      - github-actions
+
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  #
+  # Go modules
+  #
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: 02:00
+      timezone: UTC
+
+    open-pull-requests-limit: 10
+
+    commit-message:
+      prefix: deps
+      include: scope
+
+    labels:
+      - dependencies
+      - go
+
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"
+
+  #
+  # Docker
+  #
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: 02:00
+      timezone: UTC
+
+    open-pull-requests-limit: 5
+
+    commit-message:
+      prefix: docker
+      include: scope
+
+    labels:
+      - dependencies
+      - docker
+
+    groups:
+      docker-images:
+        patterns:
+          - "*"

@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/mrsimonemms/new",
-  "commit": "575419a2c0d81d09e68c8a42d027c32b138f1b71",
+  "commit": "6f1459d0cc97b9a3e0fa01a996a7af83fefe02aa",
   "checkout": null,
   "context": {
     "cookiecutter": {
@@ -10,7 +10,7 @@
       "repo": "github.com/zigflow/zigflow",
       "use_viper": false,
       "_template": "https://github.com/mrsimonemms/new",
-      "_commit": "575419a2c0d81d09e68c8a42d027c32b138f1b71"
+      "_commit": "6f1459d0cc97b9a3e0fa01a996a7af83fefe02aa"
     }
   },
   "directory": "golang-cobra",
