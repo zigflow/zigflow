@@ -1,0 +1,57 @@
+services:
+  s3:
+    image: rustfs/rustfs:latest
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      - RUSTFS_ACCESS_KEY=test
+      - RUSTFS_SECRET_KEY=test
+
+  temporal:
+    image: temporalio/temporal
+    ports:
+      - 8080:8233
+    command: server start-dev --ip 0.0.0.0 --search-attribute Step=text
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator cluster health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+
+  workflow: &trigger
+    build:
+      context: ../../
+      target: builder
+    environment:
+      CODEC_ENDPOINT: http://codec:3000
+      CODEC_HEADERS: '{"Authorization": "Basic dXNlcjpwYXNzd29yZA=="}'
+      CONVERT_DATA: remote
+      LOG_LEVEL: "${LOG_LEVEL:-debug}"
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      TEMPORAL_API_KEY: ${TEMPORAL_API_KEY:-}
+      TEMPORAL_TLS: ${TEMPORAL_TLS:-false}
+      WORKFLOW_FILE: ./examples/hello-world-encrypted-remote/workflow.yaml
+    volumes:
+      - ../../:/go/app
+    command:
+      - run
+    links:
+      - codec
+      - temporal
+    depends_on:
+      temporal:
+        condition: service_healthy
+
+  trigger:
+    <<: *trigger
+    depends_on:
+      workflow:
+        condition: service_started
+    working_dir: /go/app/examples/hello-world-encrypted-remote
+    entrypoint: ""
+    command:
+      - go
+      - run
+      - .

@@ -28,7 +28,7 @@ require (
 	github.com/serverlessworkflow/sdk-go/v3 v3.2.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
-	go.temporal.io/sdk v1.44.0
+	go.temporal.io/sdk v1.43.0
 	go.temporal.io/sdk/contrib/sysinfo v0.1.1
 	go.yaml.in/yaml/v2 v2.4.4
 	google.golang.org/grpc v1.81.1
