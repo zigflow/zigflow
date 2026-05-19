@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkzigflow=self.webpackChunkzigflow||[]).push([["3220"],{1912(e){e.exports=JSON.parse('{"blogBasePath":"/preview/sje-use-cobra-init-helper/articles","blogTitle":"Blog","authorsListPath":"/preview/sje-use-cobra-init-helper/articles/authors"}')}}]);
