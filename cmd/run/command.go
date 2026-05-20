@@ -54,6 +54,7 @@ type runOptions struct {
 	ContainerRuntimeNamespace              string
 	ContainerRuntimeServiceAccount         string
 	ConvertData                            string
+	ConvertFailureData                     bool
 	ConvertKeyPath                         string
 	DefaultVersioningBehaviour             string
 	DeploymentBuildID                      string

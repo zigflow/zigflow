@@ -126,6 +126,12 @@ func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
 		viper.GetString("convert_data"), fmt.Sprintf("Data conversion mode: %q, %q, or %q", codec.CodecNone, codec.CodecAES, codec.CodecRemote),
 	)
 
+	viper.SetDefault("convert_failure_data", true)
+	cmd.Flags().BoolVar(
+		&opts.ConvertFailureData, "convert-failure-data",
+		viper.GetBool("convert_failure_data"), "Convert failure payloads as well as workflow data (disable for readable UI errors)",
+	)
+
 	viper.SetDefault("converter_key_path", "keys.yaml")
 	cmd.Flags().StringVar(
 		&opts.ConvertKeyPath, "converter-key-path",

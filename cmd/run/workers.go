@@ -259,7 +259,13 @@ func initTemporalClient(opts *runOptions) (client.Client, error) {
 			opts.temporal.MTLSCertPath,
 			opts.temporal.MTLSKeyPath,
 		),
-		temporal.WithDataAndFailureConverter(dataConverter),
+		temporal.WithDataConverter(dataConverter),
+		func(o *client.Options) error {
+			if opts.ConvertFailureData {
+				return temporal.WithFailureConverter(dataConverter)(o)
+			}
+			return nil
+		},
 		temporal.WithZerolog(&log.Logger),
 		temporal.WithPrometheusMetrics(opts.temporal.MetricsListenAddress, opts.temporal.MetricsPrefix, nil),
 	)

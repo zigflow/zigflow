@@ -120,6 +120,79 @@ func TestInitTemporalClient_ServerNamePropagation(t *testing.T) {
 	}
 }
 
+// ---- initTemporalClient: ConvertFailureData wiring ----
+
+func TestInitTemporalClient_ConvertFailureData(t *testing.T) {
+	tests := []struct {
+		name                  string
+		convertFailureData    bool
+		convertData           string
+		codecEndpoint         string
+		expectDataConverter   bool
+		expectFailureConverer bool
+	}{
+		{
+			name:                  "enabled with no codec leaves DataConverter nil but installs FailureConverter",
+			convertFailureData:    true,
+			expectDataConverter:   false,
+			expectFailureConverer: true,
+		},
+		{
+			name:                  "disabled with no codec leaves both nil",
+			convertFailureData:    false,
+			expectDataConverter:   false,
+			expectFailureConverer: false,
+		},
+		{
+			name:                  "enabled with remote codec installs both",
+			convertFailureData:    true,
+			convertData:           string(codec.CodecRemote),
+			codecEndpoint:         testRemoteCodecEndpoint,
+			expectDataConverter:   true,
+			expectFailureConverer: true,
+		},
+		{
+			name:                  "disabled with remote codec installs DataConverter only",
+			convertFailureData:    false,
+			convertData:           string(codec.CodecRemote),
+			codecEndpoint:         testRemoteCodecEndpoint,
+			expectDataConverter:   true,
+			expectFailureConverer: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var captured client.Options
+			called := false
+			defer stubTemporalConnection(&captured, &called)()
+
+			opts := &runOptions{
+				ConvertData:        test.convertData,
+				ConvertFailureData: test.convertFailureData,
+				CodecEndpoint:      test.codecEndpoint,
+				temporal:           &temporal.TemporalOpts{},
+			}
+
+			_, err := initTemporalClient(opts)
+			require.NoError(t, err)
+			require.True(t, called, "newTemporalConnection was not invoked")
+
+			if test.expectDataConverter {
+				assert.NotNil(t, captured.DataConverter, "expected DataConverter to be set")
+			} else {
+				assert.Nil(t, captured.DataConverter, "expected DataConverter to be unset")
+			}
+
+			if test.expectFailureConverer {
+				assert.NotNil(t, captured.FailureConverter, "expected FailureConverter to be set")
+			} else {
+				assert.Nil(t, captured.FailureConverter, "expected FailureConverter to be unset")
+			}
+		})
+	}
+}
+
 // capturedWorker records the arguments passed to newWorker by a single call.
 type capturedWorker struct {
 	taskQueue string
@@ -383,13 +456,13 @@ func TestBuildDataConverter(t *testing.T) {
 		{
 			Name:        "remote returns converter without error",
 			ConvertData: "remote",
-			Endpoint:    "http://localhost:8080",
+			Endpoint:    testRemoteCodecEndpoint,
 			ExpectNil:   false,
 		},
 		{
 			Name:         "remote with headers returns converter without error",
 			ConvertData:  "remote",
-			Endpoint:     "http://localhost:8080",
+			Endpoint:     testRemoteCodecEndpoint,
 			CodecHeaders: map[string]string{"Authorization": "Bearer token"},
 			ExpectNil:    false,
 		},
