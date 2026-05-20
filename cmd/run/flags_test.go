@@ -35,6 +35,7 @@ func TestNewRunCmd_Flags(t *testing.T) {
 	assert.NotNil(t, cmd.Flags().Lookup("codec-endpoint"))
 	assert.NotNil(t, cmd.Flags().Lookup("codec-headers"))
 	assert.NotNil(t, cmd.Flags().Lookup("convert-data"))
+	assert.NotNil(t, cmd.Flags().Lookup("convert-failure-data"))
 	assert.NotNil(t, cmd.Flags().Lookup("converter-key-path"))
 	assert.NotNil(t, cmd.Flags().Lookup("cloudevents-config"))
 	assert.NotNil(t, cmd.Flags().Lookup("env-prefix"))
@@ -80,6 +81,26 @@ func TestNewRunCmd_TemporalServerNameFlagDefaultIsEmpty(t *testing.T) {
 	require.NotNil(t, flag)
 	// When omitted the flag is empty so existing connection behaviour is unchanged.
 	assert.Equal(t, "", flag.Value.String())
+}
+
+// ---- --convert-failure-data flag ----
+
+func TestNewRunCmd_ConvertFailureDataFlagDefaultsToTrue(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	flag := cmd.Flags().Lookup("convert-failure-data")
+	require.NotNil(t, flag)
+	// Default is true so existing behaviour is preserved: failure payloads pass
+	// through the data converter unless explicitly opted out.
+	assert.Equal(t, "true", flag.DefValue)
+	assert.Equal(t, "true", flag.Value.String())
+}
+
+func TestNewRunCmd_ConvertFailureDataFlagBoundToOpts(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	require.NoError(t, cmd.Flags().Set("convert-failure-data", "false"))
+	assert.Equal(t, "false", cmd.Flags().Lookup("convert-failure-data").Value.String())
 }
 
 // ---- --watch flags ----

@@ -26,4 +26,5 @@ const (
 	testSourceFileA          = "a.yaml"
 	testSourceFileB          = "b.yaml"
 	testWorkflowType         = "wf"
+	testRemoteCodecEndpoint  = "http://localhost:8080"
 )
