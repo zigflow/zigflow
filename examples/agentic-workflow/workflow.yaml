@@ -1,0 +1,189 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: agentic-workflow
+  version: 0.0.1
+  title: Agentic Workflow
+  summary: A bounded plan/act/observe loop driven by an AI planner and a tool-backed lookup activity.
+  metadata:
+    tags:
+      - agent
+      - for-loop
+      - switch
+      - activity
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 2
+
+input:
+  schema:
+    format: json
+    document:
+      type: object
+      required:
+        - question
+      properties:
+        question:
+          type: string
+          description: The user question the agent is trying to answer.
+        maxIterations:
+          type: integer
+          description: Upper bound on planner/tool iterations before falling back.
+          default: 5
+          minimum: 1
+
+do:
+  # Primary workflow. Drives the agent loop and produces the final result.
+  - agentic-workflow:
+      do:
+        # Seed $context with the canonical agent state. All later expressions
+        # read from $context so the loop has a single, stable carrier for
+        # inter-iteration state.
+        - initialise:
+            export:
+              as: ${ . }
+            set:
+              question: ${ $input.question }
+              maxIterations: ${ $input.maxIterations // 5 }
+              iteration: 0
+              observations: []
+              finalAnswer: null
+              done: false
+
+        # Bounded plan/act loop.
+        #
+        # The for task iterates up to maxIterations times. The while condition
+        # is checked before each iteration; once a tool branch sets
+        # $context.done == true, the next iteration short-circuits and the
+        # loop returns. The export pulls forward the last iteration's output
+        # as the new $context so downstream tasks see the up-to-date state.
+        - agentLoop:
+            export:
+              as: ${ .[-1] // $context }
+            for:
+              in: ${ $context.maxIterations }
+            while: ${ ($context.done // false) != true }
+            do:
+              - plan:
+                  export:
+                    as: '${ $context + { plan: . } }'
+                  call: activity
+                  with:
+                    taskQueue: agent-worker
+                    name: agent.PlanNextStep
+                    arguments:
+                      - question: ${ $context.question }
+                        observations: ${ $context.observations }
+                        iteration: ${ $context.iteration }
+
+              # Route on the planner result. Each branch is a named workflow
+              # below that returns the full updated agent state. The switch
+              # task's export merges that returned state into $context so the
+              # next iteration sees the new observations, iteration counter
+              # and done flag.
+              - routeTool:
+                  export:
+                    as: '${ $context + . }'
+                  switch:
+                    - lookup:
+                        when: ${ $context.plan.tool == "lookup" }
+                        then: runLookup
+                    - finalAnswer:
+                        when: ${ $context.plan.tool == "final_answer" }
+                        then: markAnswered
+                    - default:
+                        then: markUnsupported
+
+        # If the loop exhausted maxIterations without a final answer, ask the
+        # summarisation activity to produce a best-effort response. The export
+        # parks the activity output under $context.fallbackAnswer so the next
+        # task can pick it up.
+        - fallbackAnswer:
+            export:
+              as: '${ $context + { fallbackAnswer: . } }'
+            switch:
+              - needsSummary:
+                  when: ${ $context.done != true }
+                  then: summarisePartialResult
+              - default:
+                  then: continue
+
+        # Shape the workflow result. answer prefers the planner's final
+        # answer and falls back to the summariser's best-effort answer.
+        - finalOutput:
+            output:
+              as: ${ . }
+            set:
+              answer: ${ $context.finalAnswer // $context.fallbackAnswer.answer }
+              iterations: ${ $context.iteration }
+              observations: ${ $context.observations }
+
+  # Lookup branch. Calls the AI-backed lookup activity and records the
+  # observation. Returns the full updated agent state so the parent's switch
+  # export can merge it into $context.
+  - runLookup:
+      do:
+        - runLookup:
+            call: activity
+            with:
+              taskQueue: agent-worker
+              name: agent.Lookup
+              arguments:
+                - query: ${ $context.plan.arguments.query }
+
+        - storeLookupObservation:
+            output:
+              as: ${ . }
+            set:
+              question: ${ $context.question }
+              maxIterations: ${ $context.maxIterations }
+              iteration: ${ $context.iteration + 1 }
+              observations: '${ $context.observations + [{ tool: "lookup", input: $context.plan.arguments, output: $data.runLookup }] }'
+              finalAnswer: ${ $context.finalAnswer }
+              done: false
+
+  # Final-answer branch. Captures the planner's answer and signals done.
+  # iteration is not incremented here so the result reflects the number of
+  # tool calls rather than the number of planning rounds.
+  - markAnswered:
+      do:
+        - markAnswered:
+            output:
+              as: ${ . }
+            set:
+              question: ${ $context.question }
+              maxIterations: ${ $context.maxIterations }
+              iteration: ${ $context.iteration }
+              observations: ${ $context.observations }
+              finalAnswer: ${ $context.plan.arguments.answer }
+              done: true
+
+  # Unsupported-tool branch. The planner returned a tool we don't handle, so
+  # we close the loop cleanly with an explanatory answer rather than failing
+  # the workflow. The done flag stops the loop on the next while check.
+  - markUnsupported:
+      do:
+        - markUnsupported:
+            output:
+              as: ${ . }
+            set:
+              question: ${ $context.question }
+              maxIterations: ${ $context.maxIterations }
+              iteration: ${ $context.iteration }
+              observations: ${ $context.observations }
+              finalAnswer: '${ "Planner returned an unsupported tool: " + ($context.plan.tool // "<none>") }'
+              done: true
+
+  # Best-effort summarisation when the loop ends without a final answer.
+  - summarisePartialResult:
+      do:
+        - summarisePartialResult:
+            output:
+              as: ${ . }
+            call: activity
+            with:
+              taskQueue: agent-worker
+              name: agent.SummarisePartialResult
+              arguments:
+                - question: ${ $context.question }
+                  observations: ${ $context.observations }
