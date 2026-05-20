@@ -1,0 +1,100 @@
+services:
+  ollama:
+    image: ollama/ollama
+    ports:
+      - 11434:11434
+    volumes:
+      - ollama:/root/.ollama
+
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:0.5b}
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        echo "Waiting for Ollama to start up"
+        until ollama list >/dev/null 2>&1; do
+          sleep 1
+        done
+        ollama pull "$$OLLAMA_MODEL"
+    restart: "no"
+
+  temporal:
+    image: temporalio/temporal
+    ports:
+      - 8080:8233
+    command: server start-dev --ip 0.0.0.0
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator cluster health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+
+  workflow: &workflow
+    build:
+      context: ../../
+      target: builder
+    environment: &workflow-envvars
+      CONVERT_FAILURE_DATA: "${CONVERT_FAILURE_DATA:-false}"
+      LOG_LEVEL: "${LOG_LEVEL:-debug}"
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      TEMPORAL_API_KEY: ${TEMPORAL_API_KEY:-}
+      TEMPORAL_TLS: ${TEMPORAL_TLS:-false}
+      WORKFLOW_FILE: ./examples/agentic-workflow/workflow.yaml
+    volumes:
+      - ../../:/go/app
+    command:
+      - run
+    links:
+      - activities
+      - temporal
+    depends_on:
+      ollama:
+        condition: service_started
+      ollama-init:
+        condition: service_completed_successfully
+      temporal:
+        condition: service_healthy
+
+  activities:
+    <<: *workflow
+    working_dir: /go/app/examples/agentic-workflow/activities
+    entrypoint: ""
+    environment:
+      <<: *workflow-envvars
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:0.5b}
+    links:
+      - ollama
+      - temporal
+    command:
+      - go
+      - run
+      - .
+
+  trigger:
+    <<: *workflow
+    depends_on:
+      workflow:
+        condition: service_started
+      activities:
+        condition: service_started
+    working_dir: /go/app/examples/agentic-workflow
+    entrypoint: ""
+    environment:
+      <<: *workflow-envvars
+      MAX_ITERATIONS: ${MAX_ITERATIONS:-5}
+      QUESTION: ${QUESTION:-Find the capital city of France, then calculate how many letters are in its name.}
+    command:
+      - go
+      - run
+      - .
+
+volumes:
+  ollama:
