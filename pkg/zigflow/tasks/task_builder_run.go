@@ -24,6 +24,7 @@ import (
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
+	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
@@ -87,6 +88,18 @@ func (t *RunTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 		res, err := factory(ctx, input, state)
 		if err != nil {
+			// Flow-control directives (notably an `end` propagated from
+			// a `run.workflow` child) carry a meaningful payload that
+			// the do-task pipeline needs to see. Preserve res so the
+			// directive can be dispatched with the right output.
+			if flow.IsControlError(err) {
+				logger.Debug("Run task signalled a flow directive; preserving carried output",
+					"task", t.GetTaskName(), "directive", err.Error())
+				state.AddData(map[string]any{
+					t.name: res,
+				})
+				return res, err
+			}
 			return nil, err
 		}
 
@@ -209,6 +222,18 @@ func (t *RunTaskBuilder) runWorkflow(ctx workflow.Context, input any, state *uti
 
 	var res any
 	if err := future.Get(ctx, &res); err != nil {
+		// A `then: end` directive inside the child workflow crosses the
+		// child workflow boundary as a typed Temporal ApplicationError.
+		// Treat it as a deliberate workflow termination rather than a
+		// child-workflow failure: surface it as flow.ErrEnd and carry the
+		// child's effective output upward so the surrounding do-task
+		// pipeline can keep propagating end with the right payload.
+		if payload, isEnd := flow.DecodeEndApplicationError(err); isEnd {
+			logger.Info("Run child workflow signalled end; propagating",
+				"task", t.GetTaskName(), "workflow", t.task.Run.Workflow.Name, "carriedOutput", payload.Output)
+			return payload.Output, flow.ErrEnd
+		}
+
 		logger.Error("Error executiing child workflow", "error", err)
 		return nil, fmt.Errorf("error executiing child workflow: %w", err)
 	}

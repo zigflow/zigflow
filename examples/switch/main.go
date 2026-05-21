@@ -44,31 +44,50 @@ func exec() error {
 	}
 
 	ctx := context.Background()
+
 	orderTypes := []string{
 		"electronic",
 		"physical",
 		"unknown",
 	}
 
+	flows := []string{
+		"continue",
+		"exit",
+		"end",
+	}
+
 	for _, orderType := range orderTypes {
-		log.Info().Str("orderType", orderType).Msg("Triggering new order")
-		we, err := c.ExecuteWorkflow(ctx, workflowOptions, "switch", map[string]any{
-			"orderType": orderType,
-		})
-		if err != nil {
-			return gh.FatalError{
-				Cause: err,
-				Msg:   "Error executing workflow",
+		for _, flow := range flows {
+			log.Info().
+				Str("orderType", orderType).
+				Str("flow", flow).
+				Msg("Triggering new order")
+
+			we, err := c.ExecuteWorkflow(ctx, workflowOptions, "switch", map[string]any{
+				"orderType": orderType,
+				"flow":      flow,
+			})
+			if err != nil {
+				return gh.FatalError{
+					Cause: err,
+					Msg:   "Error executing workflow",
+				}
 			}
-		}
 
-		log.Info().Str("workflowId", we.GetID()).Str("runId", we.GetRunID()).Msg("Started workflow")
+			log.Info().
+				Str("workflowId", we.GetID()).
+				Str("runId", we.GetRunID()).
+				Str("orderType", orderType).
+				Str("flow", flow).
+				Msg("Started workflow")
 
-		var result any
-		if err := we.Get(ctx, &result); err != nil {
-			return gh.FatalError{
-				Cause: err,
-				Msg:   "Error getting response",
+			var result any
+			if err := we.Get(ctx, &result); err != nil {
+				return gh.FatalError{
+					Cause: err,
+					Msg:   "Error getting response",
+				}
 			}
 		}
 	}

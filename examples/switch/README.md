@@ -33,8 +33,12 @@ flowchart TD
         wf_switch__start --> switch_wait
         switch_switcher{"SWITCH (switcher)"}
         switch_wait --> switch_switcher
+        switch_flowSwitcher{"SWITCH (flowSwitcher)"}
+        switch_flowSwitcher -->|"${ $input.flow == 'exit' }"| wf_switch__end
+        switch_flowSwitcher -->|"${ $input.flow == 'end' }"| wf_switch__end
+        switch_switcher --> switch_flowSwitcher
         switch_wait_2["WAIT (wait)"]
-        switch_switcher --> switch_wait_2
+        switch_flowSwitcher --> switch_wait_2
         switch_wait_2 --> wf_switch__end
     end
     subgraph wf_processElectronicOrder["processElectronicOrder"]

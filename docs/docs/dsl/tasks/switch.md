@@ -1,7 +1,7 @@
 # Switch
 
 Enables conditional branching within workflows. Based on a set of conditions
-evaluated at runtime, the Switch task directs execution to a different task.
+evaluated at runtime, the Switch task determines the next flow directive to execute.
 
 ## When to use
 
@@ -27,8 +27,9 @@ Cases are evaluated in order. The first case whose `when` expression evaluates
 to `true` wins. If no case matches, the default case (where `when` is absent)
 is used.
 
-After the matching case's `then` directive runs, execution continues from
-the target task.
+When a case matches, its `then` flow directive determines what happens next:
+execution may continue to the next task, jump to a named task, exit the current
+scope or end the workflow.
 
 ## Example
 
@@ -83,8 +84,8 @@ do:
           detail: ${ "Received order type: " + $input.orderType }
 ```
 
-When triggered with `{ "orderType": "electronic" }`, the workflow runs
-`processElectronicOrder` and skips the other branches.
+When triggered with `{ "orderType": "electronic" }`, the switch selects
+`processElectronicOrder` as the next branch to execute.
 
 ## Using flow directives
 
@@ -112,8 +113,12 @@ before broader ones to avoid unintended matches.
 is no default, execution falls through to the next task in the `do` list.
 This is rarely intentional. Include a default case to make intent explicit.
 
-**The `then` directive targets a task by name.** The named task must exist
-in the same `do` list. Referencing a non-existent task fails at validation.
+**Named `then` directives target a task by name.** The named task must exist
+within the current workflow scope. Referencing a non-existent task fails at
+validation.
+
+**`end` terminates the workflow.** Use `exit` when you only want to leave the
+current scope, such as a nested `do` or loop.
 
 ## Related tasks
 

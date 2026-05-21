@@ -23,8 +23,10 @@ import (
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
+	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
@@ -35,7 +37,7 @@ func TestRunTaskBuilderPostLoadSetsAwaitDefault(t *testing.T) {
 			Workflow: &model.RunWorkflow{
 				Namespace: constDefaultNamespace,
 				Name:      "child-runner",
-				Version:   "1.0.0",
+				Version:   testConstRunWorkflowVersion,
 			},
 		},
 	}
@@ -93,7 +95,7 @@ func TestRunTaskBuilderRunWorkflow(t *testing.T) {
 					Workflow: &model.RunWorkflow{
 						Namespace: constDefaultNamespace,
 						Name:      "child-runner",
-						Version:   "1.0.0",
+						Version:   testConstRunWorkflowVersion,
 					},
 				},
 			}
@@ -142,6 +144,71 @@ func TestRunTaskBuilderRunWorkflow(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestRunTaskBuilderRunWorkflowPropagatesEndFromChild proves that a
+// `run.workflow` task whose child workflow signalled `then: end` does
+// NOT wrap that signal as a child-workflow failure. Instead, runWorkflow
+// must surface flow.ErrEnd carrying the child's effective output so the
+// surrounding do-task pipeline keeps propagating end upward toward the
+// root workflow with the right payload.
+func TestRunTaskBuilderRunWorkflowPropagatesEndFromChild(t *testing.T) {
+	const childWorkflowName = "child-end-runner"
+	childOutput := map[string]any{testConstChild: testConstDone}
+
+	task := &model.RunTask{
+		Run: model.RunTaskConfiguration{
+			Await: utils.Ptr(true),
+			Workflow: &model.RunWorkflow{
+				Namespace: constDefaultNamespace,
+				Name:      childWorkflowName,
+				Version:   testConstRunWorkflowVersion,
+			},
+		},
+	}
+
+	builder, err := NewRunTaskBuilder(nil, task, "run-end-task", nil, testEvents, nil)
+	require.NoError(t, err)
+
+	fn, err := builder.Build()
+	require.NoError(t, err)
+
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+
+	// The child workflow ends via Zigflow's typed end ApplicationError.
+	// It also returns a non-nil result so that the result and the error
+	// are both meaningful values; Temporal surfaces only the error to
+	// the parent's future.Get, and runWorkflow must reconstruct the
+	// carried output from the EndPayload, not from the discarded result.
+	env.RegisterWorkflowWithOptions(func(_ workflow.Context, _ any, _ *utils.State) (map[string]any, error) {
+		return childOutput, flow.NewEndApplicationError(childOutput)
+	}, workflow.RegisterOptions{Name: childWorkflowName})
+
+	captured := struct {
+		output any
+		err    error
+	}{}
+
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) error {
+		output, runErr := fn(ctx, map[string]any{testConstRequest: testConstData}, utils.NewState())
+		captured.output = output
+		captured.err = runErr
+		return nil
+	}, workflow.RegisterOptions{Name: "run-end-host"})
+
+	env.ExecuteWorkflow("run-end-host")
+	require.NoError(t, env.GetWorkflowError())
+
+	// runWorkflow must report the end via flow.ErrEnd (not the wrapped
+	// "error executiing child workflow" string), and the child's
+	// effective output must have crossed the boundary intact.
+	require.Error(t, captured.err)
+	assert.ErrorIs(t, captured.err, flow.ErrEnd)
+	assert.NotContains(t, captured.err.Error(), "error executiing child workflow",
+		"a child-emitted end must not be wrapped as a child-workflow failure")
+	assert.Equal(t, childOutput, captured.output,
+		"the child workflow's end payload output must propagate through runWorkflow")
 }
 
 func TestRunTaskBuilderRunScriptValidation(t *testing.T) {

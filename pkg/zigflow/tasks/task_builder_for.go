@@ -27,6 +27,7 @@ import (
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/utils"
+	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 )
@@ -206,8 +207,19 @@ func (t *ForTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 
 		output, err := t.iterate(ctx, workingState, data)
 		if err != nil {
-			// Parent state is not modified on error: state.Output is only set
-			// after a clean exit so retries and catch handlers see the original state.
+			// flow.ErrEnd is special: an iteration deliberately requested
+			// that the workflow terminate, and the iterator has already
+			// surfaced its effective output. Propagate that output to the
+			// do-task layer so subsequent processTaskOutput / Export logic
+			// (and ultimately workflowExecutor's NewEndApplicationError
+			// payload) reflect the iteration's work rather than losing it.
+			if errors.Is(err, flow.ErrEnd) {
+				state.Output = output
+				return output, err
+			}
+			// For other errors the parent state is not modified: state.Output
+			// is only set after a clean exit so retries and catch handlers
+			// see the original state.
 			return nil, err
 		}
 
@@ -239,11 +251,11 @@ func (t *ForTaskBuilder) iterate(ctx workflow.Context, workingState *utils.State
 		output := map[string]any{}
 		for key, value := range v {
 			res, err := t.iterator(ctx, key, value, workingState)
-			if err != nil {
-				if errors.Is(err, errForkIterationStop) {
-					break
+			if done, endRes, endErr := t.classifyIterationOutcome(res, err); done {
+				if endErr != nil {
+					return endRes, endErr
 				}
-				return nil, err
+				break
 			}
 			t.addIterationResult(ctx, workingState, res)
 			output[key] = res
@@ -254,11 +266,11 @@ func (t *ForTaskBuilder) iterate(ctx workflow.Context, workingState *utils.State
 		output := make([]any, 0)
 		for i, value := range v {
 			res, err := t.iterator(ctx, i, value, workingState)
-			if err != nil {
-				if errors.Is(err, errForkIterationStop) {
-					break
+			if done, endRes, endErr := t.classifyIterationOutcome(res, err); done {
+				if endErr != nil {
+					return endRes, endErr
 				}
-				return nil, err
+				break
 			}
 			t.addIterationResult(ctx, workingState, res)
 			output = append(output, res)
@@ -279,16 +291,40 @@ func (t *ForTaskBuilder) iterate(ctx workflow.Context, workingState *utils.State
 	output := make([]any, 0)
 	for i := range count {
 		res, err := t.iterator(ctx, i, i, workingState)
-		if err != nil {
-			if errors.Is(err, errForkIterationStop) {
-				break
+		if done, endRes, endErr := t.classifyIterationOutcome(res, err); done {
+			if endErr != nil {
+				return endRes, endErr
 			}
-			return nil, err
+			break
 		}
 		t.addIterationResult(ctx, workingState, res)
 		output = append(output, res)
 	}
 	return output, nil
+}
+
+// classifyIterationOutcome interprets the per-iteration (res, err) pair.
+//
+//	(false, _, _)     => no error, keep accumulating.
+//	(true, _, nil)    => an internal stop signal (e.g. while-false);
+//	                     caller should break out of the loop quietly.
+//	(true, res, end)  => the iteration body emitted flow.ErrEnd and the
+//	                     iteration's effective output must be propagated
+//	                     to the for-task layer so it can survive the
+//	                     workflow termination.
+//	(true, nil, err)  => a genuine failure that must propagate to the
+//	                     caller; the loop aborts.
+func (t *ForTaskBuilder) classifyIterationOutcome(res any, err error) (done bool, output any, propagate error) {
+	if err == nil {
+		return false, nil, nil
+	}
+	if errors.Is(err, errForkIterationStop) {
+		return true, nil, nil
+	}
+	if errors.Is(err, flow.ErrEnd) {
+		return true, res, err
+	}
+	return true, nil, err
 }
 
 // iterationCount resolves a numeric for.in value into a concrete iteration
@@ -390,6 +426,19 @@ func (t *ForTaskBuilder) iterator(ctx workflow.Context, key, value any, workingS
 
 	var res forChildResult
 	if err := workflow.ExecuteChildWorkflow(childCtx, t.childWorkflowName, iterState.Input, iterState).Get(ctx, &res); err != nil {
+		// A `then: end` directive inside the iteration body crosses the
+		// child workflow boundary as a typed Temporal ApplicationError
+		// carrying the iteration's effective output. Surface it as
+		// flow.ErrEnd here so the for-task signals end to its enclosing
+		// scope rather than reporting a generic failure, and update
+		// workingState.Output with the carried payload so the for-task
+		// returns the iteration's effective output rather than losing it.
+		if endPayload, isEnd := flow.DecodeEndApplicationError(err); isEnd {
+			logger.Info("For iteration signalled end; propagating to caller",
+				"workflow", t.childWorkflowName, "carriedOutput", endPayload.Output)
+			workingState.Output = endPayload.Output
+			return endPayload.Output, flow.ErrEnd
+		}
 		logger.Error("Error calling for workflow", "error", err, "workflow", t.childWorkflowName)
 		return nil, fmt.Errorf("error calling for workflow: %w", err)
 	}
