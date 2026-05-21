@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/zigflow/zigflow/pkg/utils"
+	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
@@ -106,7 +107,7 @@ func TestDoTaskBuilderWorkflowExecutor(t *testing.T) {
 			assert.NoError(t, env.GetWorkflowResult(&workflowResult))
 			assert.Equal(t, expectedOutput, workflowResult)
 
-			assert.Equal(t, []string{"task-one", testConstTaskTwo}, runOrder)
+			assert.Equal(t, []string{testConstTaskOne, testConstTaskTwo}, runOrder)
 			assert.NotNil(t, capturedState)
 			if tc.initialState != nil {
 				assert.Same(t, tc.initialState, capturedState)
@@ -132,7 +133,7 @@ func TestDoTaskBuilderIterateTasksFlowControl(t *testing.T) {
 			name: "non-enum flow directive jumps to named task",
 			setup: func(runOrder *[]string) []workflowFunc {
 				return []workflowFunc{
-					newSimpleWorkflowFunc("task-a", &model.TaskBase{
+					newSimpleWorkflowFunc(testConstTaskA, &model.TaskBase{
 						Then: &model.FlowDirective{
 							Value: testConstTaskC,
 						},
@@ -141,13 +142,13 @@ func TestDoTaskBuilderIterateTasksFlowControl(t *testing.T) {
 					newSimpleWorkflowFunc(testConstTaskC, &model.TaskBase{}, runOrder),
 				}
 			},
-			expectedRun: []string{"task-a", testConstTaskC},
+			expectedRun: []string{testConstTaskA, testConstTaskC},
 		},
 		{
 			name: "missing target returns descriptive error",
 			setup: func(runOrder *[]string) []workflowFunc {
 				return []workflowFunc{
-					newSimpleWorkflowFunc("task-a", &model.TaskBase{
+					newSimpleWorkflowFunc(testConstTaskA, &model.TaskBase{
 						Then: &model.FlowDirective{
 							Value: testConstTaskC,
 						},
@@ -155,11 +156,34 @@ func TestDoTaskBuilderIterateTasksFlowControl(t *testing.T) {
 					newSimpleWorkflowFunc("task-b", &model.TaskBase{}, runOrder),
 				}
 			},
-			expectedRun: []string{"task-a"},
+			expectedRun: []string{testConstTaskA},
 			expectErr:   "next target specified but not found: task-c",
 		},
 		{
-			name: "termination directive stops iteration",
+			// `exit` stops the current scope without propagating an
+			// error: the do-task completes cleanly and outer scopes
+			// continue running. This is unchanged from prior behaviour.
+			name: "exit directive stops iteration cleanly",
+			setup: func(runOrder *[]string) []workflowFunc {
+				return []workflowFunc{
+					newSimpleWorkflowFunc("task-exit", &model.TaskBase{
+						Then: &model.FlowDirective{
+							Value: string(model.FlowDirectiveExit),
+						},
+					}, runOrder),
+					newSimpleWorkflowFunc("task-b", &model.TaskBase{}, runOrder),
+				}
+			},
+			expectedRun: []string{"task-exit"},
+		},
+		{
+			// `end` propagates as flow.ErrEnd so the whole workflow
+			// terminates, not just the current scope. iterateTasks
+			// surfaces the sentinel; workflowExecutor turns it into a
+			// clean completion at the root and a Temporal end
+			// ApplicationError at nested boundaries (covered separately
+			// in task_builder_do_flow_test.go).
+			name: "end directive propagates as ErrEnd",
 			setup: func(runOrder *[]string) []workflowFunc {
 				return []workflowFunc{
 					newSimpleWorkflowFunc("task-end", &model.TaskBase{
@@ -171,6 +195,23 @@ func TestDoTaskBuilderIterateTasksFlowControl(t *testing.T) {
 				}
 			},
 			expectedRun: []string{"task-end"},
+			expectErr:   flow.ErrEnd.Error(),
+		},
+		{
+			// `continue` is the no-op directive: iteration carries on
+			// to the next task as if no directive had been set.
+			name: "continue directive proceeds to next task",
+			setup: func(runOrder *[]string) []workflowFunc {
+				return []workflowFunc{
+					newSimpleWorkflowFunc(testConstTaskA, &model.TaskBase{
+						Then: &model.FlowDirective{
+							Value: string(model.FlowDirectiveContinue),
+						},
+					}, runOrder),
+					newSimpleWorkflowFunc("task-b", &model.TaskBase{}, runOrder),
+				}
+			},
+			expectedRun: []string{testConstTaskA, "task-b"},
 		},
 	}
 
@@ -301,7 +342,7 @@ func TestDoTaskBuilderIterateTasksContinueAsNew(t *testing.T) {
 	runOrder := make([]string, 0)
 	state := utils.NewState()
 	tasks := []workflowFunc{
-		newSimpleWorkflowFunc("task-one", &model.TaskBase{}, &runOrder),
+		newSimpleWorkflowFunc(testConstTaskOne, &model.TaskBase{}, &runOrder),
 	}
 
 	var s testsuite.WorkflowTestSuite
@@ -332,7 +373,7 @@ func TestDoTaskBuilderIterateTasksSkipsCompletedTasks(t *testing.T) {
 	state.CANStartFrom = utils.Ptr("task-two-1")
 
 	tasks := []workflowFunc{
-		newSimpleWorkflowFunc("task-one", &model.TaskBase{}, &runOrder),
+		newSimpleWorkflowFunc(testConstTaskOne, &model.TaskBase{}, &runOrder),
 		newSimpleWorkflowFunc(testConstTaskTwo, &model.TaskBase{}, &runOrder),
 	}
 
@@ -402,8 +443,8 @@ func TestDoTaskBuilderShouldSkip(t *testing.T) {
 			name: "different task ID keeps skipping",
 			task: func() workflowFunc {
 				return workflowFunc{
-					TaskBuilder: newFakeTaskBuilder("task-one", &model.TaskBase{}),
-					Name:        "task-one",
+					TaskBuilder: newFakeTaskBuilder(testConstTaskOne, &model.TaskBase{}),
+					Name:        testConstTaskOne,
 				}
 			}(),
 			taskID: "task-one-0",
@@ -525,7 +566,7 @@ func newOutputWorkflowFuncs(runOrder *[]string, capturedState **utils.State) []w
 		},
 	}
 
-	taskOneBuilder := newFakeTaskBuilder("task-one", taskOneBase)
+	taskOneBuilder := newFakeTaskBuilder(testConstTaskOne, taskOneBase)
 	taskTwoBuilder := newFakeTaskBuilder(testConstTaskTwo, taskTwoBase)
 
 	return []workflowFunc{
@@ -534,7 +575,7 @@ func newOutputWorkflowFuncs(runOrder *[]string, capturedState **utils.State) []w
 			Name:        taskOneBuilder.GetTaskName(),
 			Func: func(ctx workflow.Context, input any, state *utils.State) (any, error) {
 				*capturedState = state
-				*runOrder = append(*runOrder, "task-one")
+				*runOrder = append(*runOrder, testConstTaskOne)
 				return map[string]any{
 					testConstValue: "one",
 				}, nil

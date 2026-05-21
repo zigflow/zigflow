@@ -24,7 +24,9 @@ import (
 
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/utils"
+	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
@@ -101,7 +103,7 @@ func TestForTaskBuilderCheckWhile(t *testing.T) {
 			name:  "boolean true expression",
 			while: testConstDataFlag,
 			stateData: map[string]any{
-				"flag": true,
+				testConstFlag: true,
 			},
 			expect: true,
 		},
@@ -109,7 +111,7 @@ func TestForTaskBuilderCheckWhile(t *testing.T) {
 			name:  "boolean false expression",
 			while: testConstDataFlag,
 			stateData: map[string]any{
-				"flag": false,
+				testConstFlag: false,
 			},
 			expect: false,
 		},
@@ -407,7 +409,7 @@ func TestForIteratorWhileSeesOutput(t *testing.T) {
 			callCount++
 			// The first iteration returns continue=false so the second iteration's
 			// while check should stop the loop.
-			return forChildResult{Output: map[string]any{"continue": false}, Context: nil}, nil
+			return forChildResult{Output: map[string]any{testConstFlowContinue: false}, Context: nil}, nil
 		},
 		workflow.RegisterOptions{Name: childWorkflowName},
 	)
@@ -415,7 +417,7 @@ func TestForIteratorWhileSeesOutput(t *testing.T) {
 	state := utils.NewState()
 	// Pre-seed output so the first while check (before any iteration runs) passes.
 	// This also doubles as a check that the pre-loop $output is visible to while.
-	state.Output = map[string]any{"continue": true}
+	state.Output = map[string]any{testConstFlowContinue: true}
 
 	// stoppedAt tracks which iteration caused the loop to stop.
 	// 0 = never stopped, 1 = stopped on first, 2 = stopped on second.
@@ -1012,4 +1014,57 @@ func TestForExecErrorLeavesParentStateUnchanged(t *testing.T) {
 		"loop-local variable must not leak into parent Data when an iteration fails")
 	assert.Nil(t, state.Data[testConstIdx],
 		"loop-local variable must not leak into parent Data when an iteration fails")
+}
+
+// TestForIteratorChildEndsPropagatesErrEnd proves that a for-loop iteration
+// body emitting `then: end` causes the for-task to surface flow.ErrEnd to
+// its caller. The iteration's child workflow returns the typed Temporal
+// end ApplicationError (the way a nested DoTaskBuilder.workflowExecutor
+// emits ErrEnd across the child boundary); iterator() must decode that
+// error rather than wrapping it as a generic iteration failure, so the
+// enclosing scope can keep propagating end upward.
+func TestForIteratorChildEndsPropagatesErrEnd(t *testing.T) {
+	childWorkflowName := utils.GenerateChildWorkflowName("for", "iter-end")
+
+	b := &ForTaskBuilder{
+		builder: builder[*model.ForTask]{
+			doc:          testWorkflow,
+			eventEmitter: testEvents,
+			name:         "iter-end",
+			task: &model.ForTask{
+				For: model.ForTaskConfiguration{
+					Each: constDefaultItemVar,
+					At:   testConstIdx,
+					In:   testConstForRefDataItems,
+				},
+				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+			},
+		},
+		childWorkflowName: childWorkflowName,
+	}
+
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+
+	env.RegisterWorkflowWithOptions(
+		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
+			return forChildResult{}, flow.NewEndApplicationError(nil)
+		},
+		workflow.RegisterOptions{Name: childWorkflowName},
+	)
+
+	state := utils.NewState()
+	state.AddData(map[string]any{testConstItems: []any{"only-item"}})
+
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+		return b.iterator(ctx, 0, "only-item", state)
+	}, workflow.RegisterOptions{Name: "iter-end-outer"})
+
+	env.ExecuteWorkflow("iter-end-outer")
+
+	err := env.GetWorkflowError()
+	require.Error(t, err)
+	// The error surfaced to the for-task's caller must mention ErrEnd so
+	// the surrounding scope can recognise the directive.
+	assert.Contains(t, err.Error(), flow.ErrEnd.Error())
 }

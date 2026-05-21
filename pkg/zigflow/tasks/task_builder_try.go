@@ -23,6 +23,7 @@ import (
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/utils"
+	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 )
@@ -103,6 +104,19 @@ func (t *TryTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 
 		var res map[string]any
 		if err := workflow.ExecuteChildWorkflow(childCtx, t.tryChildWorkflowName, state.Input, state).Get(ctx, &res); err != nil {
+			// A `then: end` directive inside the try body crosses the
+			// child workflow boundary as a typed Temporal ApplicationError.
+			// That is a deliberate workflow termination, not a failure to
+			// be caught: surface it as flow.ErrEnd so the do-task pipeline
+			// can keep propagating end upward, and preserve the carried
+			// output from the child so the root completion reflects it.
+			// Crucially, this skips the catch handler.
+			if endPayload, isEnd := flow.DecodeEndApplicationError(err); isEnd {
+				logger.Info("Try child workflow signalled end; propagating without running catch",
+					"tryWorkflow", t.tryChildWorkflowName, "carriedOutput", endPayload.Output)
+				return endPayload.Output, flow.ErrEnd
+			}
+
 			logger.Warn("Workflow failed, catching the error", "tryWorkflow", t.tryChildWorkflowName, "catchWorkflow", t.catchChildWorkflowName)
 			// The try workflow has failed - let's run the catch workflow
 			opts := workflow.ChildWorkflowOptions{
@@ -112,6 +126,14 @@ func (t *TryTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 			childCtx := workflow.WithChildOptions(ctx, opts)
 
 			if err := workflow.ExecuteChildWorkflow(childCtx, t.catchChildWorkflowName, state.Input, state).Get(ctx, &res); err != nil {
+				// The catch handler itself may emit `then: end`. Propagate
+				// that as flow.ErrEnd rather than wrapping it as a generic
+				// catch-workflow failure.
+				if endPayload, isEnd := flow.DecodeEndApplicationError(err); isEnd {
+					logger.Info("Catch child workflow signalled end; propagating",
+						"catchWorkflow", t.catchChildWorkflowName, "carriedOutput", endPayload.Output)
+					return endPayload.Output, flow.ErrEnd
+				}
 				// Everything has failed
 				logger.Error("Error calling try workflow", "error", err)
 				return nil, fmt.Errorf("error calling catcg workflow: %w", err)

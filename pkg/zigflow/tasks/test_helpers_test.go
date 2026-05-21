@@ -34,10 +34,35 @@ const (
 	testConstResult = "result"
 	// testConstDataFlag is the jq expression used in tests to evaluate a boolean flag from $data.
 	testConstDataFlag = "${ $data.flag }"
+	// testConstTaskOne is the task name "task-one" used in do-task tests.
+	testConstTaskOne = "task-one"
 	// testConstTaskTwo is the task name "task-two" used in do-task flow-control tests.
 	testConstTaskTwo = "task-two"
 	// testConstTaskC is the task name "task-c" used in do-task flow-control tests.
 	testConstTaskC = "task-c"
+	// testConstTaskA is the task name "task-a" used in task-level then dispatch tests.
+	testConstTaskA = "task-a"
+	// testConstTaskTarget is the task name "task-target" used in named-redirect tests.
+	testConstTaskTarget = "task-target"
+	// testConstTaskWithThen is the task name "with-then" used in task-level then dispatch tests.
+	testConstTaskWithThen = "with-then"
+	// testConstTaskSetChildOutput is the task name "set-child-output" used in end-propagation tests
+	// where a child workflow records an output before signalling `then: end`.
+	testConstTaskSetChildOutput = "set-child-output"
+	// testConstTaskPrior is the task name "prior" used in tests where one task
+	// primes state before a later task is examined.
+	testConstTaskPrior = "prior"
+	// testConstHandledKey is the map key "handled" used in try/catch tests
+	// to flag that the catch handler ran.
+	testConstHandledKey = "handled"
+	// testConstTaskSwitch is the task name "task-switch" used in flow directive tests.
+	testConstTaskSwitch = "task-switch"
+	// testConstFlowContinue is the literal "continue" flow directive value, repeated in tests.
+	testConstFlowContinue = "continue"
+	// testConstSwitchMatch is the switch case name "match" used in switch-task tests.
+	testConstSwitchMatch = "match"
+	// testConstFlag is the data key "flag" used to gate switch and for conditions in tests.
+	testConstFlag = "flag"
 	// testConstForDataItems is the jq expression used to reference items via .data.items.
 	testConstForDataItems = "${ .data.items }"
 	// testConstForRefDataItems is the jq expression used to reference items via $data.items.
@@ -68,6 +93,8 @@ const (
 	testConstRequest = "request"
 	// testConstAlpineImage is the container image string reused by run.container tests.
 	testConstAlpineImage = "alpine"
+	// testConstRunWorkflowVersion is the placeholder workflow version reused by run.workflow tests.
+	testConstRunWorkflowVersion = "1.0.0"
 	// testConstVal is the value variable name used in for-task accumulator tests.
 	testConstVal = "val"
 	// testConstCount is the map key used for the iteration count in numeric for-task tests.

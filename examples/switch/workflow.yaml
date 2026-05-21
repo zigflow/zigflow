@@ -27,6 +27,21 @@ do:
             then: processPhysicalOrder
         - default:
             then: handleUnknownOrderType
+  # Flow directive examples
+  - flowSwitcher:
+      switch:
+        - continue:
+            when: ${ $input.flow == "continue" }
+            then: continue
+        - exit:
+            when: ${ $input.flow == "exit" }
+            then: exit
+        - end:
+            when: ${ $input.flow == "end" }
+            then: end
+        - default:
+            then: continue
+  # This runs when the switch continues normally
   - wait:
       wait:
         seconds: 5

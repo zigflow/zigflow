@@ -23,6 +23,7 @@ import (
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/utils"
+	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 )
@@ -82,20 +83,16 @@ func (t *SwitchTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 				}
 
 				then := item.Then
-				if then == nil || then.IsTermination() {
-					logger.Debug("Skipping task as then is termination or not set")
+				if then == nil {
+					// No flow directive for this case. Allow the enclosing
+					// scope to continue executing the next task normally.
+					logger.Debug("Matching switch case has no then; continuing", "task", t.GetTaskName(), "condition", name)
 					return nil, nil
 				}
 
-				logger.Info("Executing switch statement's task as a child workflow", "task", t.GetTaskName(), "condition", name)
-				var res any
-				if err := workflow.ExecuteChildWorkflow(ctx, then.Value, input, state).Get(ctx, &res); err != nil {
-					logger.Error("Error executing child switch workflow", "task", t.GetTaskName(), "condition", name)
-					return nil, err
-				}
-
-				// Stop it executing anything else
-				return res, nil
+				logger.Info("Switch case matched; emitting flow directive",
+					"task", t.GetTaskName(), "condition", name, "directive", then.Value)
+				return nil, flow.FromDirective(then)
 			}
 		}
 
