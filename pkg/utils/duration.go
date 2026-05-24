@@ -18,6 +18,8 @@ package utils
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -57,19 +59,80 @@ func ExecuteEvery(ctx context.Context, duration time.Duration, fn func(context.C
 	return cctx, cancel
 }
 
-// Convert the Serverless Workflow duration into a time Duration
-func ToDuration(v *model.Duration) (duration time.Duration) {
-	if v != nil {
-		inline := v.AsInline()
+// ToDuration converts a Serverless Workflow duration into a time.Duration
+func ToDuration(v *model.Duration) time.Duration {
+	if v == nil {
+		return 0
+	}
+	inline := v.AsInline()
+	if inline == nil {
+		return 0
+	}
+	// DurationInline fields are int32 and durationFieldToInt has an int32
+	// case, so this call cannot produce an error. The map carries the SDK
+	// types verbatim; if DurationFromMap ever adds stricter validation,
+	// update the fields below to match.
+	d, _ := DurationFromMap(map[string]any{
+		"days":         inline.Days,
+		"hours":        inline.Hours,
+		"minutes":      inline.Minutes,
+		"seconds":      inline.Seconds,
+		"milliseconds": inline.Milliseconds,
+	})
+	return d
+}
 
-		if inline != nil {
-			duration += time.Millisecond * time.Duration(inline.Milliseconds)
-			duration += time.Second * time.Duration(inline.Seconds)
-			duration += time.Minute * time.Duration(inline.Minutes)
-			duration += time.Hour * time.Duration(inline.Hours)
-			duration += (time.Hour * 24) * time.Duration(inline.Days)
-		}
+// DurationFromMap builds a time.Duration from a map of duration fields.
+// Each known field is summed using its unit.
+// Numeric values must be int, int32, int64 or an integer-valued float64;
+// anything else is rejected with an error.
+// This strictness is deliberate: no string-to-number coercion.
+// Keys other than the five duration fields are ignored.
+func DurationFromMap(m map[string]any) (time.Duration, error) {
+	units := []struct {
+		key  string
+		unit time.Duration
+	}{
+		{"days", 24 * time.Hour},
+		{"hours", time.Hour},
+		{"minutes", time.Minute},
+		{"seconds", time.Second},
+		{"milliseconds", time.Millisecond},
 	}
 
-	return duration
+	var total time.Duration
+	for _, u := range units {
+		v, ok := m[u.key]
+		if !ok {
+			continue
+		}
+		n, err := durationFieldToInt(u.key, v)
+		if err != nil {
+			return 0, err
+		}
+		total += time.Duration(n) * u.unit
+	}
+	return total, nil
+}
+
+// durationFieldToInt converts a resolved duration field value to int64,
+// rejecting non-integer numeric values and any non-numeric types.
+func durationFieldToInt(field string, v any) (int64, error) {
+	switch x := v.(type) {
+	case int:
+		return int64(x), nil
+	case int32:
+		return int64(x), nil
+	case int64:
+		return x, nil
+	case float64:
+		if math.Trunc(x) != x {
+			return 0, fmt.Errorf("duration field %s must be an integer, got %v", field, x)
+		}
+		return int64(x), nil
+	case string:
+		return 0, fmt.Errorf("duration field %s must resolve to a number, got string %q", field, x)
+	default:
+		return 0, fmt.Errorf("duration field %s has unsupported type %T", field, v)
+	}
 }
