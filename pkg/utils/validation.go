@@ -18,6 +18,7 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 
@@ -80,6 +81,14 @@ func NewValidator() (*Validator, error) {
 
 	validate := model.GetValidator()
 
+	// Replace the SDK's hardcoded TaskItem struct validation with a
+	// Zigflow-aware version. The SDK gates on a fixed set of built-in task
+	// types and reports "unknown_task" for anything else, which would
+	// reject Zigflow extension types registered via the extensions package.
+	// We delegate to the embedded task's own tag-based validation instead,
+	// which works for both SDK built-ins and Zigflow extensions.
+	validate.RegisterStructValidation(validateTaskItem, model.TaskItem{})
+
 	if err := en_translations.RegisterDefaultTranslations(validate, trans); err != nil {
 		return nil, fmt.Errorf("error registering validator translations: %w", err)
 	}
@@ -88,6 +97,35 @@ func NewValidator() (*Validator, error) {
 		validate: validate,
 		trans:    trans,
 	}, nil
+}
+
+// validateTaskItem performs Zigflow's version of TaskItem struct-level
+// validation. It enforces the same baseline rules as the SDK (Key required,
+// Task non-nil) and then validates the concrete task using its own struct
+// tags, without gating on a hardcoded type switch. This lets Zigflow
+// extension task types (registered via the extensions package) pass
+// validation alongside the SDK's built-in task types.
+func validateTaskItem(sl validator.StructLevel) {
+	taskItem := sl.Current().Interface().(model.TaskItem)
+
+	if taskItem.Key == "" {
+		sl.ReportError(taskItem.Key, "Key", "Key", "required", "")
+		return
+	}
+
+	if taskItem.Task == nil {
+		sl.ReportError(taskItem.Task, "Task", "Task", "required", "")
+		return
+	}
+
+	if err := model.GetValidator().Struct(taskItem.Task); err != nil {
+		var validationErrors validator.ValidationErrors
+		if errors.As(err, &validationErrors) {
+			for _, ve := range validationErrors {
+				sl.ReportError(ve.Value(), "Task."+ve.StructNamespace(), ve.StructField(), ve.Tag(), ve.Param())
+			}
+		}
+	}
 }
 
 func RenderHuman(w io.Writer, result ValidationResult) {
