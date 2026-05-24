@@ -21,40 +21,42 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 
 	gh "github.com/mrsimonemms/golang-helpers"
 	"github.com/mrsimonemms/golang-helpers/temporal"
 	"github.com/rs/zerolog/log"
-	"github.com/zigflow/zigflow/pkg/codec"
+	"github.com/zigflow/zigflow/pkg/externalstorage"
 	"go.temporal.io/sdk/client"
 )
 
 func exec() error {
-	var headers map[string]string
-	if raw := os.Getenv("CODEC_HEADERS"); raw != "" {
-		if err := json.Unmarshal([]byte(raw), &headers); err != nil {
-			return gh.FatalError{
-				Cause: err,
-				Msg:   "Invalid CODEC_HEADERS",
-			}
-		}
-	}
-
-	remoteConverter, err := codec.NewRemoteConverter(
-		os.Getenv("CODEC_ENDPOINT"),
-		headers,
-	)
-	if err != nil {
-		return gh.FatalError{
-			Cause: err,
-			Msg:   "Error creating remote converter",
-		}
-	}
-
 	// The client is a heavyweight object that should be created once per process.
 	c, err := temporal.NewConnectionWithEnvvars(
 		temporal.WithZerolog(&log.Logger),
-		temporal.WithDataAndFailureConverter(remoteConverter),
+		func(o *client.Options) error {
+			n, err := strconv.Atoi(os.Getenv("EXTERNAL_STORAGE_PAYLOAD_SIZE_THRESHOLD"))
+			if err != nil {
+				return err
+			}
+
+			e, err := externalstorage.New(context.Background(), externalstorage.Config{
+				Type:                 externalstorage.StorageS3,
+				PayloadSizeThreshold: n,
+				S3: externalstorage.S3Config{
+					Bucket:       os.Getenv("EXTERNAL_STORAGE_S3_BUCKET"),
+					Region:       os.Getenv("EXTERNAL_STORAGE_S3_REGION"),
+					Endpoint:     os.Getenv("EXTERNAL_STORAGE_S3_ENDPOINT"),
+					UsePathStyle: os.Getenv("EXTERNAL_STORAGE_S3_USE_PATH_STYLE") == "true",
+				},
+			})
+			if err != nil {
+				return err
+			}
+			o.ExternalStorage = e
+
+			return nil
+		},
 	)
 	if err != nil {
 		return gh.FatalError{

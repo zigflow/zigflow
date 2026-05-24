@@ -26,6 +26,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/zigflow/zigflow/pkg/codec"
+	"github.com/zigflow/zigflow/pkg/externalstorage"
 	"github.com/zigflow/zigflow/pkg/zigflow"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
 	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
@@ -242,9 +243,31 @@ func stopWorkerList(workers []worker.Worker) {
 
 // initTemporalClient creates the codec data converter and the Temporal client.
 // The caller is responsible for closing the returned client.
-func initTemporalClient(opts *runOptions) (client.Client, error) {
-	codecType, _ := codec.ParseCodecType(opts.ConvertData)
+func initTemporalClient(ctx context.Context, opts *runOptions) (client.Client, error) {
+	codecType, err := codec.ParseCodecType(opts.ConvertData)
+	if err != nil {
+		return nil, err
+	}
+
 	dataConverter, err := codec.NewDataConverter(codecType, opts.CodecEndpoint, opts.ConvertKeyPath, opts.CodecHeaders)
+	if err != nil {
+		return nil, err
+	}
+
+	external, err := externalstorage.ParseType(opts.ExternalStorage)
+	if err != nil {
+		return nil, err
+	}
+	externalStore, err := externalstorage.New(ctx, externalstorage.Config{
+		Type:                 external,
+		PayloadSizeThreshold: opts.ExternalStoragePayloadSizeThreshold,
+		S3: externalstorage.S3Config{
+			Bucket:       opts.ExternalStorageS3Bucket,
+			Region:       opts.ExternalStorageS3Region,
+			Endpoint:     opts.ExternalStorageS3Endpoint,
+			UsePathStyle: opts.ExternalStorageS3UsePathStyle,
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -266,6 +289,7 @@ func initTemporalClient(opts *runOptions) (client.Client, error) {
 			}
 			return nil
 		},
+		temporal.WithExternalStorage(externalStore),
 		temporal.WithZerolog(&log.Logger),
 		temporal.WithPrometheusMetrics(opts.temporal.MetricsListenAddress, opts.temporal.MetricsPrefix, nil),
 	)
