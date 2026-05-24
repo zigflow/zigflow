@@ -25,6 +25,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/schema"
+	"github.com/zigflow/zigflow/pkg/zigflow/extensions"
 	"sigs.k8s.io/yaml"
 )
 
@@ -199,6 +200,13 @@ func normaliseRunTask(task map[string]any) error {
 }
 
 func normaliseTask(task map[string]any) error {
+	// Pre-SDK extension hook: any registered Zigflow extension may rename
+	// the task body key here, redirecting the SDK to construct a Zigflow
+	// Go type instead of its native one. Vanilla tasks are passed through
+	// unchanged. This runs before the per-type normalisers below so any
+	// rename is visible to them.
+	extensions.Normalise(task)
+
 	fns := []func(map[string]any) error{
 		// Tasks that can contain task lists
 		normaliseDoTask,
