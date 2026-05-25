@@ -2,6 +2,8 @@ module github.com/zigflow/zigflow
 
 go 1.26.0
 
+toolchain go1.26.3
+
 require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/charmbracelet/bubbletea v1.3.10
