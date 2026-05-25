@@ -326,7 +326,7 @@ func TestLeadingNonDeterministicFunc(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			got := leadingNonDeterministicFunc(test.Expr)
+			got := LeadingNonDeterministicFunc(test.Expr)
 			assert.Equal(t, test.Expected, got)
 		})
 	}
