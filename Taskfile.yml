@@ -16,6 +16,7 @@ tasks:
     desc: Run commitlint
     cmds:
       - npx commitlint --version
+      - npm i -g @commitlint/config-conventional
       - npx commitlint --to HEAD
 
   cruft-update:
