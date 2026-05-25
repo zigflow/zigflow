@@ -49,6 +49,7 @@ A collection of examples
 | [Try/Catch](./try-catch) | An example of how to catch an erroring workflow |
 | [TypeScript](./typescript) | The basic example, but in TypeScript |
 | [Update Listeners](./update) | Listen for Temporal update events |
+| [Wait](./wait) | Pause a workflow on a Temporal durable timer with until and expression durations. |
 
 <!-- apps-end -->
 

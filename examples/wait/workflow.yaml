@@ -1,0 +1,59 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: wait
+  version: 0.0.1
+  title: Wait
+  summary: Pause a workflow on a Temporal durable timer with until and expression durations.
+input:
+  schema:
+    format: json
+    document:
+      type: object
+      required:
+        - sendAt
+        - cancelGraceSeconds
+        - recipient
+        - body
+      properties:
+        sendAt:
+          type: string
+        cancelGraceSeconds:
+          type: number
+        recipient:
+          type: string
+        body:
+          type: string
+do:
+  # Hard-coded literal wait. This is the Serverless Workflow spec form
+  # parsed by the upstream SDK as *model.WaitTask.
+  - prewarmDelay:
+      wait:
+        seconds: 1
+
+  # Short cancellation grace window. The length is set per request so a
+  # caller can opt into "send immediately" with 0 or a longer cooldown.
+  # This exercises the expression-aware duration form: the value comes
+  # from workflow input at runtime.
+  - cancelGrace:
+      wait:
+        seconds: ${ $input.cancelGraceSeconds }
+
+  # Pause on Temporal's durable timer until the scheduled send moment.
+  # This exercises the absolute-time until form. A past timestamp is a
+  # debug-logged no-op and the workflow continues immediately.
+  - waitForSendTime:
+      wait:
+        until: ${ $input.sendAt }
+
+  # Record the delivery so the workflow result confirms both waits fired
+  # and the input was carried through. A production version of this
+  # workflow would replace this with `call: activity` against a real
+  # messaging worker; the demo is intentionally self-contained.
+  - recordSent:
+      output:
+        as:
+          delivered: ${ . }
+      set:
+        recipient: ${ $input.recipient }
+        body: ${ $input.body }
