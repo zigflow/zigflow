@@ -1,0 +1,60 @@
+# Zigflow
+
+Zigflow is a declarative workflow orchestration layer for Temporal.
+
+> Zigflow lets you define Temporal workflows declaratively using YAML or JSON, then compiles them into production-grade workflows with built-in reliability, retries and state management.
+
+Zigflow is designed for visual workflow tooling and provides a structured, declarative alternative to writing workflow code directly with Temporal SDKs.
+
+## What Zigflow is
+
+- A declarative DSL for defining Temporal workflows
+- A compilation layer that produces native Temporal workflows
+- A foundation for visual workflow editors and orchestration tooling
+
+## What Zigflow is not
+
+- Not a replacement for Temporal
+- Not a standalone workflow engine
+- Not a general-purpose programming language
+
+## How Zigflow relates to Temporal
+
+- Runs on top of Temporal and compiles to native workflows
+- Preserves Temporal guarantees such as durability, retries and state management
+- Removes the need to write workflow orchestration code using SDKs
+- Complements Temporal rather than replacing it
+
+## Why teams use Zigflow
+
+Teams use Zigflow to reduce workflow complexity, eliminate boilerplate and enable platform teams or non-developers to define orchestration logic safely.
+
+It is particularly useful for:
+- Standardising workflow definitions across teams
+- Enabling visual workflow tooling
+- Accelerating development of orchestration-heavy systems
+
+## Key concepts
+
+- **Declarative workflows**: Define orchestration using YAML or JSON instead of code
+- **Designed for visual tooling**: Structured for integration with visual workflow editors
+- **Temporal-native**: Built on Temporal for durability, retries and state management
+- **CNCF Serverless Workflow**: Aligned with the Serverless Workflow specification
+- **Extensible runtime**: Supports custom tasks, integrations and execution environments
+
+## Getting started
+
+- https://zigflow.dev/docs/intro
+- https://zigflow.dev/docs/getting-started/installation
+- https://zigflow.dev/docs/getting-started/temporal
+
+## Core documentation
+
+- DSL overview: https://zigflow.dev/docs/dsl/intro
+- Tasks: https://zigflow.dev/docs/dsl/tasks/intro
+- Metadata: https://zigflow.dev/docs/dsl/metadata/intro
+- Debugging: https://zigflow.dev/docs/dsl/debugging
+
+## Summary
+
+Zigflow is a declarative workflow orchestration layer for Temporal that lets you define workflows in YAML or JSON and compile them into production-grade workflows. It is designed for visual workflow tooling and helps teams build reliable distributed systems with less code.
