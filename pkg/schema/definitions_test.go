@@ -176,7 +176,7 @@ func TestDurationDefinitionShape(t *testing.T) {
 	branch := d.OneOf[0]
 	assert.Equal(t, typeObject, branch.Type, "the single duration branch must be an object")
 
-	for _, prop := range []string{"days", "hours", propMinutes, propSeconds, "milliseconds"} {
+	for _, prop := range []string{propDays, propHours, propMinutes, propSeconds, propMilliseconds} {
 		assert.Contains(t, branch.Properties, prop, "duration object must have property %q", prop)
 	}
 
@@ -194,7 +194,7 @@ func TestDurationDefinitionShape(t *testing.T) {
 func TestWaitTaskDefinitionShape(t *testing.T) {
 	require.Len(t, waitTaskDefinition.AllOf, 2)
 
-	waitProp, ok := waitTaskDefinition.AllOf[1].Properties["wait"]
+	waitProp, ok := waitTaskDefinition.AllOf[1].Properties[propWait]
 	require.True(t, ok, "wait property must be present")
 	require.Empty(t, waitProp.Ref, "wait property must not reference the shared duration definition")
 	require.Len(t, waitProp.OneOf, 2, "wait property must be a OneOf with exactly two branches")
@@ -202,7 +202,7 @@ func TestWaitTaskDefinitionShape(t *testing.T) {
 	// First branch: duration-with-expressions object form.
 	duration := waitProp.OneOf[0]
 	assert.Equal(t, typeObject, duration.Type, "first branch must be the duration object form")
-	for _, prop := range []string{"days", "hours", propMinutes, propSeconds, "milliseconds"} {
+	for _, prop := range []string{propDays, propHours, propMinutes, propSeconds, propMilliseconds} {
 		field, ok := duration.Properties[prop]
 		require.True(t, ok, "duration form must have property %q", prop)
 		require.Len(t, field.OneOf, 2, "duration field %q must be a OneOf with two branches", prop)
@@ -213,8 +213,8 @@ func TestWaitTaskDefinitionShape(t *testing.T) {
 	// Second branch: until-only object form.
 	until := waitProp.OneOf[1]
 	assert.Equal(t, typeObject, until.Type, "second branch must be the until object form")
-	assert.Contains(t, until.Required, "until", "until branch must require 'until'")
-	untilField, ok := until.Properties["until"]
+	assert.Contains(t, until.Required, propUntil, "until branch must require 'until'")
+	untilField, ok := until.Properties[propUntil]
 	require.True(t, ok, "until branch must have an 'until' property")
 	require.Len(t, untilField.OneOf, 2, "until property must be a OneOf with two branches")
 	assert.Equal(t, rfc3339Pattern, untilField.OneOf[0].Pattern, "until first branch must enforce RFC 3339 via pattern")

@@ -21,6 +21,16 @@ import (
 	"github.com/zigflow/zigflow/pkg/zigflow/extensions"
 )
 
+const (
+	keyWait         = "wait"
+	keyUntil        = "until"
+	keyDays         = "days"
+	keyHours        = "hours"
+	keyMinutes      = "minutes"
+	keySeconds      = "seconds"
+	keyMilliseconds = "milliseconds"
+)
+
 // WaitExtTask is the Zigflow extension of the Serverless Workflow wait
 // task. It is registered with the SDK under
 // extensions.ZigflowExtKeyPrefix + "wait" and constructed when the loader
@@ -51,7 +61,7 @@ type WaitExtBody struct {
 
 type waitExtension struct{}
 
-func (waitExtension) TaskType() string { return "wait" }
+func (waitExtension) TaskType() string { return keyWait }
 
 // Claims a wait body when it carries an `until` field or a string-valued
 // duration field. Vanilla literal-numeric wait bodies are left for the SDK.
@@ -60,10 +70,10 @@ func (waitExtension) Claims(body any) bool {
 	if !ok {
 		return false
 	}
-	if _, hasUntil := m["until"]; hasUntil {
+	if _, hasUntil := m[keyUntil]; hasUntil {
 		return true
 	}
-	for _, k := range []string{"days", "hours", "minutes", "seconds", "milliseconds"} {
+	for _, k := range []string{keyDays, keyHours, keyMinutes, keySeconds, keyMilliseconds} {
 		if v, ok := m[k]; ok {
 			if _, isString := v.(string); isString {
 				return true

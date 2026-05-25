@@ -22,6 +22,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// waitUntilTimestamp is a literal RFC 3339 timestamp reused across the
+// until-form tests below.
+const waitUntilTimestamp = "2026-12-31T23:59:59Z"
+
 // waitWorkflow returns a minimal workflow whose only task is a wait task
 // with the given wait body. Tests use this to exercise the wait task
 // schema branches in isolation.
@@ -30,7 +34,7 @@ func waitWorkflow(waitBody map[string]any) map[string]any {
 	doc[propDo] = []any{
 		map[string]any{
 			"step1": map[string]any{
-				"wait": waitBody,
+				propWait: waitBody,
 			},
 		},
 	}
@@ -49,11 +53,11 @@ func TestSchema_WaitTask_DurationForm(t *testing.T) {
 
 	t.Run("multiple integer duration fields are accepted", func(t *testing.T) {
 		doc := waitWorkflow(map[string]any{
-			"days":         1,
-			"hours":        2,
-			propMinutes:    3,
-			propSeconds:    4,
-			"milliseconds": 5,
+			propDays:         1,
+			propHours:        2,
+			propMinutes:      3,
+			propSeconds:      4,
+			propMilliseconds: 5,
 		})
 		assert.NoError(t, resolved.Validate(doc))
 	})
@@ -81,7 +85,7 @@ func TestSchema_WaitTask_DurationWithExpressions(t *testing.T) {
 
 	t.Run("mixed integer and expression fields are accepted", func(t *testing.T) {
 		doc := waitWorkflow(map[string]any{
-			"hours":     1,
+			propHours:   1,
 			propSeconds: "${ $data.extraSeconds }",
 		})
 		assert.NoError(t, resolved.Validate(doc))
@@ -101,17 +105,17 @@ func TestSchema_WaitTask_UntilForm(t *testing.T) {
 	resolved := resolvedTestSchema(t)
 
 	t.Run("literal RFC 3339 until is accepted", func(t *testing.T) {
-		doc := waitWorkflow(map[string]any{"until": "2026-12-31T23:59:59Z"})
+		doc := waitWorkflow(map[string]any{propUntil: waitUntilTimestamp})
 		assert.NoError(t, resolved.Validate(doc))
 	})
 
 	t.Run("expression until is accepted", func(t *testing.T) {
-		doc := waitWorkflow(map[string]any{"until": "${ $data.deadline }"})
+		doc := waitWorkflow(map[string]any{propUntil: "${ $data.deadline }"})
 		assert.NoError(t, resolved.Validate(doc))
 	})
 
 	t.Run("non-RFC 3339 string until is rejected", func(t *testing.T) {
-		doc := waitWorkflow(map[string]any{"until": "tomorrow"})
+		doc := waitWorkflow(map[string]any{propUntil: "tomorrow"})
 		assert.Error(t, resolved.Validate(doc), "non-RFC 3339, non-expression until must fail validation")
 	})
 }
@@ -123,7 +127,7 @@ func TestSchema_WaitTask_RejectsMixedAndUnknown(t *testing.T) {
 
 	t.Run("until combined with seconds is rejected", func(t *testing.T) {
 		doc := waitWorkflow(map[string]any{
-			"until":     "2026-12-31T23:59:59Z",
+			propUntil:   waitUntilTimestamp,
 			propSeconds: 5,
 		})
 		assert.Error(t, resolved.Validate(doc), "until + seconds must fail validation")
@@ -139,7 +143,7 @@ func TestSchema_WaitTask_RejectsMixedAndUnknown(t *testing.T) {
 
 	t.Run("unknown key alongside until is rejected", func(t *testing.T) {
 		doc := waitWorkflow(map[string]any{
-			"until":   "2026-12-31T23:59:59Z",
+			propUntil: waitUntilTimestamp,
 			"unknown": "value",
 		})
 		assert.Error(t, resolved.Validate(doc), "unknown key alongside until must fail validation")
