@@ -101,11 +101,28 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const marker = '<!-- codex-pr-review -->';
-            const body = `${marker}
-            ## Codex PR Review
+            const hasAiReviewLabel = context.payload.pull_request.labels.some(
+              label => label.name === 'ai-review'
+            );
 
-            ${process.env.CODEX_REVIEW}`;
+            const preamble = hasAiReviewLabel
+              ? [
+                  '> Automated review note: Zigflow uses AI-assisted PR review tooling to help identify potential bugs, regressions and edge cases.',
+                  '> These comments are intended as supplemental review feedback only and may occasionally be incorrect or overly cautious.',
+                  '> Please treat them as additional input for discussion rather than authoritative project direction.',
+                  '',
+                  '',
+                ].join('\n')
+              : '';
+
+            const marker = '<!-- codex-pr-review -->';
+
+            const body = [
+              marker,
+              '## Codex PR Review',
+              '',
+              `${preamble}${process.env.CODEX_REVIEW}`,
+            ].join('\n');
 
             const { owner, repo } = context.repo;
             const issue_number = context.payload.pull_request.number;
