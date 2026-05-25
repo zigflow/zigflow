@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkzigflow=self.webpackChunkzigflow||[]).push([["3220"],{1912(e){e.exports=JSON.parse('{"blogBasePath":"/preview/dependabot-go-modules-go-dependencies-c93561261e/articles","blogTitle":"Blog","authorsListPath":"/preview/dependabot-go-modules-go-dependencies-c93561261e/articles/authors"}')}}]);
