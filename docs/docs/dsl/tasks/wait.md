@@ -150,13 +150,14 @@ formats; a wrong type fails the workflow with a clear error rather than
 being silently translated.
 :::
 
-:::info
-**Only deterministic references are safe inside wait expressions.** Values
-drawn from `$input`, `$data`, `$context` and `$env` are already in workflow
-history and replay deterministically. Non-deterministic jq functions
-(`uuid`, `timestamp`, `timestamp_iso8601`) are not safe inside a wait
-expression. If you need a generated value, compute it in a preceding
-[set](/docs/dsl/tasks/set) task first and reference the result here.
+:::warning
+**Non-deterministic functions are rejected in wait expressions.** Zigflow
+refuses to register a workflow whose wait expression uses `uuid`, `timestamp`
+or `timestamp_iso8601`. These values change on every replay and would break
+Temporal determinism. References to `$input`, `$data`, `$context` and `$env`
+are safe because they are already in workflow history. If you need a
+generated value, compute it in a preceding [set](/docs/dsl/tasks/set) task
+first and reference the result here.
 :::
 
 **The timer is durable.** A wait of hours or days survives worker restarts.

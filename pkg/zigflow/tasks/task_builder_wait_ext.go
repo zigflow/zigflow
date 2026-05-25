@@ -66,6 +66,12 @@ func (t *WaitExtTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		return nil, fmt.Errorf("wait extension task %q has no body", t.GetTaskName())
 	}
 
+	// Reject non-deterministic jq functions at registration time so a worker
+	// refuses to come up with a wait that would fail Temporal replay.
+	if err := rejectNonDeterministicExpressions(t.task.Wait); err != nil {
+		return nil, fmt.Errorf("wait extension task %q: %w", t.GetTaskName(), err)
+	}
+
 	return func(ctx workflow.Context, _ any, state *utils.State) (any, error) {
 		logger := workflow.GetLogger(ctx)
 
@@ -82,9 +88,10 @@ func (t *WaitExtTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 		// Evaluate any runtime expressions against the workflow state.
 		// No SideEffect wrapper: $data, $input, $context and $env are
-		// already in workflow history and therefore deterministic. The
-		// existing leading-NDE check in utils.EvaluateString catches any
-		// non-deterministic jq function (uuid, timestamp) used here.
+		// already in workflow history and therefore deterministic.
+		// Non-deterministic jq functions are rejected up front by
+		// rejectNonDeterministicExpressions, so anything reaching here
+		// is safe to evaluate directly.
 		evaluated, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(cloned), nil, state)
 		if err != nil {
 			return nil, fmt.Errorf("error evaluating wait extension expressions: %w", err)
@@ -143,6 +150,36 @@ func (t *WaitExtTaskBuilder) sleepUntil(ctx workflow.Context, untilStr string) e
 		}
 		logger.Error("Error creating sleep instruction", "error", err)
 		return fmt.Errorf("error creating sleep: %w", err)
+	}
+	return nil
+}
+
+// rejectNonDeterministicExpressions errors if any wait field is a runtime
+// expression whose leading jq function is non-deterministic. Such waits
+// would not be replay-safe.
+func rejectNonDeterministicExpressions(body *models.WaitExtBody) error {
+	fields := []struct {
+		name  string
+		value any
+	}{
+		{keyUntil, body.Until},
+		{"days", body.Days},
+		{"hours", body.Hours},
+		{"minutes", body.Minutes},
+		{"seconds", body.Seconds},
+		{"milliseconds", body.Milliseconds},
+	}
+	for _, f := range fields {
+		s, ok := f.value.(string)
+		if !ok || !model.IsStrictExpr(s) {
+			continue
+		}
+		if fn := utils.LeadingNonDeterministicFunc(model.SanitizeExpr(s)); fn != "" {
+			return fmt.Errorf(
+				"field %q uses non-deterministic function %q; compute it in a preceding set task and reference the result instead",
+				f.name, fn,
+			)
+		}
 	}
 	return nil
 }

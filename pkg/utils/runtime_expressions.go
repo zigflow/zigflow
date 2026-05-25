@@ -80,7 +80,7 @@ func EvaluateString(str string, ctx any, state *State, evaluationWrapper ...Expr
 		// non-deterministic calls inside workflow.SideEffect.
 		if len(evaluationWrapper) == 0 {
 			expr := model.SanitizeExpr(str)
-			if fnName := leadingNonDeterministicFunc(expr); fnName != "" {
+			if fnName := LeadingNonDeterministicFunc(expr); fnName != "" {
 				log.Error().
 					Str("expression", str).
 					Str("function", fnName).
@@ -111,11 +111,11 @@ func buildEvaluationWrapperFn(evaluationWrapper ...ExpressionWrapperFunc) Expres
 	return wrapperFn
 }
 
-// leadingNonDeterministicFunc returns the name of the non-deterministic function
+// LeadingNonDeterministicFunc returns the name of the non-deterministic function
 // that expr begins with, or an empty string if it does not.
 // Only the leading identifier is inspected: `uuid` errors, but `$data.uuid`
 // and `.uuid` do not, as those are variable or field references, not calls.
-func leadingNonDeterministicFunc(expr string) string {
+func LeadingNonDeterministicFunc(expr string) string {
 	expr = strings.TrimSpace(expr)
 	if expr == "" || !isIdentStart(expr[0]) {
 		return ""
