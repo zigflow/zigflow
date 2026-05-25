@@ -30,6 +30,8 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
+const keyUntil = "until"
+
 // NewWaitExtTaskBuilder constructs the builder for the Zigflow extended wait
 // task, which the SDK has produced from a __zigflow_ext_wait task body. The
 // builder evaluates any runtime expressions in the body at workflow execution
@@ -92,7 +94,7 @@ func (t *WaitExtTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 			return nil, fmt.Errorf("wait extension body must resolve to a map, got %T", evaluated)
 		}
 
-		if untilRaw, hasUntil := resolved["until"]; hasUntil {
+		if untilRaw, hasUntil := resolved[keyUntil]; hasUntil {
 			untilStr, ok := untilRaw.(string)
 			if !ok {
 				return nil, fmt.Errorf("wait.until must resolve to a string, got %T", untilRaw)
@@ -130,11 +132,11 @@ func (t *WaitExtTaskBuilder) sleepUntil(ctx workflow.Context, untilStr string) e
 
 	delta := untilTime.Sub(workflow.Now(ctx))
 	if delta <= 0 {
-		logger.Debug("wait.until is in the past, continuing immediately", "until", untilStr)
+		logger.Debug("wait.until is in the past, continuing immediately", keyUntil, untilStr)
 		return nil
 	}
 
-	logger.Debug("Sleeping until", "until", untilStr, "duration", delta.String())
+	logger.Debug("Sleeping until", keyUntil, untilStr, "duration", delta.String())
 	if err := workflow.Sleep(ctx, delta); err != nil {
 		if temporal.IsCanceledError(err) {
 			return nil

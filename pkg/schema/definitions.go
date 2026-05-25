@@ -439,12 +439,12 @@ var durationDefinition = &jsonschema.Schema{
 			MinProperties:         utils.Ptr(1),
 			UnevaluatedProperties: falseSchema(),
 			Properties: map[string]*jsonschema.Schema{
-				"days": {
+				propDays: {
 					Type:        typeInteger,
 					Title:       "DurationDays",
 					Description: "Number of days, if any.",
 				},
-				"hours": {
+				propHours: {
 					Type:        typeInteger,
 					Title:       "DurationHours",
 					Description: "Number of hours, if any.",
@@ -459,7 +459,7 @@ var durationDefinition = &jsonschema.Schema{
 					Title:       "DurationSeconds",
 					Description: "Number of seconds, if any.",
 				},
-				"milliseconds": {
+				propMilliseconds: {
 					Type:        typeInteger,
 					Title:       "DurationMilliseconds",
 					Description: "Number of milliseconds, if any.",
@@ -1500,12 +1500,12 @@ var waitTaskDefinition = &jsonschema.Schema{
 	Title:                 "WaitTask",
 	Description:           "Allows workflows to pause or delay their execution for a specified period of time.",
 	UnevaluatedProperties: falseSchema(),
-	Required:              []string{"wait"},
+	Required:              []string{propWait},
 	AllOf: []*jsonschema.Schema{
 		{Ref: SchemaRef("taskBase")},
 		{
 			Properties: map[string]*jsonschema.Schema{
-				"wait": {
+				propWait: {
 					Title:       "WaitTaskConfiguration",
 					Description: "The amount of time to wait or an absolute moment in time to wait until.",
 					OneOf: []*jsonschema.Schema{
@@ -1525,11 +1525,11 @@ var waitDurationWithExpressionsDefinition = &jsonschema.Schema{
 	MinProperties:         utils.Ptr(1),
 	UnevaluatedProperties: falseSchema(),
 	Properties: map[string]*jsonschema.Schema{
-		"days":         waitDurationNumericField("DurationDays", "Number of days, if any."),
-		"hours":        waitDurationNumericField("DurationHours", "Number of hours, if any."),
-		propMinutes:    waitDurationNumericField("DurationMinutes", "Number of minutes, if any."),
-		propSeconds:    waitDurationNumericField("DurationSeconds", "Number of seconds, if any."),
-		"milliseconds": waitDurationNumericField("DurationMilliseconds", "Number of milliseconds, if any."),
+		propDays:         waitDurationNumericField("DurationDays", "Number of days, if any."),
+		propHours:        waitDurationNumericField("DurationHours", "Number of hours, if any."),
+		propMinutes:      waitDurationNumericField("DurationMinutes", "Number of minutes, if any."),
+		propSeconds:      waitDurationNumericField("DurationSeconds", "Number of seconds, if any."),
+		propMilliseconds: waitDurationNumericField("DurationMilliseconds", "Number of milliseconds, if any."),
 	},
 }
 
@@ -1548,10 +1548,10 @@ var waitUntilDefinition = &jsonschema.Schema{
 	Type:                  typeObject,
 	Title:                 "WaitUntil",
 	Description:           "An absolute moment in time to wait until.",
-	Required:              []string{"until"},
+	Required:              []string{propUntil},
 	UnevaluatedProperties: falseSchema(),
 	Properties: map[string]*jsonschema.Schema{
-		"until": {
+		propUntil: {
 			Title:       "WaitUntilTimestamp",
 			Description: "An RFC 3339 literal timestamp, or a runtime expression that resolves to one.",
 			OneOf: []*jsonschema.Schema{

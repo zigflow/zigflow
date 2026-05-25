@@ -137,7 +137,9 @@ func (d *builder[T]) ShouldRun(state *utils.State) (bool, error) {
 	return utils.CheckIfStatement(d.task.GetBase().If, state)
 }
 
-// Factory to create a TaskBuilder instance, or die trying
+// Factory to create a TaskBuilder instance.
+//
+//nolint:gocyclo // in a factory a type-switch is a common pattern
 func NewTaskBuilder(
 	taskName string,
 	task model.Task,

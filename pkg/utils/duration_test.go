@@ -25,6 +25,14 @@ import (
 	"github.com/zigflow/zigflow/pkg/utils"
 )
 
+const (
+	keyDays         = "days"
+	keyHours        = "hours"
+	keyMinutes      = "minutes"
+	keySeconds      = "seconds"
+	keyMilliseconds = "milliseconds"
+)
+
 // TestToDuration covers the SDK-pointer-specific behaviour of the wrapper.
 // Summation across duration fields is covered by TestDurationFromMap.
 func TestToDuration(t *testing.T) {
@@ -61,7 +69,7 @@ func TestDurationFromMap(t *testing.T) {
 	})
 
 	t.Run("integer seconds", func(t *testing.T) {
-		d, err := utils.DurationFromMap(map[string]any{"seconds": 5})
+		d, err := utils.DurationFromMap(map[string]any{keySeconds: 5})
 		assert.NoError(t, err)
 		assert.Equal(t, 5*time.Second, d)
 	})
@@ -69,15 +77,15 @@ func TestDurationFromMap(t *testing.T) {
 	t.Run("integer-valued float", func(t *testing.T) {
 		// JSON unmarshalling produces float64 for numeric values by default;
 		// integer-valued floats must be accepted.
-		d, err := utils.DurationFromMap(map[string]any{"seconds": float64(5)})
+		d, err := utils.DurationFromMap(map[string]any{keySeconds: float64(5)})
 		assert.NoError(t, err)
 		assert.Equal(t, 5*time.Second, d)
 	})
 
 	t.Run("int32 and int64", func(t *testing.T) {
 		d, err := utils.DurationFromMap(map[string]any{
-			"minutes": int32(2),
-			"seconds": int64(30),
+			keyMinutes: int32(2),
+			keySeconds: int64(30),
 		})
 		assert.NoError(t, err)
 		assert.Equal(t, 2*time.Minute+30*time.Second, d)
@@ -85,11 +93,11 @@ func TestDurationFromMap(t *testing.T) {
 
 	t.Run("all five units sum correctly", func(t *testing.T) {
 		d, err := utils.DurationFromMap(map[string]any{
-			"days":         1,
-			"hours":        2,
-			"minutes":      3,
-			"seconds":      4,
-			"milliseconds": 5,
+			keyDays:         1,
+			keyHours:        2,
+			keyMinutes:      3,
+			keySeconds:      4,
+			keyMilliseconds: 5,
 		})
 		assert.NoError(t, err)
 		want := 24*time.Hour + 2*time.Hour + 3*time.Minute + 4*time.Second + 5*time.Millisecond
@@ -98,16 +106,16 @@ func TestDurationFromMap(t *testing.T) {
 
 	t.Run("unknown keys are ignored", func(t *testing.T) {
 		d, err := utils.DurationFromMap(map[string]any{
-			"seconds": 1,
-			"weeks":   99, // unknown unit; the schema layer rejects these earlier.
+			keySeconds: 1,
+			"weeks":    99, // unknown unit; the schema layer rejects these earlier.
 		})
 		assert.NoError(t, err)
 		assert.Equal(t, time.Second, d)
 	})
 
 	t.Run("fractional float is rejected", func(t *testing.T) {
-		_, err := utils.DurationFromMap(map[string]any{"seconds": 1.5})
-		assert.ErrorContains(t, err, "seconds")
+		_, err := utils.DurationFromMap(map[string]any{keySeconds: 1.5})
+		assert.ErrorContains(t, err, keySeconds)
 		assert.ErrorContains(t, err, "integer")
 	})
 
@@ -115,14 +123,14 @@ func TestDurationFromMap(t *testing.T) {
 		// After expression evaluation a numeric field must resolve to a
 		// number. A literal string (or an unresolved expression like
 		// "${ ... }") must fail with a clear error.
-		_, err := utils.DurationFromMap(map[string]any{"seconds": "5"})
-		assert.ErrorContains(t, err, "seconds")
+		_, err := utils.DurationFromMap(map[string]any{keySeconds: "5"})
+		assert.ErrorContains(t, err, keySeconds)
 		assert.ErrorContains(t, err, "string")
 	})
 
 	t.Run("bool value is rejected", func(t *testing.T) {
-		_, err := utils.DurationFromMap(map[string]any{"seconds": true})
-		assert.ErrorContains(t, err, "seconds")
+		_, err := utils.DurationFromMap(map[string]any{keySeconds: true})
+		assert.ErrorContains(t, err, keySeconds)
 		assert.ErrorContains(t, err, "unsupported type")
 	})
 }

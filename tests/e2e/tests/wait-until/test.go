@@ -59,7 +59,7 @@ var testCase = utils.TestCase{
 		require.NoError(t, err)
 		defer c.Close()
 
-		deadline := time.Now().UTC().Add(waitDuration).Format(time.RFC3339)
+		deadline := time.Now().UTC().Add(waitDuration).Format(time.RFC3339Nano)
 		input := map[string]any{"deadline": deadline}
 
 		startTime := time.Now()

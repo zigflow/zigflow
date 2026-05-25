@@ -23,6 +23,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	taskTypeWait = "wait"
+	taskTypeSet  = "set"
+	keySeconds   = "seconds"
+)
+
 // stubExtension is a tiny Extension used by tests. The claim predicate is
 // configurable per-test so each test can craft its own claim logic.
 type stubExtension struct {
@@ -47,11 +53,11 @@ func withFreshRegistry(t *testing.T) {
 func TestRegister_AddsToRegistry(t *testing.T) {
 	withFreshRegistry(t)
 
-	ext := stubExtension{taskType: "wait", claimFunc: func(any) bool { return true }}
+	ext := stubExtension{taskType: taskTypeWait, claimFunc: func(any) bool { return true }}
 	Register(ext)
 
 	require.Len(t, registry, 1, "extension must be added to the registry")
-	assert.Equal(t, "wait", registry[0].TaskType())
+	assert.Equal(t, taskTypeWait, registry[0].TaskType())
 }
 
 func TestRegister_PanicsOnEmptyTaskType(t *testing.T) {
@@ -65,10 +71,10 @@ func TestRegister_PanicsOnEmptyTaskType(t *testing.T) {
 func TestRegister_PanicsOnDuplicateTaskType(t *testing.T) {
 	withFreshRegistry(t)
 
-	Register(stubExtension{taskType: "wait", claimFunc: func(any) bool { return true }})
+	Register(stubExtension{taskType: taskTypeWait, claimFunc: func(any) bool { return true }})
 
 	assert.Panics(t, func() {
-		Register(stubExtension{taskType: "wait", claimFunc: func(any) bool { return true }})
+		Register(stubExtension{taskType: taskTypeWait, claimFunc: func(any) bool { return true }})
 	}, "registering a second extension for the same task type must panic")
 }
 
@@ -76,20 +82,20 @@ func TestNormalise_ClaimsTaskWhenExtensionMatches(t *testing.T) {
 	withFreshRegistry(t)
 
 	Register(stubExtension{
-		taskType:  "wait",
+		taskType:  taskTypeWait,
 		claimFunc: func(body any) bool { _, ok := body.(map[string]any); return ok },
 	})
 
 	task := map[string]any{
-		"wait": map[string]any{"until": "2026-12-31T23:59:59Z"},
-		"if":   "${ true }",
+		taskTypeWait: map[string]any{"until": "2026-12-31T23:59:59Z"},
+		"if":         "${ true }",
 	}
 
 	Normalise(task)
 
-	assert.NotContains(t, task, "wait", "claimed task must no longer carry the task type")
-	require.Contains(t, task, ZigflowExtKeyPrefix+"wait", "claimed task must carry the Zigflow key")
-	assert.Equal(t, map[string]any{"until": "2026-12-31T23:59:59Z"}, task[ZigflowExtKeyPrefix+"wait"])
+	assert.NotContains(t, task, taskTypeWait, "claimed task must no longer carry the task type")
+	require.Contains(t, task, ZigflowExtKeyPrefix+taskTypeWait, "claimed task must carry the Zigflow key")
+	assert.Equal(t, map[string]any{"until": "2026-12-31T23:59:59Z"}, task[ZigflowExtKeyPrefix+taskTypeWait])
 	assert.Equal(t, "${ true }", task["if"], "unrelated task fields must be left alone")
 }
 
@@ -97,62 +103,62 @@ func TestNormalise_LeavesTaskAloneWhenExtensionDoesNotClaim(t *testing.T) {
 	withFreshRegistry(t)
 
 	Register(stubExtension{
-		taskType:  "wait",
+		taskType:  taskTypeWait,
 		claimFunc: func(any) bool { return false },
 	})
 
-	body := map[string]any{"seconds": 5}
-	task := map[string]any{"wait": body}
+	body := map[string]any{keySeconds: 5}
+	task := map[string]any{taskTypeWait: body}
 
 	Normalise(task)
 
-	assert.Contains(t, task, "wait", "unclaimed task must keep its original task type")
-	assert.NotContains(t, task, ZigflowExtKeyPrefix+"wait", "unclaimed task must not be renamed")
-	assert.Equal(t, body, task["wait"], "unclaimed body must be preserved unchanged")
+	assert.Contains(t, task, taskTypeWait, "unclaimed task must keep its original task type")
+	assert.NotContains(t, task, ZigflowExtKeyPrefix+taskTypeWait, "unclaimed task must not be renamed")
+	assert.Equal(t, body, task[taskTypeWait], "unclaimed body must be preserved unchanged")
 }
 
 func TestNormalise_NoMatchingExtensionLeavesTaskAlone(t *testing.T) {
 	withFreshRegistry(t)
 
 	Register(stubExtension{
-		taskType:  "wait",
+		taskType:  taskTypeWait,
 		claimFunc: func(any) bool { return true },
 	})
 
-	task := map[string]any{"set": map[string]any{"x": "y"}}
+	task := map[string]any{taskTypeSet: map[string]any{"x": "y"}}
 
 	Normalise(task)
 
-	assert.Equal(t, map[string]any{"set": map[string]any{"x": "y"}}, task)
+	assert.Equal(t, map[string]any{taskTypeSet: map[string]any{"x": "y"}}, task)
 }
 
 func TestNormalise_FirstMatchWins(t *testing.T) {
 	withFreshRegistry(t)
 
 	Register(stubExtension{
-		taskType:  "wait",
+		taskType:  taskTypeWait,
 		claimFunc: func(any) bool { return true },
 	})
 	// The second registration on a different task type is fine; we want to
 	// verify that the iterator only acts on extensions whose TaskType is
 	// actually present in the task body.
 	Register(stubExtension{
-		taskType:  "set",
+		taskType:  taskTypeSet,
 		claimFunc: func(any) bool { return true },
 	})
 
-	task := map[string]any{"wait": map[string]any{"seconds": 5}}
+	task := map[string]any{taskTypeWait: map[string]any{keySeconds: 5}}
 	Normalise(task)
 
-	assert.Contains(t, task, ZigflowExtKeyPrefix+"wait")
-	assert.NotContains(t, task, ZigflowExtKeyPrefix+"set", "extension whose TaskType is absent must not run")
+	assert.Contains(t, task, ZigflowExtKeyPrefix+taskTypeWait)
+	assert.NotContains(t, task, ZigflowExtKeyPrefix+taskTypeSet, "extension whose TaskType is absent must not run")
 }
 
 func TestNormalise_EmptyRegistryIsSafe(t *testing.T) {
 	withFreshRegistry(t)
 
-	task := map[string]any{"wait": map[string]any{"seconds": 5}}
+	task := map[string]any{taskTypeWait: map[string]any{keySeconds: 5}}
 	Normalise(task)
 
-	assert.Equal(t, map[string]any{"wait": map[string]any{"seconds": 5}}, task)
+	assert.Equal(t, map[string]any{taskTypeWait: map[string]any{keySeconds: 5}}, task)
 }

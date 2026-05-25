@@ -36,6 +36,12 @@ const (
 	testKeySet          = "set"
 	testKeyType         = "type"
 	testKeyWait         = "wait"
+	testKeyUntil        = "until"
+	testKeyDays         = "days"
+	testKeyHours        = "hours"
+	testKeyMinutes      = "minutes"
+	testKeySeconds      = "seconds"
+	testKeyMilliseconds = "milliseconds"
 	testKeyWorkflow     = "workflow"
 	testKeyWorkflowType = "workflowType"
 	testKeyTaskQueue    = "taskQueue"
@@ -554,15 +560,15 @@ func TestNormaliseWorkflowDocument_NoDo(t *testing.T) {
 func TestNormaliseTask_WaitWithUntilIsClaimed(t *testing.T) {
 	task := cloneMap(t, map[string]any{
 		testKeyWait: map[string]any{
-			"until": "2026-12-31T23:59:59Z",
+			testKeyUntil: "2026-12-31T23:59:59Z",
 		},
 	})
 
 	require.NoError(t, normaliseTask(task))
 
 	assert.NotContains(t, task, testKeyWait, "wait key must be renamed away when the body uses until")
-	require.Contains(t, task, extensions.ZigflowExtKeyPrefix+"wait")
-	assert.Equal(t, map[string]any{"until": "2026-12-31T23:59:59Z"}, task[extensions.ZigflowExtKeyPrefix+"wait"])
+	require.Contains(t, task, extensions.ZigflowExtKeyPrefix+testKeyWait)
+	assert.Equal(t, map[string]any{testKeyUntil: "2026-12-31T23:59:59Z"}, task[extensions.ZigflowExtKeyPrefix+testKeyWait])
 }
 
 // TestNormaliseTask_WaitWithExpressionDurationIsClaimed verifies a wait body
@@ -572,9 +578,9 @@ func TestNormaliseTask_WaitWithExpressionDurationIsClaimed(t *testing.T) {
 		name string
 		body map[string]any
 	}{
-		{"expression seconds", map[string]any{"seconds": "${ $data.cooldown }"}},
-		{"expression minutes", map[string]any{"minutes": "${ .delay }"}},
-		{"mixed integer and expression", map[string]any{"hours": 1, "seconds": "${ $data.x }"}},
+		{"expression seconds", map[string]any{testKeySeconds: "${ $data.cooldown }"}},
+		{"expression minutes", map[string]any{testKeyMinutes: "${ .delay }"}},
+		{"mixed integer and expression", map[string]any{testKeyHours: 1, testKeySeconds: "${ $data.x }"}},
 	}
 
 	for _, tt := range tests {
@@ -589,8 +595,8 @@ func TestNormaliseTask_WaitWithExpressionDurationIsClaimed(t *testing.T) {
 			require.NoError(t, normaliseTask(task))
 
 			assert.NotContains(t, task, testKeyWait, "wait key must be renamed when a duration field is an expression")
-			require.Contains(t, task, extensions.ZigflowExtKeyPrefix+"wait")
-			assert.Equal(t, expectedBody, task[extensions.ZigflowExtKeyPrefix+"wait"])
+			require.Contains(t, task, extensions.ZigflowExtKeyPrefix+testKeyWait)
+			assert.Equal(t, expectedBody, task[extensions.ZigflowExtKeyPrefix+testKeyWait])
 		})
 	}
 }
@@ -602,13 +608,13 @@ func TestNormaliseTask_VanillaWaitIsLeftAlone(t *testing.T) {
 		name string
 		body map[string]any
 	}{
-		{"integer seconds only", map[string]any{"seconds": 5}},
+		{"integer seconds only", map[string]any{testKeySeconds: 5}},
 		{"all integer fields", map[string]any{
-			"days":         1,
-			"hours":        2,
-			"minutes":      3,
-			"seconds":      4,
-			"milliseconds": 5,
+			testKeyDays:         1,
+			testKeyHours:        2,
+			testKeyMinutes:      3,
+			testKeySeconds:      4,
+			testKeyMilliseconds: 5,
 		}},
 	}
 
@@ -620,7 +626,7 @@ func TestNormaliseTask_VanillaWaitIsLeftAlone(t *testing.T) {
 			require.NoError(t, normaliseTask(task))
 
 			assert.Contains(t, task, testKeyWait, "vanilla wait must keep the spec key")
-			assert.NotContains(t, task, extensions.ZigflowExtKeyPrefix+"wait", "vanilla wait must not be renamed")
+			assert.NotContains(t, task, extensions.ZigflowExtKeyPrefix+testKeyWait, "vanilla wait must not be renamed")
 			assert.Equal(t, expectedBody, task[testKeyWait])
 		})
 	}
@@ -644,7 +650,7 @@ func TestNormaliseWorkflowDocument_WaitExtensionNestedInFor(t *testing.T) {
 						map[string]any{
 							"waitForDeadline": map[string]any{
 								testKeyWait: map[string]any{
-									"until": "${ $data.deadline }",
+									testKeyUntil: "${ $data.deadline }",
 								},
 							},
 						},
@@ -662,6 +668,6 @@ func TestNormaliseWorkflowDocument_WaitExtensionNestedInFor(t *testing.T) {
 	waitTask := inner[0].(map[string]any)["waitForDeadline"].(map[string]any)
 
 	assert.NotContains(t, waitTask, testKeyWait, "nested wait extension must be renamed")
-	require.Contains(t, waitTask, extensions.ZigflowExtKeyPrefix+"wait")
-	assert.Equal(t, map[string]any{"until": "${ $data.deadline }"}, waitTask[extensions.ZigflowExtKeyPrefix+"wait"])
+	require.Contains(t, waitTask, extensions.ZigflowExtKeyPrefix+testKeyWait)
+	assert.Equal(t, map[string]any{testKeyUntil: "${ $data.deadline }"}, waitTask[extensions.ZigflowExtKeyPrefix+testKeyWait])
 }

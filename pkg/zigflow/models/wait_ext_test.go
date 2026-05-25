@@ -40,7 +40,7 @@ func TestWaitExtTask_ImplementsTaskInterface(t *testing.T) {
 // extension task-type key with the SDK so the SDK can construct a
 // *WaitExtTask when it encounters the renamed key.
 func TestWaitExtTask_RegisteredWithSDK(t *testing.T) {
-	key := extensions.ZigflowExtKeyPrefix + "wait"
+	key := extensions.ZigflowExtKeyPrefix + keyWait
 	ctor, ok := model.GetTaskConstructor(key)
 	require.True(t, ok, "%s must be registered with the SDK task registry", key)
 
@@ -116,7 +116,7 @@ func TestWaitExtTask_TaskBaseFieldsArePreserved(t *testing.T) {
 // TestWaitExtension_ClaimsUntilForm verifies the extension claims any
 // wait body that carries an `until` field, regardless of other contents.
 func TestWaitExtension_ClaimsUntilForm(t *testing.T) {
-	body := map[string]any{"until": "2026-12-31T23:59:59Z"}
+	body := map[string]any{keyUntil: "2026-12-31T23:59:59Z"}
 	assert.True(t, waitExtension{}.Claims(body))
 }
 
@@ -127,9 +127,9 @@ func TestWaitExtension_ClaimsExpressionDuration(t *testing.T) {
 		name string
 		body map[string]any
 	}{
-		{"expression seconds", map[string]any{"seconds": "${ $data.x }"}},
-		{"expression minutes", map[string]any{"minutes": "${ .delay }"}},
-		{"mixed literal and expression", map[string]any{"hours": 1, "seconds": "${ $data.x }"}},
+		{"expression seconds", map[string]any{keySeconds: "${ $data.x }"}},
+		{"expression minutes", map[string]any{keyMinutes: "${ .delay }"}},
+		{"mixed literal and expression", map[string]any{keyHours: 1, keySeconds: "${ $data.x }"}},
 	}
 
 	for _, tt := range tests {
@@ -147,9 +147,9 @@ func TestWaitExtension_DoesNotClaimVanillaForms(t *testing.T) {
 		name string
 		body any
 	}{
-		{"integer seconds only", map[string]any{"seconds": 5}},
-		{"integer-valued float seconds", map[string]any{"seconds": float64(5)}},
-		{"all integer fields", map[string]any{"days": 1, "hours": 2, "minutes": 3, "seconds": 4, "milliseconds": 5}},
+		{"integer seconds only", map[string]any{keySeconds: 5}},
+		{"integer-valued float seconds", map[string]any{keySeconds: float64(5)}},
+		{"all integer fields", map[string]any{keyDays: 1, keyHours: 2, keyMinutes: 3, keySeconds: 4, keyMilliseconds: 5}},
 		{"non-map body (ISO 8601 string)", "PT5S"},
 		{"nil body", nil},
 	}
