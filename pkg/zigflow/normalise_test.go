@@ -24,6 +24,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zigflow/zigflow/pkg/zigflow/extensions"
 )
 
 // String constants used across normalise_test.go to satisfy goconst requirements.
@@ -34,6 +35,7 @@ const (
 	testKeyRun          = "run"
 	testKeySet          = "set"
 	testKeyType         = "type"
+	testKeyWait         = "wait"
 	testKeyWorkflow     = "workflow"
 	testKeyWorkflowType = "workflowType"
 	testKeyTaskQueue    = "taskQueue"
@@ -544,3 +546,122 @@ func TestNormaliseWorkflowDocument_NoDo(t *testing.T) {
 // applied by RunTaskBuilder.PostLoad in pkg/zigflow/tasks/task_builder_run.go,
 // not by the normaliser. The normaliser only renames type->name and does not
 // inject defaults. The tests above intentionally do not assert on those fields.
+
+// --- wait extension: normalise renames wait -> __zigflow_ext_wait ---
+
+// TestNormaliseTask_WaitWithUntilIsClaimed verifies a wait body with `until`
+// is renamed so the SDK constructs the Zigflow extension type.
+func TestNormaliseTask_WaitWithUntilIsClaimed(t *testing.T) {
+	task := cloneMap(t, map[string]any{
+		testKeyWait: map[string]any{
+			"until": "2026-12-31T23:59:59Z",
+		},
+	})
+
+	require.NoError(t, normaliseTask(task))
+
+	assert.NotContains(t, task, testKeyWait, "wait key must be renamed away when the body uses until")
+	require.Contains(t, task, extensions.ZigflowExtKeyPrefix+"wait")
+	assert.Equal(t, map[string]any{"until": "2026-12-31T23:59:59Z"}, task[extensions.ZigflowExtKeyPrefix+"wait"])
+}
+
+// TestNormaliseTask_WaitWithExpressionDurationIsClaimed verifies a wait body
+// with a runtime expression in any duration field is claimed.
+func TestNormaliseTask_WaitWithExpressionDurationIsClaimed(t *testing.T) {
+	tests := []struct {
+		name string
+		body map[string]any
+	}{
+		{"expression seconds", map[string]any{"seconds": "${ $data.cooldown }"}},
+		{"expression minutes", map[string]any{"minutes": "${ .delay }"}},
+		{"mixed integer and expression", map[string]any{"hours": 1, "seconds": "${ $data.x }"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// cloneMap round-trips through JSON, so the body stored inside
+			// the task has integer values coerced to float64. The expected
+			// body must go through the same coercion for assert.Equal to
+			// hold.
+			task := cloneMap(t, map[string]any{testKeyWait: tt.body})
+			expectedBody := cloneMap(t, tt.body)
+
+			require.NoError(t, normaliseTask(task))
+
+			assert.NotContains(t, task, testKeyWait, "wait key must be renamed when a duration field is an expression")
+			require.Contains(t, task, extensions.ZigflowExtKeyPrefix+"wait")
+			assert.Equal(t, expectedBody, task[extensions.ZigflowExtKeyPrefix+"wait"])
+		})
+	}
+}
+
+// TestNormaliseTask_VanillaWaitIsLeftAlone verifies a literal-numeric wait
+// stays untouched so the SDK constructs its native *model.WaitTask.
+func TestNormaliseTask_VanillaWaitIsLeftAlone(t *testing.T) {
+	tests := []struct {
+		name string
+		body map[string]any
+	}{
+		{"integer seconds only", map[string]any{"seconds": 5}},
+		{"all integer fields", map[string]any{
+			"days":         1,
+			"hours":        2,
+			"minutes":      3,
+			"seconds":      4,
+			"milliseconds": 5,
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			task := cloneMap(t, map[string]any{testKeyWait: tt.body})
+			expectedBody := cloneMap(t, tt.body)
+
+			require.NoError(t, normaliseTask(task))
+
+			assert.Contains(t, task, testKeyWait, "vanilla wait must keep the spec key")
+			assert.NotContains(t, task, extensions.ZigflowExtKeyPrefix+"wait", "vanilla wait must not be renamed")
+			assert.Equal(t, expectedBody, task[testKeyWait])
+		})
+	}
+}
+
+// TestNormaliseWorkflowDocument_WaitExtensionNestedInFor verifies that the
+// extension rename is applied recursively, e.g. inside a for task's do list.
+func TestNormaliseWorkflowDocument_WaitExtensionNestedInFor(t *testing.T) {
+	doc := cloneMap(t, map[string]any{
+		testKeyDocument: map[string]any{
+			testKeyDSL:          testDSLVersion,
+			testKeyWorkflowType: testWFName,
+			testKeyTaskQueue:    "q",
+			testKeyVersion:      testDSLVersion,
+		},
+		testKeyDo: []any{
+			map[string]any{
+				"loop": map[string]any{
+					"for": map[string]any{"in": "${ [1,2,3] }"},
+					testKeyDo: []any{
+						map[string]any{
+							"waitForDeadline": map[string]any{
+								testKeyWait: map[string]any{
+									"until": "${ $data.deadline }",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	require.NoError(t, normaliseWorkflowDocument(doc))
+
+	tasks := doc[testKeyDo].([]any)
+	loop := tasks[0].(map[string]any)["loop"].(map[string]any)
+	inner := loop[testKeyDo].([]any)
+	waitTask := inner[0].(map[string]any)["waitForDeadline"].(map[string]any)
+
+	assert.NotContains(t, waitTask, testKeyWait, "nested wait extension must be renamed")
+	require.Contains(t, waitTask, extensions.ZigflowExtKeyPrefix+"wait")
+	assert.Equal(t, map[string]any{"until": "${ $data.deadline }"}, waitTask[extensions.ZigflowExtKeyPrefix+"wait"])
+}

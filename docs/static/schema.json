@@ -1707,9 +1707,103 @@
         {
           "properties": {
             "wait": {
-              "$ref": "#/$defs/duration",
               "title": "WaitTaskConfiguration",
-              "description": "The amount of time to wait."
+              "description": "The amount of time to wait or an absolute moment in time to wait until.",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "days": {
+                      "title": "DurationDays",
+                      "description": "Number of days, if any.",
+                      "oneOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "$ref": "#/$defs/runtimeExpression"
+                        }
+                      ]
+                    },
+                    "hours": {
+                      "title": "DurationHours",
+                      "description": "Number of hours, if any.",
+                      "oneOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "$ref": "#/$defs/runtimeExpression"
+                        }
+                      ]
+                    },
+                    "milliseconds": {
+                      "title": "DurationMilliseconds",
+                      "description": "Number of milliseconds, if any.",
+                      "oneOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "$ref": "#/$defs/runtimeExpression"
+                        }
+                      ]
+                    },
+                    "minutes": {
+                      "title": "DurationMinutes",
+                      "description": "Number of minutes, if any.",
+                      "oneOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "$ref": "#/$defs/runtimeExpression"
+                        }
+                      ]
+                    },
+                    "seconds": {
+                      "title": "DurationSeconds",
+                      "description": "Number of seconds, if any.",
+                      "oneOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "$ref": "#/$defs/runtimeExpression"
+                        }
+                      ]
+                    }
+                  },
+                  "title": "WaitDuration",
+                  "description": "Duration to wait. Each numeric field may be a literal integer or a runtime expression that resolves to a number.",
+                  "minProperties": 1,
+                  "unevaluatedProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "until": {
+                      "title": "WaitUntilTimestamp",
+                      "description": "An RFC 3339 literal timestamp, or a runtime expression that resolves to one.",
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$"
+                        },
+                        {
+                          "$ref": "#/$defs/runtimeExpression"
+                        }
+                      ]
+                    }
+                  },
+                  "title": "WaitUntil",
+                  "description": "An absolute moment in time to wait until.",
+                  "required": [
+                    "until"
+                  ],
+                  "unevaluatedProperties": false
+                }
+              ]
             }
           }
         }

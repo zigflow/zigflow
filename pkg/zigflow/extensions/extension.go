@@ -25,7 +25,11 @@
 // extension claims are passed through to the SDK untouched.
 package extensions
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/serverlessworkflow/sdk-go/v3/model"
+)
 
 // ZigflowExtKeyPrefix is the fixed prefix applied to a Serverless Workflow
 // task type to produce the Zigflow-internal task-type key for an
@@ -57,6 +61,10 @@ var registry []Extension
 // intended to happen exactly once per extension, from a package init()
 // block. Registering a duplicate TaskType panics at init time, mirroring
 // the Serverless Workflow SDK's own behaviour for task-type collisions.
+//
+// Register only touches Zigflow's own registry. Real extensions usually
+// want their Go type constructed by the SDK as well; use RegisterExtension
+// to do both registrations in one call.
 func Register(e Extension) {
 	taskType := e.TaskType()
 
@@ -71,6 +79,21 @@ func Register(e Extension) {
 	}
 
 	registry = append(registry, e)
+}
+
+// RegisterExtension is the convenience wrapper for the common pattern of
+// registering both halves of a Zigflow extension from a package init():
+// the SDK side (so the SDK constructs the right Go type when it sees the
+// Zigflow internal key) and Zigflow's own normalise-side registry. Use
+// this from extension init() blocks; use the bare Register in tests that
+// drive the normalise step with stub extensions without polluting the
+// SDK's global task registry.
+func RegisterExtension(e Extension, newTask func() model.Task) {
+	sdkKey := ZigflowExtKeyPrefix + e.TaskType()
+	if err := model.RegisterTask(sdkKey, newTask); err != nil {
+		panic(fmt.Sprintf("extensions: failed to register %q with the SDK: %v", sdkKey, err))
+	}
+	Register(e)
 }
 
 // Normalise runs the registered extensions against the given task body in

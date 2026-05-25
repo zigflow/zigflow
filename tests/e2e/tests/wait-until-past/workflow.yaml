@@ -1,0 +1,15 @@
+document:
+  dsl: 1.0.0
+  taskQueue: wait-until-past
+  workflowType: workflow
+  version: 0.0.1
+do:
+  - pause:
+      wait:
+        until: 2020-01-01T00:00:00Z
+  - markDone:
+      output:
+        as:
+          data: ${ . }
+      set:
+        status: done

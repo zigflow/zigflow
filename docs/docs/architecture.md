@@ -99,6 +99,36 @@ Correctness and determinism take priority over strict spec compatibility.
 
 ---
 
+## DSL extension mechanism
+
+Zigflow's contract is asymmetric: any workflow valid under the
+Serverless Workflow specification runs in Zigflow unchanged, and
+Zigflow can do more than the spec where Temporal's execution model
+or Zigflow's own use cases require it.
+
+Extending the DSL touches four places:
+
+- JSON schema for the new YAML form
+- Zigflow Go type for the parsed extension
+- Extension struct registered via `extensions.RegisterExtension` that
+  decides which bodies to claim
+- Task builder that executes the new semantics
+
+During load, the extension's claim runs before the SDK parses the
+body. A claimed body has its key renamed from the spec form to a
+Zigflow-internal form (prefixed `__zigflow_ext_`), and the SDK
+constructs the registered Zigflow type for it. Unclaimed bodies pass
+through unchanged with identical Temporal history.
+
+Use an extension when the spec's contract has to change to express a
+real Zigflow requirement. Don't use it when `metadata` (the spec's own
+extension point) is enough for additive sidecar configuration.
+Extensions are a last resort because they widen Zigflow's surface
+beyond the spec, and any change should be discussed in advance via an
+issue.
+
+---
+
 ## Opinionated constraints
 
 Zigflow is intentionally opinionated.
@@ -117,12 +147,12 @@ used directly.
 
 ---
 
-## Extension points
+## Contribution areas
 
 Contributions are welcome when they align with the architectural goals outlined
 above.
 
-Areas where extension is typically appropriate:
+Areas where contributions are typically appropriate:
 
 - Additional DSL constructs that map cleanly to Temporal semantics
 - Improved validation rules and error messages

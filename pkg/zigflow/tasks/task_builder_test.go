@@ -22,6 +22,7 @@ import (
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/zigflow/zigflow/pkg/utils"
+	"github.com/zigflow/zigflow/pkg/zigflow/models"
 	"go.temporal.io/sdk/temporal"
 )
 
@@ -167,6 +168,11 @@ func TestNewTaskBuilderFactory(t *testing.T) {
 			name:         "wait task",
 			task:         &model.WaitTask{},
 			expectedType: &WaitTaskBuilder{},
+		},
+		{
+			name:         "wait extension task",
+			task:         &models.WaitExtTask{Wait: &models.WaitExtBody{Until: "2026-12-31T23:59:59Z"}},
+			expectedType: &WaitExtTaskBuilder{},
 		},
 		{
 			name:      "unsupported task type",

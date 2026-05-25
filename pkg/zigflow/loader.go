@@ -26,6 +26,11 @@ import (
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/schema"
 	"github.com/zigflow/zigflow/pkg/zigflow/extensions"
+
+	// Imported for its init() side effect: the models package registers
+	// Zigflow extension task types (e.g. __zigflow_ext_wait) with both the
+	// SDK task registry and the extensions registry consumed below.
+	_ "github.com/zigflow/zigflow/pkg/zigflow/models"
 	"sigs.k8s.io/yaml"
 )
 

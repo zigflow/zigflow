@@ -14,17 +14,27 @@
  * limitations under the License.
  */
 
-package tests
+// Package waituntilpast exercises the wait.until extension with a literal
+// RFC 3339 timestamp in the past. The workflow must complete immediately
+// without spending any meaningful time in the durable timer, demonstrating
+// the no-op semantics of past until values.
+package waituntilpast
 
 import (
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/callHTTP"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/complete"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/fork"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/fork-compete"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/multi-file-diff-queues"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/multi-file-same-queue"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/set"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/wait-expression-duration"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/wait-until"
-	_ "github.com/zigflow/zigflow/tests/e2e/tests/wait-until-past"
+	"github.com/zigflow/zigflow/tests/e2e/utils"
 )
+
+var testCase = utils.TestCase{
+	Name:         "wait-until-past",
+	WorkflowPath: "workflow.yaml",
+	ExpectedOutput: map[string]any{
+		"data": map[string]any{
+			"status": "done",
+		},
+	},
+	Test: utils.RunToCompletion[map[string]any],
+}
+
+func init() {
+	utils.AddTestCase(&testCase)
+}

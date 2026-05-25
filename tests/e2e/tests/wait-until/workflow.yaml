@@ -1,0 +1,25 @@
+document:
+  dsl: 1.0.0
+  taskQueue: wait-until
+  workflowType: workflow
+  version: 0.0.1
+input:
+  schema:
+    format: json
+    document:
+      type: object
+      required:
+        - deadline
+      properties:
+        deadline:
+          type: string
+do:
+  - pause:
+      wait:
+        until: ${ $input.deadline }
+  - markDone:
+      output:
+        as:
+          data: ${ . }
+      set:
+        status: done

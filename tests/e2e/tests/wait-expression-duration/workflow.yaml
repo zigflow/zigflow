@@ -1,0 +1,25 @@
+document:
+  dsl: 1.0.0
+  taskQueue: wait-expression-duration
+  workflowType: workflow
+  version: 0.0.1
+input:
+  schema:
+    format: json
+    document:
+      type: object
+      required:
+        - cooldownSeconds
+      properties:
+        cooldownSeconds:
+          type: number
+do:
+  - cooldown:
+      wait:
+        seconds: ${ $input.cooldownSeconds }
+  - markDone:
+      output:
+        as:
+          data: ${ . }
+      set:
+        status: done

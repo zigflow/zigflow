@@ -187,6 +187,40 @@ func TestDurationDefinitionShape(t *testing.T) {
 	}
 }
 
+// TestWaitTaskDefinitionShape verifies that waitTaskDefinition's wait property
+// is a OneOf of the duration-with-expressions form and the until form, and
+// that the shared duration definition is not used (so other consumers of
+// durationDefinition are not affected by the wait task extensions).
+func TestWaitTaskDefinitionShape(t *testing.T) {
+	require.Len(t, waitTaskDefinition.AllOf, 2)
+
+	waitProp, ok := waitTaskDefinition.AllOf[1].Properties["wait"]
+	require.True(t, ok, "wait property must be present")
+	require.Empty(t, waitProp.Ref, "wait property must not reference the shared duration definition")
+	require.Len(t, waitProp.OneOf, 2, "wait property must be a OneOf with exactly two branches")
+
+	// First branch: duration-with-expressions object form.
+	duration := waitProp.OneOf[0]
+	assert.Equal(t, typeObject, duration.Type, "first branch must be the duration object form")
+	for _, prop := range []string{"days", "hours", propMinutes, propSeconds, "milliseconds"} {
+		field, ok := duration.Properties[prop]
+		require.True(t, ok, "duration form must have property %q", prop)
+		require.Len(t, field.OneOf, 2, "duration field %q must be a OneOf with two branches", prop)
+		assert.Equal(t, typeInteger, field.OneOf[0].Type, "duration field %q first branch must be integer", prop)
+		assert.Equal(t, SchemaRef("runtimeExpression"), field.OneOf[1].Ref, "duration field %q second branch must be runtimeExpression", prop)
+	}
+
+	// Second branch: until-only object form.
+	until := waitProp.OneOf[1]
+	assert.Equal(t, typeObject, until.Type, "second branch must be the until object form")
+	assert.Contains(t, until.Required, "until", "until branch must require 'until'")
+	untilField, ok := until.Properties["until"]
+	require.True(t, ok, "until branch must have an 'until' property")
+	require.Len(t, untilField.OneOf, 2, "until property must be a OneOf with two branches")
+	assert.Equal(t, rfc3339Pattern, untilField.OneOf[0].Pattern, "until first branch must enforce RFC 3339 via pattern")
+	assert.Equal(t, SchemaRef("runtimeExpression"), untilField.OneOf[1].Ref, "until second branch must be runtimeExpression")
+}
+
 // TestTryTaskDefinitionCatch verifies that tryTask requires both "try" and
 // "catch", and that catch requires "do" referencing taskList.
 func TestTryTaskDefinitionCatch(t *testing.T) {

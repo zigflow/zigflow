@@ -26,6 +26,7 @@ import (
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
+	"github.com/zigflow/zigflow/pkg/zigflow/models"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
@@ -175,6 +176,8 @@ func NewTaskBuilder(
 		return NewTryTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.WaitTask:
 		return NewWaitTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+	case *models.WaitExtTask:
+		return NewWaitExtTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	default:
 		return nil, fmt.Errorf("unsupported task type '%T' for task '%s'", t, taskName)
 	}
@@ -195,4 +198,5 @@ var (
 	_ TaskBuilder = &SwitchTaskBuilder{}
 	_ TaskBuilder = &TryTaskBuilder{}
 	_ TaskBuilder = &WaitTaskBuilder{}
+	_ TaskBuilder = &WaitExtTaskBuilder{}
 )

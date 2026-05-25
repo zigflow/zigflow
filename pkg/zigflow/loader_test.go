@@ -21,9 +21,23 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/zigflow"
+	"github.com/zigflow/zigflow/pkg/zigflow/models"
 )
+
+// writeWorkflow is a small helper that writes the given workflow YAML to a
+// temp file and returns its path. The temp directory is cleaned up via
+// t.TempDir, so callers do not need to manage cleanup explicitly.
+func writeWorkflow(t *testing.T, content string) string {
+	t.Helper()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "zigflow.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(content), 0o600))
+	return path
+}
 
 func TestLoadWorkflowFile(t *testing.T) {
 	tests := []struct {
@@ -240,4 +254,82 @@ do:
 			assert.ErrorIs(t, err, zigflow.ErrSchemaValidation)
 		})
 	}
+}
+
+// TestLoadFromFile_VanillaWaitTaskTypeIsSDK verifies that a literal-numeric
+// wait task is parsed by the SDK as its native *model.WaitTask. The Zigflow
+// extension must not intercept vanilla waits, so the existing builder path
+// stays unchanged.
+func TestLoadFromFile_VanillaWaitTaskTypeIsSDK(t *testing.T) {
+	const content = `document:
+  dsl: 1.0.0
+  taskQueue: default
+  workflowType: vanilla-wait
+  version: 0.0.1
+do:
+  - pause:
+      wait:
+        seconds: 5`
+
+	workflow, err := zigflow.LoadFromFile(writeWorkflow(t, content))
+	require.NoError(t, err)
+	require.NotNil(t, workflow.Do)
+	tasks := *workflow.Do
+	require.Len(t, tasks, 1)
+
+	_, isSDKWait := tasks[0].Task.(*model.WaitTask)
+	assert.True(t, isSDKWait, "vanilla wait must be parsed as the SDK's *model.WaitTask")
+}
+
+// TestLoadFromFile_WaitUntilTaskTypeIsZigflowExt verifies that a wait task
+// using the absolute-time until form is renamed during normalisation and
+// constructed by the SDK as a *models.WaitExtTask, ready for the dynamic
+// builder.
+func TestLoadFromFile_WaitUntilTaskTypeIsZigflowExt(t *testing.T) {
+	const content = `document:
+  dsl: 1.0.0
+  taskQueue: default
+  workflowType: wait-until
+  version: 0.0.1
+do:
+  - pause:
+      wait:
+        until: 2026-12-31T23:59:59Z`
+
+	workflow, err := zigflow.LoadFromFile(writeWorkflow(t, content))
+	require.NoError(t, err)
+	require.NotNil(t, workflow.Do)
+	tasks := *workflow.Do
+	require.Len(t, tasks, 1)
+
+	task, isExt := tasks[0].Task.(*models.WaitExtTask)
+	require.True(t, isExt, "wait with until must be parsed as *models.WaitExtTask")
+	require.NotNil(t, task.Wait)
+	assert.Equal(t, "2026-12-31T23:59:59Z", task.Wait.Until)
+}
+
+// TestLoadFromFile_WaitExpressionDurationTypeIsZigflowExt verifies that a
+// wait task with a runtime expression in a duration field is renamed and
+// parsed as a *models.WaitExtTask.
+func TestLoadFromFile_WaitExpressionDurationTypeIsZigflowExt(t *testing.T) {
+	const content = `document:
+  dsl: 1.0.0
+  taskQueue: default
+  workflowType: wait-expression
+  version: 0.0.1
+do:
+  - pause:
+      wait:
+        seconds: ${ $data.cooldownSeconds }`
+
+	workflow, err := zigflow.LoadFromFile(writeWorkflow(t, content))
+	require.NoError(t, err)
+	require.NotNil(t, workflow.Do)
+	tasks := *workflow.Do
+	require.Len(t, tasks, 1)
+
+	task, isExt := tasks[0].Task.(*models.WaitExtTask)
+	require.True(t, isExt, "wait with expression duration must be parsed as *models.WaitExtTask")
+	require.NotNil(t, task.Wait)
+	assert.Equal(t, "${ $data.cooldownSeconds }", task.Wait.Seconds)
 }

@@ -1506,10 +1506,60 @@ var waitTaskDefinition = &jsonschema.Schema{
 		{
 			Properties: map[string]*jsonschema.Schema{
 				"wait": {
-					Ref:         SchemaRef("duration"),
 					Title:       "WaitTaskConfiguration",
-					Description: "The amount of time to wait.",
+					Description: "The amount of time to wait or an absolute moment in time to wait until.",
+					OneOf: []*jsonschema.Schema{
+						waitDurationWithExpressionsDefinition,
+						waitUntilDefinition,
+					},
 				},
+			},
+		},
+	},
+}
+
+var waitDurationWithExpressionsDefinition = &jsonschema.Schema{
+	Type:                  typeObject,
+	Title:                 "WaitDuration",
+	Description:           "Duration to wait. Each numeric field may be a literal integer or a runtime expression that resolves to a number.",
+	MinProperties:         utils.Ptr(1),
+	UnevaluatedProperties: falseSchema(),
+	Properties: map[string]*jsonschema.Schema{
+		"days":         waitDurationNumericField("DurationDays", "Number of days, if any."),
+		"hours":        waitDurationNumericField("DurationHours", "Number of hours, if any."),
+		propMinutes:    waitDurationNumericField("DurationMinutes", "Number of minutes, if any."),
+		propSeconds:    waitDurationNumericField("DurationSeconds", "Number of seconds, if any."),
+		"milliseconds": waitDurationNumericField("DurationMilliseconds", "Number of milliseconds, if any."),
+	},
+}
+
+func waitDurationNumericField(title, description string) *jsonschema.Schema {
+	return &jsonschema.Schema{
+		Title:       title,
+		Description: description,
+		OneOf: []*jsonschema.Schema{
+			{Type: typeInteger},
+			{Ref: SchemaRef("runtimeExpression")},
+		},
+	}
+}
+
+var waitUntilDefinition = &jsonschema.Schema{
+	Type:                  typeObject,
+	Title:                 "WaitUntil",
+	Description:           "An absolute moment in time to wait until.",
+	Required:              []string{"until"},
+	UnevaluatedProperties: falseSchema(),
+	Properties: map[string]*jsonschema.Schema{
+		"until": {
+			Title:       "WaitUntilTimestamp",
+			Description: "An RFC 3339 literal timestamp, or a runtime expression that resolves to one.",
+			OneOf: []*jsonschema.Schema{
+				{
+					Type:    typeString,
+					Pattern: rfc3339Pattern,
+				},
+				{Ref: SchemaRef("runtimeExpression")},
 			},
 		},
 	},

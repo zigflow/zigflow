@@ -41,6 +41,11 @@ const (
 	// runtimeExpressionString ensures a valid runtime expression
 	runtimeExpressionString = `^\s*\$\{.+\}\s*$`
 
+	// rfc3339Pattern ensures a string is a literal RFC 3339 date-time.
+	// JSON Schema's `format: date-time` is informational only and not
+	// enforced by the validator, so we use a regex pattern to enforce it.
+	rfc3339Pattern = `^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$`
+
 	// semVerPattern is the official regex from https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
 	semVerPattern = `^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)` +
 		`(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?` +
