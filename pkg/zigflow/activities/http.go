@@ -24,7 +24,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -113,13 +115,19 @@ func (c *CallHTTP) CallHTTPActivity(ctx context.Context, task *model.CallHTTP, i
 	switch c.classifyHTTPStatus(resp.StatusCode) {
 	case httpRetryable:
 		logger.Debug("CallHTTP returned retryable error", "statusCode", resp.StatusCode, "responseBody", content)
-		return nil, temporal.NewApplicationError(
+		return nil, temporal.NewApplicationErrorWithOptions(
 			"CallHTTP returned retryable error",
 			"CallHTTP retryable error",
-			errors.New(resp.Status),
-			map[string]any{
-				"statusCode": resp.StatusCode,
-				"content":    content,
+			temporal.ApplicationErrorOptions{
+				NonRetryable:   false,
+				Cause:          errors.New(resp.Status),
+				NextRetryDelay: c.parseRetryAfter(resp.Header.Get("Retry-After")),
+				Details: []any{
+					map[string]any{
+						"statusCode": resp.StatusCode,
+						"content":    content,
+					},
+				},
 			},
 		)
 	case httpNonRetryable:
@@ -269,6 +277,34 @@ func ParseHTTPArguments(task *model.CallHTTP, state *utils.State) (*model.HTTPAr
 	}
 
 	return &result, nil
+}
+
+// Calculate the delay in seconds. If 0 returned, use the default Temporal RetryPolicy
+func (c *CallHTTP) parseRetryAfter(value string) time.Duration {
+	// Check a value set
+	value = strings.TrimSpace(value)
+	if value != "" {
+		const maxRetryAfterSeconds = math.MaxInt64 / int64(time.Second)
+
+		seconds, err := strconv.ParseInt(value, 10, 64)
+		if err == nil {
+			if seconds <= 0 || seconds > maxRetryAfterSeconds {
+				return 0
+			}
+
+			return time.Duration(seconds) * time.Second
+		}
+
+		if retryAt, err := http.ParseTime(value); err == nil {
+			delay := time.Until(retryAt)
+
+			if delay > 0 {
+				return delay
+			}
+		}
+	}
+
+	return 0
 }
 
 func ParseOutput(outputType string, httpResp HTTPResponse, raw []byte) any {
