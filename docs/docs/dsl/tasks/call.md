@@ -147,6 +147,13 @@ responses are typically not returned to the workflow.
 Retryable errors use the task's Temporal retry policy. Non-retryable errors fail
 immediately unless handled in a `try` task.
 
+When a retryable HTTP response includes a valid `Retry-After` header, Zigflow
+delays the next retry until the requested time instead of using the normal retry
+backoff.
+
+`Retry-After` delays are not capped by Zigflow. Use Temporal timeout settings,
+such as `ScheduleToCloseTimeout`, to enforce a maximum execution time.
+
 **Activity names are case-sensitive.** The `name` field in an activity call
 must exactly match the name the activity was registered with on the remote
 worker.
