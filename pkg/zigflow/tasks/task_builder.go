@@ -42,6 +42,7 @@ type TaskBuilder interface {
 	GetTaskName() string
 	NeverSkipCAN() bool
 	ParseMetadata(workflow.Context, *utils.State) error
+	Validate() error
 	PostLoad() error
 	ShouldRun(*utils.State) (bool, error)
 }
@@ -125,6 +126,11 @@ func (d builder[T]) ParseMetadata(ctx workflow.Context, state *utils.State) erro
 		}
 	}
 
+	return nil
+}
+
+func (d *builder[T]) Validate() error {
+	log.Trace().Str("task", d.GetTaskName()).Msg("Task has no validate hook")
 	return nil
 }
 

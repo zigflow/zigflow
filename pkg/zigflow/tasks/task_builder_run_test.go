@@ -31,6 +31,49 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
+// TestRunTaskBuilderValidateNeedsPostLoadAwaitDefault confirms the
+// PostLoad → Validate ordering. Run.Await is a *bool; Validate's script
+// branch contains `if !*t.task.Run.Await {...}`, so the pointer must be
+// non-nil at that point. PostLoad's job is to default a nil Await to
+// true. If the order were inverted, Validate would nil-panic here.
+//
+// The "without PostLoad" subtest is a tripwire: it verifies that
+// Validate currently DOES nil-panic on nil Await. If that ever stops
+// being true (e.g. Validate becomes nil-tolerant), the positive
+// subtest is no longer testing whether the order is correct, and both
+// halves must be re-examined together.
+func TestRunTaskBuilderValidateNeedsPostLoadAwaitDefault(t *testing.T) {
+	makeTask := func() *model.RunTask {
+		return &model.RunTask{
+			Run: model.RunTaskConfiguration{
+				Await: nil, // explicit: PostLoad must populate this before Validate
+				Script: &model.Script{
+					Language:   constScriptLanguagePython,
+					InlineCode: utils.Ptr("print(1)"),
+				},
+			},
+		}
+	}
+
+	t.Run("PostLoad then Validate succeeds", func(t *testing.T) {
+		task := makeTask()
+		builder, err := NewRunTaskBuilder(nil, task, "ordering", nil, testEvents, nil)
+		require.NoError(t, err)
+		require.NoError(t, builder.PostLoad())
+		require.NotNil(t, task.Run.Await, "PostLoad must set Await before Validate runs")
+		assert.NoError(t, builder.Validate(), "Validate must not panic on Await deref once PostLoad has run")
+	})
+
+	t.Run("Validate without PostLoad nil-panics (tripwire)", func(t *testing.T) {
+		task := makeTask()
+		builder, err := NewRunTaskBuilder(nil, task, "ordering", nil, testEvents, nil)
+		require.NoError(t, err)
+		assert.Panics(t, func() {
+			_ = builder.Validate()
+		}, "Validate must currently nil-panic on nil Await; if this stops being true the test is no longer testing if the order is correct")
+	})
+}
+
 func TestRunTaskBuilderPostLoadSetsAwaitDefault(t *testing.T) {
 	task := &model.RunTask{
 		Run: model.RunTaskConfiguration{
@@ -316,11 +359,11 @@ func TestRunTaskBuilderRunScriptValidation(t *testing.T) {
 			builder, err := NewRunTaskBuilder(nil, tc.task, "script-task", nil, testEvents, nil)
 			assert.NoError(t, err)
 
-			// PostLoad must precede Build in the production lifecycle; replicate that here
-			// so Build() can safely dereference Await without a nil-pointer panic.
+			// PostLoad must precede Validate in the production lifecycle so Validate
+			// can dereference Await safely.
 			assert.NoError(t, builder.PostLoad())
 
-			_, err = builder.Build()
+			err = builder.Validate()
 			assert.EqualError(t, err, tc.assertErr)
 		})
 	}

@@ -62,6 +62,13 @@ type CallActivityTaskBuilder struct {
 	activity *models.ActivityCallWith
 }
 
+func (t *CallActivityTaskBuilder) Validate() error {
+	// Both in Validate and Build, we need to convert the untyped `with`
+	// field into our typed struct. We do it in Validate so that we can
+	// catch any errors in the shape of the `with` data early.
+	return t.convertToType()
+}
+
 func (t *CallActivityTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	log.Debug().Str("task", t.GetTaskName()).Msg("Converting call activity data")
 	if err := t.convertToType(); err != nil {

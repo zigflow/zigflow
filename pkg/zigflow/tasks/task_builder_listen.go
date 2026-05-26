@@ -63,6 +63,24 @@ type ListenTaskBuilder struct {
 	builder[*model.ListenTask]
 }
 
+func (t *ListenTaskBuilder) Validate() error {
+	if _, _, err := t.listEvents(); err != nil {
+		return err
+	}
+	timeoutInterface, ok := t.task.Metadata["timeout"]
+	if !ok {
+		return nil
+	}
+	timeoutStr, ok := timeoutInterface.(string)
+	if !ok {
+		return fmt.Errorf("timeout must be a string")
+	}
+	if _, err := time.ParseDuration(timeoutStr); err != nil {
+		return fmt.Errorf("error parsing timeout to duration: %w", err)
+	}
+	return nil
+}
+
 func (t *ListenTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	events, isAll, err := t.listEvents()
 	if err != nil {

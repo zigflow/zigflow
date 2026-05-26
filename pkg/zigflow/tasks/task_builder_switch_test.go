@@ -47,8 +47,7 @@ func TestSwitchTaskBuilderBuildRejectsMultipleDefaults(t *testing.T) {
 	builder, err := NewSwitchTaskBuilder(nil, task, "switch-task", nil, testEvents, nil)
 	assert.NoError(t, err)
 
-	fn, err := builder.Build()
-	assert.Nil(t, fn)
+	err = builder.Validate()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "multiple switch statements without when")
 }

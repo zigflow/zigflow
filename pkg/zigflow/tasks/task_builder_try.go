@@ -93,6 +93,19 @@ func (t *TryTaskBuilder) PostLoad() error {
 	return nil
 }
 
+func (t *TryTaskBuilder) Validate() error {
+	for taskType, list := range t.getTasks() {
+		_, builder, err := t.createBuilder(taskType, list)
+		if err != nil {
+			return fmt.Errorf("error registering %s validate tasks for %s: %w", taskType, t.GetTaskName(), err)
+		}
+		if err := builder.Validate(); err != nil {
+			return fmt.Errorf("error validating %s tasks for %s: %w", taskType, t.GetTaskName(), err)
+		}
+	}
+	return nil
+}
+
 func (t *TryTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 	return func(ctx workflow.Context, input any, state *utils.State) (output any, err error) {
 		logger := workflow.GetLogger(ctx)

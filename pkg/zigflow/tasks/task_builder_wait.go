@@ -71,3 +71,10 @@ func (t *WaitTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		return nil, nil
 	}, nil
 }
+
+func (t *WaitTaskBuilder) Validate() error {
+	if t.task.Wait == nil {
+		return fmt.Errorf("wait task must have a wait duration")
+	}
+	return nil
+}

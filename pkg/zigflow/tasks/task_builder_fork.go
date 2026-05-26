@@ -93,6 +93,21 @@ func (t *ForkTaskBuilder) PostLoad() error {
 	return nil
 }
 
+func (t *ForkTaskBuilder) Validate() error {
+	_, builders, err := t.buildOrPostLoad()
+	if err != nil {
+		return err
+	}
+
+	for _, builder := range builders {
+		if err := builder.Validate(); err != nil {
+			return fmt.Errorf("error validating forked workflow: %w", err)
+		}
+	}
+
+	return nil
+}
+
 func (t *ForkTaskBuilder) awaitCondition(
 	replyErr error, endSeen bool, isCompeting bool, winningCtx workflow.Context, hasReplied []bool,
 ) func() bool {

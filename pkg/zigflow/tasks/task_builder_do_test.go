@@ -648,6 +648,10 @@ func (f *fakeTaskBuilder) PostLoad() error {
 	return nil
 }
 
+func (f *fakeTaskBuilder) Validate() error {
+	return nil
+}
+
 func (f *fakeTaskBuilder) ShouldRun(*utils.State) (bool, error) {
 	if f.shouldRunErr != nil {
 		return false, f.shouldRunErr

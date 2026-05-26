@@ -160,6 +160,19 @@ func (t *DoTaskBuilder) PostLoad() error {
 	return nil
 }
 
+func (t *DoTaskBuilder) Validate() error {
+	for _, task := range *t.task.Do {
+		builder, err := NewTaskBuilder(task.Key, task.Task, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts)
+		if err != nil {
+			return fmt.Errorf("error creating task validate builder: %w", err)
+		}
+		if err := builder.Validate(); err != nil {
+			return fmt.Errorf("error validating task %q: %w", task.Key, err)
+		}
+	}
+	return nil
+}
+
 // validateInput validates the input if it exists
 func (t *DoTaskBuilder) validateInput(ctx workflow.Context, inputDef *model.Input, state *utils.State) error {
 	logger := workflow.GetLogger(ctx)
