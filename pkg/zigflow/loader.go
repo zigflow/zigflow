@@ -66,7 +66,7 @@ func LoadFromBytes(data []byte) (*model.Workflow, error) {
 		return nil, fmt.Errorf("error unmarshaling json to workflow: %w", err)
 	}
 
-	if err := newWorkflowPostLoad(wf); err != nil {
+	if err := newWorkflowPrepare(wf); err != nil {
 		return nil, fmt.Errorf("error preparing workflow: %w", err)
 	}
 

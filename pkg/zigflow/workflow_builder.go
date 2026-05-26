@@ -80,6 +80,12 @@ func NewWorkflow(
 		return fmt.Errorf("error post-loading workflow: %w", err)
 	}
 
+	l.Debug().Msg("Validating workflow")
+	if err := doBuilder.Validate(); err != nil {
+		l.Error().Err(err).Msg("Error validating workflow")
+		return fmt.Errorf("error validating workflow: %w", err)
+	}
+
 	l.Debug().Msg("Building workflow")
 	if _, err := doBuilder.Build(); err != nil {
 		l.Debug().Err(err).Msg("Error building workflow")
@@ -89,7 +95,9 @@ func NewWorkflow(
 	return nil
 }
 
-func newWorkflowPostLoad(doc *model.Workflow) error {
+// newWorkflowPrepare runs the load-time PostLoad and Validate steps on
+// a parsed workflow with a single DoTaskBuilder.
+func newWorkflowPrepare(doc *model.Workflow) error {
 	workflowType := doc.Document.Name
 	l := log.With().Str("workflowType", workflowType).Logger()
 
@@ -98,17 +106,22 @@ func newWorkflowPostLoad(doc *model.Workflow) error {
 		&model.DoTask{Do: doc.Do},
 		workflowType,
 		doc,
-		&cloudevents.Events{}, // Stubbed as not used by the post loader
-		&tasks.TaskOpts{},     // Stubbed as not used by the post loader
+		&cloudevents.Events{}, // stubbed: not used for prepare, only when the task needs to run
+		&tasks.TaskOpts{},     // stubbed: not used for prepare, only when the task needs to run
 	)
 	if err != nil {
-		l.Error().Err(err).Msg("Error creating Do prep builder")
+		l.Error().Err(err).Msg("Error creating prep builder")
 		return fmt.Errorf("error creating do prep builder: %w", err)
 	}
 
 	if err := doBuilder.PostLoad(); err != nil {
 		l.Error().Err(err).Msg("Error post loading workflow")
 		return fmt.Errorf("error post loading workflow: %w", err)
+	}
+
+	if err := doBuilder.Validate(); err != nil {
+		l.Error().Err(err).Msg("Error validating workflow")
+		return fmt.Errorf("error validating workflow: %w", err)
 	}
 
 	return nil

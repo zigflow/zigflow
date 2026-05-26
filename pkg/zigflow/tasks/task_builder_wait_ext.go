@@ -62,16 +62,6 @@ type WaitExtTaskBuilder struct {
 }
 
 func (t *WaitExtTaskBuilder) Build() (TemporalWorkflowFunc, error) {
-	if t.task.Wait == nil {
-		return nil, fmt.Errorf("wait extension task %q has no body", t.GetTaskName())
-	}
-
-	// Reject non-deterministic jq functions at registration time so a worker
-	// refuses to come up with a wait that would fail Temporal replay.
-	if err := rejectNonDeterministicExpressions(t.task.Wait); err != nil {
-		return nil, fmt.Errorf("wait extension task %q: %w", t.GetTaskName(), err)
-	}
-
 	return func(ctx workflow.Context, _ any, state *utils.State) (any, error) {
 		logger := workflow.GetLogger(ctx)
 
@@ -124,6 +114,23 @@ func (t *WaitExtTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		}
 		return nil, nil
 	}, nil
+}
+
+func (t *WaitExtTaskBuilder) Validate() error {
+	if t.task.Wait == nil {
+		return fmt.Errorf("wait extension task %q has no body", t.GetTaskName())
+	}
+	if err := rejectNonDeterministicExpressions(t.task.Wait); err != nil {
+		return fmt.Errorf("wait extension task %q: %w", t.GetTaskName(), err)
+	}
+	until := t.task.Wait.Until
+	if until == "" || model.IsStrictExpr(until) {
+		return nil
+	}
+	if _, err := time.Parse(time.RFC3339, until); err != nil {
+		return fmt.Errorf("wait.until %q is not a valid RFC 3339 timestamp: %w", until, err)
+	}
+	return nil
 }
 
 // sleepUntil parses the resolved until value as RFC 3339, computes the delta

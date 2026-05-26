@@ -164,8 +164,8 @@ func TestWaitExtBuilder_RejectsNonDeterministicExpressions(t *testing.T) {
 			builder, err := NewWaitExtTaskBuilder(nil, &models.WaitExtTask{Wait: tc.body}, "wait-ext", nil, testEvents, nil)
 			require.NoError(t, err)
 
-			_, err = builder.Build()
-			require.Error(t, err, "Build must reject non-deterministic wait expression")
+			err = builder.Validate()
+			require.Error(t, err, "Validate must reject non-deterministic wait expression")
 			assert.Contains(t, err.Error(), tc.wantField, "error must name the offending field")
 			assert.Contains(t, err.Error(), tc.wantFn, "error must name the offending function")
 		})
@@ -178,6 +178,68 @@ func TestWaitExtBuilder_AllowsDeterministicExpressions(t *testing.T) {
 	}}, "wait-ext", nil, testEvents, nil)
 	require.NoError(t, err)
 
-	_, err = builder.Build()
-	assert.NoError(t, err, "deterministic wait expressions must be allowed at Build time")
+	assert.NoError(t, builder.Validate(), "deterministic wait expressions must pass Validate")
+}
+
+// TestWaitExtBuilder_ValidateRejectsBadRFC3339 covers literal `until`
+// values that the JSON-schema regex accepts (case-insensitive separator
+// and zone, no range checks on components) but that time.Parse(RFC3339)
+// rejects. Validate is the single source of truth for "is this a real
+// RFC 3339 timestamp" and must catch them at validate time.
+func TestWaitExtBuilder_ValidateRejectsBadRFC3339(t *testing.T) {
+	tests := []struct {
+		name  string
+		until string
+	}{
+		{"lowercase t separator", "2026-12-31t23:59:59Z"},
+		{"lowercase z zone", "2026-12-31T23:59:59z"},
+		{"month 13", "2026-13-01T00:00:00Z"},
+		{"day 32", "2026-01-32T00:00:00Z"},
+		{"hour 25", "2026-12-31T25:00:00Z"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			builder, err := NewWaitExtTaskBuilder(nil,
+				&models.WaitExtTask{Wait: &models.WaitExtBody{Until: tc.until}},
+				"wait-ext",
+				nil,
+				testEvents,
+				nil)
+			require.NoError(t, err)
+
+			err = builder.Validate()
+			require.Error(t, err, "Validate must reject malformed RFC 3339 timestamp")
+			assert.Contains(t, err.Error(), "RFC 3339")
+		})
+	}
+}
+
+// TestWaitExtBuilder_ValidateAcceptsValidUntil ensures Validate does not
+// reject the legitimate `until` shapes: real RFC 3339 timestamps (with or
+// without offset), runtime expressions (resolved later), and the empty
+// string used by the duration form.
+func TestWaitExtBuilder_ValidateAcceptsValidUntil(t *testing.T) {
+	cases := []struct {
+		name  string
+		until string
+	}{
+		{"valid RFC 3339 with Z", "2026-12-31T23:59:59Z"},
+		{"valid RFC 3339 with offset", "2026-12-31T23:59:59+02:00"},
+		{"runtime expression", "${ $data.deadline }"},
+		{"empty (duration form)", ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			builder, err := NewWaitExtTaskBuilder(nil,
+				&models.WaitExtTask{Wait: &models.WaitExtBody{Until: tc.until}},
+				"wait-ext",
+				nil,
+				testEvents,
+				nil)
+			require.NoError(t, err)
+			assert.NoError(t, builder.Validate())
+		})
+	}
 }

@@ -333,3 +333,30 @@ do:
 	require.NotNil(t, task.Wait)
 	assert.Equal(t, "${ $data.cooldownSeconds }", task.Wait.Seconds)
 }
+
+// TestLoadFromBytes_RunsTaskValidate confirms that LoadFromBytes
+// exercises the per-task Validate() hook. A run script with `await:
+// false` passes JSON schema and parses cleanly, but is rejected by
+// RunTaskBuilder.Validate() (scripts must run with await).
+//
+// Every CLI/MCP validate entry point calls LoadFromBytes (directly or
+// via LoadFromFile) after the schema check, so the hook reaches them
+// all through this single integration point.
+func TestLoadFromBytes_RunsTaskValidate(t *testing.T) {
+	content := `document:
+  dsl: 1.0.0
+  taskQueue: default
+  workflowType: test
+  version: 0.0.1
+do:
+  - bad:
+      run:
+        await: false
+        script:
+          language: python
+          code: "print(1)"`
+
+	_, err := zigflow.LoadFromBytes([]byte(content))
+	assert.Error(t, err, "await:false on run script must be rejected by Validate()")
+	assert.Contains(t, err.Error(), "run scripts must be run with await")
+}

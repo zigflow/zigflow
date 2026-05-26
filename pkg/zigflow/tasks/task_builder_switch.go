@@ -52,13 +52,13 @@ type SwitchTaskBuilder struct {
 	builder[*model.SwitchTask]
 }
 
-func (t *SwitchTaskBuilder) Build() (TemporalWorkflowFunc, error) {
+func (t *SwitchTaskBuilder) Validate() error {
 	hasDefault := false
 	for i, switchItem := range t.task.Switch {
 		for name, item := range switchItem {
 			if item.When == nil {
 				if hasDefault {
-					return nil, fmt.Errorf("multiple switch statements without when: %s.%d.%s", t.GetTaskName(), i, name)
+					return fmt.Errorf("multiple switch statements without when: %s.%d.%s", t.GetTaskName(), i, name)
 				}
 				hasDefault = true
 			}
@@ -67,7 +67,10 @@ func (t *SwitchTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	if !hasDefault {
 		log.Warn().Str("task", t.GetTaskName()).Msg("No default switch task detected")
 	}
+	return nil
+}
 
+func (t *SwitchTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
 		logger := workflow.GetLogger(ctx)
 

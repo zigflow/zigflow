@@ -144,6 +144,22 @@ func (t *ForTaskBuilder) PostLoad() error {
 	return nil
 }
 
+func (t *ForTaskBuilder) Validate() error {
+	builder, err := t.createBuilder()
+	if err != nil {
+		return err
+	}
+	if builder == nil {
+		return nil
+	}
+
+	if err := builder.Validate(); err != nil {
+		return fmt.Errorf("error validating for workflow: %w", err)
+	}
+
+	return nil
+}
+
 // addIterationResult adds the latest iteration to the data - this will be overridden
 // with each iteration so should only be relied upon inside the iterator
 func (t *ForTaskBuilder) addIterationResult(ctx workflow.Context, state *utils.State, response any) {
