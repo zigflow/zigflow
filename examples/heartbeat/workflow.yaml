@@ -19,6 +19,9 @@ do:
           # Set a heartbeat timeout of 10 seconds
           heartbeatTimeout:
             seconds: 10
+          startToCloseTimeout:
+            # Increase from 15s default to more than the sleep
+            minutes: 1
       run:
         shell:
           # Sleep for 30s - this will timeout if heartbeat doesn't run
