@@ -88,8 +88,16 @@ func LoadFromBytes(data []byte) (*model.Workflow, error) {
 }
 
 // ValidateBytes validates raw YAML or JSON bytes against the Zigflow JSON
-// Schema. It returns ErrSchemaValidation (via errors.Is) if the document does
-// not conform.
+// Schema and runs the central workflow validation pass.
+//
+// Two classes of error can be returned:
+//   - ErrSchemaValidation (via errors.Is) when the document does not conform
+//     to the Zigflow JSON Schema.
+//   - ErrNonDeterministicExpression (via errors.Is) when the workflow contains
+//     a runtime expression outside a Set task that is not replay-safe.
+//
+// Other errors (YAML/JSON parse failures, task-builder validation errors) are
+// surfaced as wrapped errors.
 func ValidateBytes(data []byte) error {
 	jsonBytes, err := yaml.YAMLToJSON(data)
 	if err != nil {
@@ -102,7 +110,15 @@ func ValidateBytes(data []byte) error {
 	}
 
 	if err := schema.ValidateDocument(rawDoc); err != nil {
-		return fmt.Errorf("%w: %s", ErrSchemaValidation, err)
+		return newSchemaValidationError(err)
+	}
+
+	// Run the central workflow-level validation pass. LoadFromBytes invokes
+	// newWorkflowPrepare, which validates task structure and expression
+	// determinism in one place. Doing the load here means ValidateBytes is a
+	// complete validation entry point: schema, structure, and determinism.
+	if _, err := LoadFromBytes(data); err != nil {
+		return err
 	}
 
 	return nil

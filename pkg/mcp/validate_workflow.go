@@ -44,6 +44,22 @@ type ValidateWorkflowOutput struct {
 	Errors []ValidateWorkflowError `json:"errors,omitempty"`
 }
 
+// validateBytesStage maps an error returned by zigflow.ValidateBytes onto the
+// MCP validation stage that best describes it. Expression failures (both
+// non-determinism and invalid syntax) are reported as "expression"; schema
+// failures as "schema"; anything else is treated as a genuine parse failure.
+func validateBytesStage(err error) string {
+	switch {
+	case errors.Is(err, zigflow.ErrSchemaValidation):
+		return "schema"
+	case errors.Is(err, zigflow.ErrNonDeterministicExpression),
+		errors.Is(err, zigflow.ErrInvalidRuntimeExpression):
+		return "expression"
+	default:
+		return "parse"
+	}
+}
+
 func (m *MCP) ValidateWorkflow(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
@@ -60,15 +76,11 @@ func (m *MCP) ValidateWorkflow(
 
 	data := []byte(input.YAML)
 
-	// Schema validation: non-schema errors from ValidateBytes are parse failures.
+	// ValidateBytes can fail for several distinct reasons; classify them so the
+	// reported stage is accurate rather than always "parse".
 	if err := zigflow.ValidateBytes(data); err != nil {
-		stage := "parse"
-		if errors.Is(err, zigflow.ErrSchemaValidation) {
-			stage = "schema"
-		}
-
 		return nil, ValidateWorkflowOutput{
-			Errors: []ValidateWorkflowError{{Stage: stage, Message: err.Error()}},
+			Errors: []ValidateWorkflowError{{Stage: validateBytesStage(err), Message: err.Error()}},
 		}, nil
 	}
 

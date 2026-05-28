@@ -112,3 +112,30 @@ func TestNewWorkflowRunsPostLoadBeforeBuild_GRPCEmptyHostPort(t *testing.T) {
 	assert.Equal(t, "localhost", task.With.Service.Host, "PostLoad must have set the default Host")
 	assert.Equal(t, 50051, task.With.Service.Port, "PostLoad must have set the default Port")
 }
+
+// TestNewWorkflowRejectsNonDeterministicExpression is a regression test proving
+// that NewWorkflow() — the public path that turns a *model.Workflow directly
+// into an executable workflow — enforces the same determinism guarantees as
+// the loader. Before the fix, NewWorkflow() never called
+// ValidateWorkflowDeterminism, so a programmatically constructed workflow could
+// smuggle a non-deterministic expression (e.g. ${ uuid }) outside a Set task.
+func TestNewWorkflowRejectsNonDeterministicExpression(t *testing.T) {
+	task := &model.RunTask{
+		TaskBase: model.TaskBase{
+			// ${ uuid } is non-deterministic and lives outside a Set task body,
+			// so it must be rejected.
+			If: &model.RuntimeExpression{Value: "${ uuid }"},
+		},
+		Run: model.RunTaskConfiguration{
+			Script: &model.Script{
+				Language:   "python",
+				InlineCode: utils.Ptr("print('hello')"),
+			},
+		},
+	}
+
+	err := zigflow.NewWorkflow(stubWorker{}, newTestWorkflow("non-deterministic-test", task), nil, nil, nil, nil)
+	require.Error(t, err, "NewWorkflow must reject a non-deterministic expression outside a Set task")
+	assert.ErrorIs(t, err, zigflow.ErrNonDeterministicExpression,
+		"error must wrap %v; got %v", zigflow.ErrNonDeterministicExpression, err)
+}

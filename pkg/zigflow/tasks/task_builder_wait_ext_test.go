@@ -28,11 +28,6 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-// wantFnUUID is a test-local constant for the repeated wantFn entries in the
-// non-deterministic rejection table; collapses three identical literals so
-// goconst doesn't flag the test data.
-const wantFnUUID = "uuid"
-
 // runWaitExtBuilder is a small helper that wires the builder into a test
 // workflow environment with a given start time and state, executes it, and
 // returns the resulting environment for assertions about env.Now() and any
@@ -143,42 +138,6 @@ func TestWaitExtBuilder_StringValuedDurationErrors(t *testing.T) {
 	err := env.GetWorkflowError()
 	require.Error(t, err, "non-numeric resolved duration must surface as a workflow error")
 	assert.Contains(t, err.Error(), "seconds")
-}
-
-func TestWaitExtBuilder_RejectsNonDeterministicExpressions(t *testing.T) {
-	tests := []struct {
-		name      string
-		body      *models.WaitExtBody
-		wantField string
-		wantFn    string
-	}{
-		{"uuid in until", &models.WaitExtBody{Until: "${ uuid }"}, "until", wantFnUUID},
-		{"timestamp_iso8601 in until", &models.WaitExtBody{Until: "${ timestamp_iso8601 }"}, "until", "timestamp_iso8601"},
-		{"timestamp in seconds", &models.WaitExtBody{Seconds: "${ timestamp }"}, "seconds", "timestamp"},
-		{"uuid piped to length in hours", &models.WaitExtBody{Hours: "${ uuid | length }"}, "hours", wantFnUUID},
-		{"uuid in milliseconds", &models.WaitExtBody{Milliseconds: "${ uuid }"}, "milliseconds", wantFnUUID},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			builder, err := NewWaitExtTaskBuilder(nil, &models.WaitExtTask{Wait: tc.body}, "wait-ext", nil, testEvents, nil)
-			require.NoError(t, err)
-
-			err = builder.Validate()
-			require.Error(t, err, "Validate must reject non-deterministic wait expression")
-			assert.Contains(t, err.Error(), tc.wantField, "error must name the offending field")
-			assert.Contains(t, err.Error(), tc.wantFn, "error must name the offending function")
-		})
-	}
-}
-
-func TestWaitExtBuilder_AllowsDeterministicExpressions(t *testing.T) {
-	builder, err := NewWaitExtTaskBuilder(nil, &models.WaitExtTask{Wait: &models.WaitExtBody{
-		Seconds: "${ $data.cooldown }",
-	}}, "wait-ext", nil, testEvents, nil)
-	require.NoError(t, err)
-
-	assert.NoError(t, builder.Validate(), "deterministic wait expressions must pass Validate")
 }
 
 // TestWaitExtBuilder_ValidateRejectsBadRFC3339 covers literal `until`

@@ -128,6 +128,61 @@ do:
 	assert.NotEmpty(t, out.Errors[0].Message)
 }
 
+// --- expression stage ---
+
+// nonDeterministicYAML passes schema validation but uses a non-deterministic
+// expression (timestamp) outside a Set body, which is rejected by the
+// determinism pass.
+const nonDeterministicYAML = `document:
+  dsl: 1.0.0
+  taskQueue: default
+  workflowType: test
+  version: 0.0.1
+do:
+  - waitForCooldown:
+      wait:
+        seconds: ${ timestamp }
+`
+
+// invalidExpressionYAML passes schema validation but contains jq that cannot be
+// parsed, inside a Set body.
+const invalidExpressionYAML = `document:
+  dsl: 1.0.0
+  taskQueue: default
+  workflowType: test
+  version: 0.0.1
+do:
+  - capture:
+      set:
+        id: ${ @@@ }
+`
+
+func TestValidateWorkflow_NonDeterministicExpression_ExpressionStage(t *testing.T) {
+	m := newTestMCP()
+	_, out, err := m.ValidateWorkflow(context.Background(), nil, ValidateWorkflowInput{
+		YAML: nonDeterministicYAML,
+	})
+	require.NoError(t, err)
+	assert.False(t, out.Valid)
+	require.Len(t, out.Errors, 1)
+	assert.Equal(t, "expression", out.Errors[0].Stage,
+		"non-deterministic expression must not be reported as a parse failure")
+	assert.NotEmpty(t, out.Errors[0].Message)
+}
+
+func TestValidateWorkflow_InvalidRuntimeExpression_ExpressionStage(t *testing.T) {
+	m := newTestMCP()
+	_, out, err := m.ValidateWorkflow(context.Background(), nil, ValidateWorkflowInput{
+		YAML: invalidExpressionYAML,
+	})
+	require.NoError(t, err)
+	assert.False(t, out.Valid)
+	require.Len(t, out.Errors, 1)
+	assert.Equal(t, "expression", out.Errors[0].Stage,
+		"invalid runtime expression must not be reported as a parse failure")
+	assert.NotEmpty(t, out.Errors[0].Message)
+}
+
 // --- struct stage ---
 
 func TestValidateWorkflow_StructValidationFailure_StructStage(t *testing.T) {

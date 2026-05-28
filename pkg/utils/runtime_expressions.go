@@ -39,16 +39,20 @@ const (
 
 type ExpressionWrapperFunc func(func() (any, error)) (any, error)
 
+// jqFunc describes a function exposed to Zigflow runtime expressions. The
+// Deterministic flag is the source of truth for replay-safety classification;
+// AnalyseExpressionDeterminism reads this list when walking expressions.
 type jqFunc struct {
-	Name    string                         // Becomes the name of the function to use (eg, ${ uuid })
-	MinArgs int                            // Minimum number of args
-	MaxArgs int                            // Maximum number of args
-	Func    func(vars any, args []any) any // The function - receives the variables and arguments
+	Name          string
+	MinArgs       int
+	MaxArgs       int
+	Deterministic bool
+	Func          func(vars any, args []any) any
 }
 
-// List of functions that are available as a function.
-// All registered functions are non-deterministic and will trigger an error
-// when used outside of a set task (i.e. without a side-effect wrapper).
+// jqFuncs is the registry of Zigflow-defined jq functions. Anything marked
+// Deterministic=false is rejected outside a Set task because its result would
+// not survive Temporal workflow replay.
 var jqFuncs []jqFunc = []jqFunc{
 	{
 		Name: jqFuncUUID,
@@ -75,17 +79,19 @@ var jqFuncs []jqFunc = []jqFunc{
 func EvaluateString(str string, ctx any, state *State, evaluationWrapper ...ExpressionWrapperFunc) (any, error) {
 	// Check if the string is a runtime expression (e.g., ${ .some.path })
 	if model.IsStrictExpr(str) {
-		// Error if a non-deterministic function is used without a side-effect wrapper.
-		// A wrapper is only provided by tasks (e.g. set) that correctly isolate
-		// non-deterministic calls inside workflow.SideEffect.
+		// Error if a non-deterministic construct is used without a side-effect
+		// wrapper. A wrapper is only provided by tasks (e.g. set) that
+		// correctly isolate non-deterministic calls inside workflow.SideEffect.
 		if len(evaluationWrapper) == 0 {
-			expr := model.SanitizeExpr(str)
-			if fnName := LeadingNonDeterministicFunc(expr); fnName != "" {
-				log.Error().
-					Str("expression", str).
-					Str("function", fnName).
-					Str("docs", ndeDocsURL).
-					Msg("Non-deterministic function used outside of a set task — this may cause workflow replay failures")
+			if analysis, err := AnalyseExpressionDeterminism(str); err == nil && !analysis.Deterministic {
+				for _, issue := range analysis.Issues {
+					log.Error().
+						Str("expression", str).
+						Str("symbol", issue.Symbol).
+						Str("reason", issue.Reason).
+						Str("docs", ndeDocsURL).
+						Msg("Non-deterministic expression used outside of a set task — this may cause workflow replay failures")
+				}
 			}
 		}
 
@@ -109,36 +115,6 @@ func buildEvaluationWrapperFn(evaluationWrapper ...ExpressionWrapperFunc) Expres
 	}
 
 	return wrapperFn
-}
-
-// LeadingNonDeterministicFunc returns the name of the non-deterministic function
-// that expr begins with, or an empty string if it does not.
-// Only the leading identifier is inspected: `uuid` errors, but `$data.uuid`
-// and `.uuid` do not, as those are variable or field references, not calls.
-func LeadingNonDeterministicFunc(expr string) string {
-	expr = strings.TrimSpace(expr)
-	if expr == "" || !isIdentStart(expr[0]) {
-		return ""
-	}
-	end := 1
-	for end < len(expr) && isIdentChar(expr[end]) {
-		end++
-	}
-	ident := expr[:end]
-	for _, fn := range jqFuncs {
-		if fn.Name == ident {
-			return ident
-		}
-	}
-	return ""
-}
-
-func isIdentStart(c byte) bool {
-	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_'
-}
-
-func isIdentChar(c byte) bool {
-	return isIdentStart(c) || c >= '0' && c <= '9'
 }
 
 func TraverseAndEvaluateObj(
@@ -234,6 +210,47 @@ func toAnySlice[T any](in []T) []any {
 	return out
 }
 
+// jqCompilerOptions builds the gojq compiler options shared by runtime
+// evaluation and validation: the given workflow state variables plus every
+// Zigflow-registered function. Keeping this in one place ensures validation
+// compiles expressions under exactly the same rules as runtime, so the two
+// cannot drift.
+func jqCompilerOptions(variableNames []string) []gojq.CompilerOption {
+	opts := []gojq.CompilerOption{
+		gojq.WithVariables(variableNames),
+	}
+	for _, j := range jqFuncs {
+		opts = append(opts, gojq.WithFunction(j.Name, j.MinArgs, j.MaxArgs, j.Func))
+	}
+	return opts
+}
+
+// CompileExpression parses and compiles expr using the exact same gojq options
+// as runtime evaluation (the Zigflow workflow state variables and registered
+// functions). It returns an error if the expression cannot parse or compile —
+// for example, referencing an unregistered variable or function — which would
+// otherwise only surface at execution time. The strict expression wrapper
+// (${ ... }) is stripped before parsing.
+func CompileExpression(expr string) error {
+	if model.IsStrictExpr(expr) {
+		expr = model.SanitizeExpr(expr)
+	}
+
+	query, err := gojq.Parse(expr)
+	if err != nil {
+		return fmt.Errorf("failed to parse expression %q: %w", expr, err)
+	}
+
+	// Use the canonical state variable names so validation matches runtime,
+	// where the same names are always injected via State.GetAsMap.
+	names, _ := getVariableNamesAndValues(NewState().GetAsMap())
+	if _, err := gojq.Compile(query, jqCompilerOptions(names)...); err != nil {
+		return fmt.Errorf("failed to compile expression %q: %w", expr, err)
+	}
+
+	return nil
+}
+
 func evaluateJQExpression(expression string, ctx any, state *State) (any, error) {
 	query, err := gojq.Parse(expression)
 	if err != nil {
@@ -243,15 +260,7 @@ func evaluateJQExpression(expression string, ctx any, state *State) (any, error)
 	// Get the variable names & values in a single pass:
 	names, values := getVariableNamesAndValues(state.GetAsMap())
 
-	fns := []gojq.CompilerOption{
-		gojq.WithVariables(names),
-	}
-
-	for _, j := range jqFuncs {
-		fns = append(fns, gojq.WithFunction(j.Name, j.MinArgs, j.MaxArgs, j.Func))
-	}
-
-	code, err := gojq.Compile(query, fns...)
+	code, err := gojq.Compile(query, jqCompilerOptions(names)...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile jq expression: %s, error: %w", expression, err)
 	}

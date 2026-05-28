@@ -271,13 +271,42 @@ func TestEvaluateStringJqFunctions(t *testing.T) {
 	})
 }
 
+// TestCompileExpression proves the validation-time compile helper accepts the
+// same registered variables and functions that runtime evaluation does, and
+// rejects unregistered symbols that would otherwise only fail at execution.
+func TestCompileExpression(t *testing.T) {
+	tests := []struct {
+		name    string
+		expr    string
+		wantErr bool
+	}{
+		{name: "registered zigflow function", expr: "${ uuid }"},
+		{name: "state variable", expr: "${ $data.foo }"},
+		{name: "deterministic builtin", expr: "${ .a | length }"},
+		{name: "plain path", expr: "${ .msg }"},
+		{name: "unregistered symbol", expr: "${ definitely_not_registered }", wantErr: true},
+		{name: "parse error", expr: "${ @@@ }", wantErr: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := CompileExpression(tc.expr)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestEvaluateStringNonDeterministicWithWrapper(t *testing.T) {
 	tests := []struct {
 		Name string
 		Expr string
 	}{
-		{Name: "uuid with wrapper", Expr: "${ uuid }"},
-		{Name: "timestamp with wrapper", Expr: "${ timestamp }"},
+		{Name: "uuid with wrapper", Expr: exprUUID},
+		{Name: "timestamp with wrapper", Expr: exprTimestamp},
 		{Name: "timestamp_iso8601 with wrapper", Expr: "${ timestamp_iso8601 }"},
 	}
 
@@ -289,90 +318,6 @@ func TestEvaluateStringNonDeterministicWithWrapper(t *testing.T) {
 			result, err := EvaluateString(test.Expr, nil, NewState(), wrapper)
 			require.NoError(t, err)
 			assert.NotNil(t, result)
-		})
-	}
-}
-
-func TestLeadingNonDeterministicFunc(t *testing.T) {
-	tests := []struct {
-		Name     string
-		Expr     string
-		Expected string
-	}{
-		// Registered non-deterministic functions
-		{Name: "uuid is detected", Expr: jqFuncUUID, Expected: jqFuncUUID},
-		{Name: "timestamp is detected", Expr: jqFuncTimestamp, Expected: jqFuncTimestamp},
-		{Name: "timestamp_iso8601 is detected", Expr: jqFuncTimestampISO, Expected: jqFuncTimestampISO},
-
-		// Leading whitespace is trimmed
-		{Name: "uuid with leading spaces", Expr: "  uuid", Expected: jqFuncUUID},
-
-		// Only the leading identifier matters; a pipe still makes it non-det
-		{Name: "uuid piped to length", Expr: "uuid | length", Expected: jqFuncUUID},
-
-		// Field accesses and variable references are NOT function calls
-		{Name: "field access .uuid is not a function", Expr: ".uuid", Expected: ""},
-		{Name: "variable $data.uuid is not a function", Expr: "$data.uuid", Expected: ""},
-		{Name: "jq path .foo is not a function", Expr: ".foo", Expected: ""},
-
-		// Unknown identifiers that look like functions but aren't registered
-		{Name: "unknown identifier returns empty", Expr: "my_func", Expected: ""},
-		{Name: "length is not registered", Expr: "length", Expected: ""},
-
-		// Edge cases
-		{Name: "empty string returns empty", Expr: "", Expected: ""},
-		{Name: "only whitespace returns empty", Expr: "   ", Expected: ""},
-	}
-
-	for _, test := range tests {
-		t.Run(test.Name, func(t *testing.T) {
-			got := LeadingNonDeterministicFunc(test.Expr)
-			assert.Equal(t, test.Expected, got)
-		})
-	}
-}
-
-func TestIsIdentStart(t *testing.T) {
-	tests := []struct {
-		Name     string
-		Char     byte
-		Expected bool
-	}{
-		{Name: "lowercase letter", Char: 'a', Expected: true},
-		{Name: "uppercase letter", Char: 'Z', Expected: true},
-		{Name: "underscore", Char: '_', Expected: true},
-		{Name: "digit is not an ident start", Char: '0', Expected: false},
-		{Name: "dot is not an ident start", Char: '.', Expected: false},
-		{Name: "dollar is not an ident start", Char: '$', Expected: false},
-		{Name: "hyphen is not an ident start", Char: '-', Expected: false},
-	}
-
-	for _, test := range tests {
-		t.Run(test.Name, func(t *testing.T) {
-			assert.Equal(t, test.Expected, isIdentStart(test.Char))
-		})
-	}
-}
-
-func TestIsIdentChar(t *testing.T) {
-	tests := []struct {
-		Name     string
-		Char     byte
-		Expected bool
-	}{
-		{Name: "lowercase letter", Char: 'z', Expected: true},
-		{Name: "uppercase letter", Char: 'A', Expected: true},
-		{Name: "underscore", Char: '_', Expected: true},
-		{Name: "digit", Char: '9', Expected: true},
-		{Name: "dot is not an ident char", Char: '.', Expected: false},
-		{Name: "dollar is not an ident char", Char: '$', Expected: false},
-		{Name: "space is not an ident char", Char: ' ', Expected: false},
-		{Name: "pipe is not an ident char", Char: '|', Expected: false},
-	}
-
-	for _, test := range tests {
-		t.Run(test.Name, func(t *testing.T) {
-			assert.Equal(t, test.Expected, isIdentChar(test.Char))
 		})
 	}
 }

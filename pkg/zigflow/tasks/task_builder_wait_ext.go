@@ -79,9 +79,9 @@ func (t *WaitExtTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		// Evaluate any runtime expressions against the workflow state.
 		// No SideEffect wrapper: $data, $input, $context and $env are
 		// already in workflow history and therefore deterministic.
-		// Non-deterministic jq functions are rejected up front by
-		// rejectNonDeterministicExpressions, so anything reaching here
-		// is safe to evaluate directly.
+		// Non-deterministic expressions are rejected up front by the
+		// central workflow determinism pass (ValidateWorkflowDeterminism),
+		// so anything reaching here is safe to evaluate directly.
 		evaluated, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(cloned), nil, state)
 		if err != nil {
 			return nil, fmt.Errorf("error evaluating wait extension expressions: %w", err)
@@ -120,9 +120,6 @@ func (t *WaitExtTaskBuilder) Validate() error {
 	if t.task.Wait == nil {
 		return fmt.Errorf("wait extension task %q has no body", t.GetTaskName())
 	}
-	if err := rejectNonDeterministicExpressions(t.task.Wait); err != nil {
-		return fmt.Errorf("wait extension task %q: %w", t.GetTaskName(), err)
-	}
 	until := t.task.Wait.Until
 	if until == "" || model.IsStrictExpr(until) {
 		return nil
@@ -157,36 +154,6 @@ func (t *WaitExtTaskBuilder) sleepUntil(ctx workflow.Context, untilStr string) e
 		}
 		logger.Error("Error creating sleep instruction", "error", err)
 		return fmt.Errorf("error creating sleep: %w", err)
-	}
-	return nil
-}
-
-// rejectNonDeterministicExpressions errors if any wait field is a runtime
-// expression whose leading jq function is non-deterministic. Such waits
-// would not be replay-safe.
-func rejectNonDeterministicExpressions(body *models.WaitExtBody) error {
-	fields := []struct {
-		name  string
-		value any
-	}{
-		{keyUntil, body.Until},
-		{"days", body.Days},
-		{"hours", body.Hours},
-		{"minutes", body.Minutes},
-		{"seconds", body.Seconds},
-		{"milliseconds", body.Milliseconds},
-	}
-	for _, f := range fields {
-		s, ok := f.value.(string)
-		if !ok || !model.IsStrictExpr(s) {
-			continue
-		}
-		if fn := utils.LeadingNonDeterministicFunc(model.SanitizeExpr(s)); fn != "" {
-			return fmt.Errorf(
-				"field %q uses non-deterministic function %q; compute it in a preceding set task and reference the result instead",
-				f.name, fn,
-			)
-		}
 	}
 	return nil
 }

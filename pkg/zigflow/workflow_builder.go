@@ -86,6 +86,12 @@ func NewWorkflow(
 		return fmt.Errorf("error validating workflow: %w", err)
 	}
 
+	l.Debug().Msg("Validating workflow expression determinism")
+	if err := ValidateWorkflowDeterminism(doc); err != nil {
+		l.Error().Err(err).Msg("Error validating workflow expression determinism")
+		return fmt.Errorf("error validating workflow expression determinism: %w", err)
+	}
+
 	l.Debug().Msg("Building workflow")
 	if _, err := doBuilder.Build(); err != nil {
 		l.Debug().Err(err).Msg("Error building workflow")
@@ -122,6 +128,15 @@ func newWorkflowPrepare(doc *model.Workflow) error {
 	if err := doBuilder.Validate(); err != nil {
 		l.Error().Err(err).Msg("Error validating workflow")
 		return fmt.Errorf("error validating workflow: %w", err)
+	}
+
+	if err := ValidateWorkflowDeterminism(doc); err != nil {
+		// Logged at debug, not error: the failure is returned to the caller,
+		// which is responsible for surfacing it (the CLI renders a concise,
+		// human-readable message). Logging at error here duplicated that
+		// diagnostic at the default log level.
+		l.Debug().Err(err).Msg("Workflow expression determinism validation failed")
+		return fmt.Errorf("error validating workflow expression determinism: %w", err)
 	}
 
 	return nil

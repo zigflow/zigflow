@@ -17,7 +17,9 @@
 package cmd
 
 import (
-	"os"
+	"errors"
+	"fmt"
+	"io"
 
 	gh "github.com/mrsimonemms/golang-helpers"
 	"github.com/rs/zerolog/log"
@@ -53,59 +55,7 @@ Arguments:
   workflow-file   Path to the Zigflow workflow file to validate`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			filePath := args[0]
-			result := utils.ValidationResult{
-				File: filePath,
-			}
-
-			if err := zigflow.ValidateFile(filePath); err != nil {
-				return gh.FatalError{
-					Cause: err,
-					Msg:   "Schema validation failed",
-				}
-			}
-
-			workflowDefinition, err := zigflow.LoadFromFile(filePath)
-			if err != nil {
-				return gh.FatalError{
-					Cause: err,
-					Msg:   errMsgUnableToLoadWorkflowFile,
-				}
-			}
-
-			validator, err := utils.NewValidator()
-			if err != nil {
-				return gh.FatalError{
-					Cause: err,
-					Msg:   "Error creating validator",
-				}
-			}
-
-			if res, err := validator.ValidateStruct(workflowDefinition); err != nil {
-				return gh.FatalError{
-					Cause: err,
-					Msg:   "Error creating validation stack",
-				}
-			} else if res != nil {
-				result.Errors = res
-			} else {
-				result.Valid = true
-			}
-
-			if opts.OutputJSON {
-				_ = utils.RenderJSON(os.Stdout, result)
-			} else {
-				utils.RenderHuman(os.Stdout, result)
-			}
-
-			if !result.Valid {
-				return gh.FatalError{
-					Msg:    "Validation failed",
-					Logger: log.Trace,
-				}
-			}
-
-			return nil
+			return runValidateCmd(cmd, args[0], opts.OutputJSON)
 		},
 	}
 
@@ -117,15 +67,252 @@ Arguments:
 	return cmd
 }
 
-type Error struct {
-	Path    string `json:"path"`
-	Rule    string `json:"rule"`
-	Param   string `json:"param,omitempty"`
-	Message string `json:"message"`
+// runValidateCmd validates the workflow file at filePath, rendering the result
+// to the command's output (human-readable by default, JSON when outputJSON is
+// set) and returning a fatal error when validation fails.
+func runValidateCmd(cmd *cobra.Command, filePath string, outputJSON bool) error {
+	result := utils.ValidationResult{
+		File: filePath,
+	}
+
+	out := cmd.OutOrStdout()
+
+	if err := zigflow.ValidateFile(filePath); err != nil {
+		// Render known validation failures (schema, determinism) for
+		// humans by default — concise location + message — and suppress
+		// the noisy nested error/log output by returning a trace-level
+		// FatalError without a Cause. --output-json keeps the structured,
+		// machine-readable form.
+		var (
+			schemaErr  *zigflow.SchemaValidationError
+			invalidErr *zigflow.InvalidRuntimeExpressionError
+			ndErr      *zigflow.NonDeterministicExpressionError
+		)
+		switch {
+		case errors.As(err, &schemaErr):
+			if outputJSON {
+				result.Errors = schemaValidationErrors(schemaErr.Errors)
+				_ = utils.RenderJSON(out, result)
+			} else {
+				renderSchemaFailure(out, filePath, schemaErr.Errors)
+			}
+
+		case errors.As(err, &invalidErr):
+			if outputJSON {
+				result.Errors = invalidExpressionValidationErrors(invalidErr.Expressions)
+				_ = utils.RenderJSON(out, result)
+			} else {
+				renderInvalidExpressionFailure(out, filePath, invalidErr.Expressions)
+			}
+
+		case errors.As(err, &ndErr):
+			if outputJSON {
+				result.Errors = determinismValidationErrors(ndErr.Expressions)
+				_ = utils.RenderJSON(out, result)
+			} else {
+				renderDeterminismFailure(out, filePath, ndErr.Expressions)
+			}
+
+		default:
+			return gh.FatalError{
+				Cause: err,
+				Msg:   "Workflow validation failed",
+			}
+		}
+
+		return gh.FatalError{
+			Msg:    "Workflow validation failed",
+			Logger: log.Trace,
+		}
+	}
+
+	workflowDefinition, err := zigflow.LoadFromFile(filePath)
+	if err != nil {
+		return gh.FatalError{
+			Cause: err,
+			Msg:   errMsgUnableToLoadWorkflowFile,
+		}
+	}
+
+	validator, err := utils.NewValidator()
+	if err != nil {
+		return gh.FatalError{
+			Cause: err,
+			Msg:   "Error creating validator",
+		}
+	}
+
+	if res, err := validator.ValidateStruct(workflowDefinition); err != nil {
+		return gh.FatalError{
+			Cause: err,
+			Msg:   "Error creating validation stack",
+		}
+	} else if res != nil {
+		result.Errors = res
+	} else {
+		result.Valid = true
+	}
+
+	if outputJSON {
+		_ = utils.RenderJSON(out, result)
+	} else {
+		utils.RenderHuman(out, result)
+	}
+
+	if !result.Valid {
+		return gh.FatalError{
+			Msg:    "Validation failed",
+			Logger: log.Trace,
+		}
+	}
+
+	return nil
 }
 
-type Result struct {
-	Valid  bool    `json:"valid"`
-	File   string  `json:"file"`
-	Errors []Error `json:"errors,omitempty"`
+// Field labels shared by the human-readable validation renderers.
+const (
+	labelLocation   = "Location"
+	labelExpression = "Expression"
+)
+
+// validationField is one labelled line of a validation problem (e.g.
+// "Location" / "$.do[0]"). An entry is the ordered set of fields describing a
+// single problem.
+type validationField struct {
+	label string
+	value string
+}
+
+// renderValidationFailure prints a concise, human-readable validation failure
+// for any validation kind. A single entry is shown as labelled blocks; multiple
+// entries are bulleted, with the first field as the bullet and the rest
+// indented beneath it. Labels are only shown in the single-entry form.
+func renderValidationFailure(w io.Writer, file, singular, plural string, entries [][]validationField) {
+	_, _ = fmt.Fprintf(w, "❌ %s is invalid\n\n", file)
+
+	if len(entries) == 1 {
+		_, _ = fmt.Fprintf(w, "%s\n\n", singular)
+		for i, f := range entries[0] {
+			if i > 0 {
+				_, _ = fmt.Fprintln(w)
+			}
+			_, _ = fmt.Fprintf(w, "%s:\n  %s\n", f.label, f.value)
+		}
+		return
+	}
+
+	_, _ = fmt.Fprintf(w, "%s\n\n", plural)
+	for i, entry := range entries {
+		if i > 0 {
+			_, _ = fmt.Fprintln(w)
+		}
+		_, _ = fmt.Fprintf(w, "• %s\n", entry[0].value)
+		for _, f := range entry[1:] {
+			_, _ = fmt.Fprintf(w, "  %s\n", f.value)
+		}
+	}
+}
+
+// renderSchemaFailure prints a concise, human-readable schema validation error
+// focused on where the problem is and what it is.
+func renderSchemaFailure(w io.Writer, file string, errs []zigflow.SchemaError) {
+	entries := make([][]validationField, len(errs))
+	for i, e := range errs {
+		entries[i] = []validationField{
+			{label: labelLocation, value: e.Location},
+			{label: "Message", value: e.Message},
+		}
+	}
+
+	renderValidationFailure(
+		w, file,
+		"Schema validation failed",
+		"Schema validation errors found:",
+		entries,
+	)
+}
+
+// schemaValidationErrors maps the structured schema failures onto the shared
+// ValidationErrors shape so JSON output stays machine-readable and consistent
+// with determinism/structural validation errors.
+func schemaValidationErrors(errs []zigflow.SchemaError) []utils.ValidationErrors {
+	out := make([]utils.ValidationErrors, 0, len(errs))
+	for _, e := range errs {
+		out = append(out, utils.ValidationErrors{
+			Key:     "schema_validation",
+			Message: e.Message,
+			Path:    e.Location,
+		})
+	}
+	return out
+}
+
+// renderDeterminismFailure prints a concise, human-readable determinism error
+// focused on where the offending expression is and what it is.
+func renderDeterminismFailure(w io.Writer, file string, exprs []zigflow.NonDeterministicExpression) {
+	entries := make([][]validationField, len(exprs))
+	for i, e := range exprs {
+		entries[i] = []validationField{
+			{label: labelLocation, value: e.Path},
+			{label: labelExpression, value: e.Expression},
+		}
+	}
+
+	renderValidationFailure(
+		w, file,
+		"Non-deterministic expression",
+		"Non-deterministic expressions found:",
+		entries,
+	)
+}
+
+// determinismValidationErrors maps the structured determinism failures onto the
+// shared ValidationErrors shape so JSON output stays machine-readable and
+// consistent with schema/structural validation errors.
+func determinismValidationErrors(exprs []zigflow.NonDeterministicExpression) []utils.ValidationErrors {
+	errs := make([]utils.ValidationErrors, 0, len(exprs))
+	for _, e := range exprs {
+		errs = append(errs, utils.ValidationErrors{
+			Key:     "non_deterministic_expression",
+			Message: fmt.Sprintf("non-deterministic expression %q", e.Expression),
+			Path:    e.Path,
+		})
+	}
+	return errs
+}
+
+// renderInvalidExpressionFailure prints a concise, human-readable invalid
+// runtime expression error focused on the location, the offending expression,
+// and the underlying parse error.
+func renderInvalidExpressionFailure(w io.Writer, file string, exprs []zigflow.InvalidRuntimeExpression) {
+	entries := make([][]validationField, len(exprs))
+	for i, e := range exprs {
+		entries[i] = []validationField{
+			{label: labelLocation, value: e.Path},
+			{label: labelExpression, value: e.Expression},
+			{label: "Error", value: e.Err.Error()},
+		}
+	}
+
+	renderValidationFailure(
+		w, file,
+		"Invalid runtime expression",
+		"Invalid runtime expressions found:",
+		entries,
+	)
+}
+
+// invalidExpressionValidationErrors maps the structured invalid-expression
+// failures onto the shared ValidationErrors shape so JSON output stays
+// machine-readable and consistent with the other validation errors.
+func invalidExpressionValidationErrors(exprs []zigflow.InvalidRuntimeExpression) []utils.ValidationErrors {
+	errs := make([]utils.ValidationErrors, 0, len(exprs))
+	for _, e := range exprs {
+		errs = append(errs, utils.ValidationErrors{
+			Key:     "invalid_runtime_expression",
+			Message: fmt.Sprintf("invalid runtime expression %q: %s", e.Expression, e.Err),
+			Path:    e.Path,
+		})
+	}
+	return errs
 }
