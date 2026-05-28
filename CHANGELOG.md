@@ -2,6 +2,32 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.12.0](https://github.com/zigflow/zigflow/releases/tag/v0.12.0) - 2026-05-28
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/402
+* Add kubernetes as a container runtime by @mrsimonemms in https://github.com/zigflow/zigflow/pull/197
+* refactor: use cobra helper for temporal options by @mrsimonemms in https://github.com/zigflow/zigflow/pull/404
+* ci: update github actions to latest by @mrsimonemms in https://github.com/zigflow/zigflow/pull/405
+* feat(cmd): allow users to disable failure data conversion for debugging by @mrsimonemms in https://github.com/zigflow/zigflow/pull/411
+* fix(for): allow variables to resolve to float64 for in value by @mrsimonemms in https://github.com/zigflow/zigflow/pull/410
+* fix(switch): correct the flow behaviour by @mrsimonemms in https://github.com/zigflow/zigflow/pull/412
+* Create an agentic workflow loop example by @mrsimonemms in https://github.com/zigflow/zigflow/pull/408
+* chore: remove empty file by @mrsimonemms in https://github.com/zigflow/zigflow/pull/413
+* deps(deps): bump the go-dependencies group with 5 updates by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/414
+* ci: add preamble to pr reviews for contributors by @mrsimonemms in https://github.com/zigflow/zigflow/pull/416
+* feat(http): check for retry-after header on http calls by @mrsimonemms in https://github.com/zigflow/zigflow/pull/421
+* chore: update go version to 1.26.3 by @mrsimonemms in https://github.com/zigflow/zigflow/pull/417
+* feat(wait): Implement wait extension for dynamic duration and 'until' mechanics by @yoricksmeets in https://github.com/zigflow/zigflow/pull/415
+* fix: increase schedule to close timeout to 1 minute by @mrsimonemms in https://github.com/zigflow/zigflow/pull/424
+* feat(tasks): add Validate hook on TaskBuilder by @yoricksmeets in https://github.com/zigflow/zigflow/pull/423
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/425
+
+## New Contributors
+* @yoricksmeets made their first contribution in https://github.com/zigflow/zigflow/pull/415
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.11.3...v0.12.0
+
 ## [v0.11.3](https://github.com/zigflow/zigflow/releases/tag/v0.11.3) - 2026-05-15
 
 ## What's Changed
