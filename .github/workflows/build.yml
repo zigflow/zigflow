@@ -551,3 +551,57 @@ jobs:
           signing_key: ${{ steps.gpg.outputs.name }}
           signing_passphrase: ${{ secrets.GPG_PASSPHRASE }}
           update_dependencies: true
+
+  # Deploy the hosted MCP service on Northflank to the freshly published image.
+  # Runs only for full release tags (never prereleases) and only after the
+  # multi-arch image manifests have been published to GHCR.
+  northflank:
+    runs-on: ubuntu-latest
+    needs:
+      - metadata
+      - docker_manifest
+    if: needs.metadata.outputs.is_tag == 'true' && needs.metadata.outputs.is_prerelease == 'false'
+    steps:
+      - name: Deploy MCP service to Northflank
+        env:
+          NORTHFLANK_API_TOKEN: ${{ secrets.NORTHFLANK_API_TOKEN }}
+          NORTHFLANK_PROJECT_ID: ${{ secrets.NORTHFLANK_PROJECT_ID }}
+          NORTHFLANK_SERVICE_ID: ${{ secrets.NORTHFLANK_SERVICE_ID }}
+          IMAGE: ghcr.io/${{ github.repository }}:${{ needs.metadata.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          # Published image references are lowercase.
+          IMAGE="${IMAGE,,}"
+          echo "Updating Northflank service ${NORTHFLANK_SERVICE_ID} to ${IMAGE}"
+
+          # Build the request body. The entrypoint is already set
+          PAYLOAD="$(jq -n \
+            --arg image "${IMAGE}" \
+            --arg command "mcp --transport http --address 0.0.0.0:8080" \
+            '{
+              deployment: {
+                external: { imagePath: $image },
+                docker: {
+                  configType: "customCommand",
+                  customCommand: $command
+                }
+              },
+              ports: [
+                {
+                  name: "http",
+                  internalPort: 8080,
+                  protocol: "HTTP",
+                  public: true
+                }
+              ]
+            }')"
+
+          # PATCH the deployment service. --fail-with-body makes curl exit
+          # non-zero on any non-2xx response.
+          curl --fail-with-body --silent --show-error \
+            --request PATCH \
+            --header "Authorization: Bearer ${NORTHFLANK_API_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "${PAYLOAD}" \
+            "https://api.northflank.com/v1/projects/${NORTHFLANK_PROJECT_ID}/services/deployment/${NORTHFLANK_SERVICE_ID}"
