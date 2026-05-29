@@ -26,7 +26,33 @@ Verify the installation:
 zigflow version
 ```
 
-If you prefer not to use Homebrew, download binaries from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
+## Install Script
+
+For Linux, CI environments and other systems where Homebrew is not available,
+you can install Zigflow using the official installation script.
+
+```sh
+curl -fsSL https://get.zigflow.dev | sh
+```
+
+Install a specific version:
+
+```sh
+curl -fsSL https://get.zigflow.dev | ZIGFLOW_VERSION=0.12.0 sh
+```
+
+Install to a custom directory:
+
+```sh
+curl -fsSL https://get.zigflow.dev | ZIGFLOW_INSTALL_DIR="$HOME/.local/bin" sh
+```
+
+The installer automatically:
+
+- Detects your operating system and CPU architecture
+- Downloads the correct Zigflow binary
+- Verifies the release checksum
+- Installs the binary to your chosen location
 
 ## Binary Releases
 
