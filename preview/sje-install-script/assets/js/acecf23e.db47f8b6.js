@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkzigflow=self.webpackChunkzigflow||[]).push([["3220"],{1912(s){s.exports=JSON.parse('{"blogBasePath":"/preview/sje-install-script/articles","blogTitle":"Blog","authorsListPath":"/preview/sje-install-script/articles/authors"}')}}]);
