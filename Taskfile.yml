@@ -90,8 +90,29 @@ tasks:
 
   mcp:
     desc: Inspect the MCP server for development
+    vars:
+      ADDRESS: '{{.ADDRESS | default "http://localhost:8080"}}'
+      TRANSPORT: '{{.TRANSPORT | default "stdio"}}'
     cmds:
-      - npm_config_yes=true HOST=0.0.0.0 npx @modelcontextprotocol/inspector go run . mcp
+      - |
+        set -e
+
+        case "{{.TRANSPORT}}" in
+          stdio)
+            npm_config_yes=true HOST=0.0.0.0 npx @modelcontextprotocol/inspector go run . mcp
+            ;;
+
+          http)
+            echo "Make sure you run \"go run . mcp --transport http\" in another tab"
+            npm_config_yes=true HOST=0.0.0.0 npx @modelcontextprotocol/inspector {{.ADDRESS}}
+            ;;
+
+          *)
+            echo "Invalid TRANSPORT: {{.TRANSPORT}}"
+            echo "Use: task mcp TRANSPORT=stdio|http"
+            exit 1
+            ;;
+        esac
 
   minikube:
     desc: Start minikube and apply dev manifests
