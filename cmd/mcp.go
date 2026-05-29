@@ -17,12 +17,21 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	m "github.com/zigflow/zigflow/pkg/mcp"
 )
 
 func newMCPCmd() *cobra.Command {
+	var opts struct {
+		Address    string
+		Transport  string
+		WebsiteURL string
+	}
+
 	cmd := &cobra.Command{
 		Use:   "mcp",
 		Short: "Run the Zigflow MCP server",
@@ -31,14 +40,39 @@ func newMCPCmd() *cobra.Command {
 				Name:       "zigflow",
 				Version:    Version,
 				Title:      "Zigflow",
-				WebsiteURL: "https://zigflow.dev",
+				WebsiteURL: opts.WebsiteURL,
 			}, nil)
 
 			_ = m.New(server, Version)
 
-			return server.Run(cmd.Context(), &mcp.StdioTransport{})
+			switch opts.Transport {
+			case "http":
+				return m.HTTPHandler(cmd.Context(), server, opts.Address)
+			case "stdio":
+				return server.Run(cmd.Context(), &mcp.StdioTransport{})
+			default:
+				return fmt.Errorf("invalid transport type: %q", opts.Transport)
+			}
 		},
 	}
+
+	viper.SetDefault("address", "0.0.0.0:8080")
+	cmd.Flags().StringVar(
+		&opts.Address, "address",
+		viper.GetString("address"), "Address to listen on (HTTP transport only)",
+	)
+
+	viper.SetDefault("transport", "stdio")
+	cmd.Flags().StringVar(
+		&opts.Transport, "transport",
+		viper.GetString("transport"), "Transport to use: stdio or http",
+	)
+
+	viper.SetDefault("website_url", "https://mcp.zigflow.dev")
+	cmd.Flags().StringVar(
+		&opts.WebsiteURL, "website-url",
+		viper.GetString("website_url"), "WebsiteURL for the server",
+	)
 
 	return cmd
 }
