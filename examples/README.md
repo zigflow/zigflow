@@ -32,6 +32,7 @@ A collection of examples
 | [Heartbeat](./heartbeat) | Set [activity heartbeat](https://docs.temporal.io/encyclopedia/detecting-activity-failures#activity-heartbeat). Useful on long-running activities. |
 | [Hello World](./hello-world) | Hello world with Zigflow |
 | [Hello World AES Encrypted](./hello-world-encrypted-aes) | Hello world with Zigflow, but [encrypted](https://github.com/mrsimonemms/temporal-codec-server) |
+| [Hello World Encrypted External Storage](./hello-world-encrypted-external-storage) | Hello world with Zigflow, but the data stored in an external service |
 | [Hello World Encrypted Remote](./hello-world-encrypted-remote) | Hello world with Zigflow, but remotely encrypted |
 | [Money Transfer Demo](./money-transfer) | Temporal's world-famous Money Transfer Demo, in Zigflow form |
 | [Multiple Workflow Files](./multiple-workflow-files) | Run multiple workflow definitions from separate YAML files in a single Zigflow worker |

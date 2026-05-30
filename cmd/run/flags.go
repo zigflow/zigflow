@@ -104,11 +104,44 @@ func registerContainerRuntimeFlags(cmd *cobra.Command, opts *runOptions) {
 	)
 }
 
+func registerExternalStorageFlags(cmd *cobra.Command, opts *runOptions) {
+	cmd.Flags().StringVar(
+		&opts.ExternalStorage, "external-storage",
+		viper.GetString("external_storage"), "External storage type",
+	)
+
+	cmd.Flags().IntVar(
+		&opts.ExternalStoragePayloadSizeThreshold, "external-storage-payload-size-threshold",
+		viper.GetInt("external_storage_payload_size_threshold"), "Configure size threshold to send to external storage. Defaults to 256KB",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageS3Bucket, "external-storage-s3-bucket",
+		viper.GetString("external_storage_s3_bucket"), "S3 bucket for external payload storage",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageS3Endpoint, "external-storage-s3-region",
+		viper.GetString("external_storage_s3_region"), "S3 region",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageS3Endpoint, "external-storage-s3-endpoint",
+		viper.GetString("external_storage_s3_endpoint"), "Optional custom S3 endpoint",
+	)
+
+	cmd.Flags().BoolVar(
+		&opts.ExternalStorageS3UsePathStyle, "external-storage-s3-use-path-style",
+		viper.GetBool("external_storage_s3_use_path_style"), "Use path-style S3 URLs",
+	)
+}
+
 func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
 	registerWorkflowSourceFlags(cmd, opts)
 	temporal.NewCobraOpts(cmd, opts.temporal)
 	registerVersioningFlags(cmd, opts)
 	registerContainerRuntimeFlags(cmd, opts)
+	registerExternalStorageFlags(cmd, opts)
 
 	cmd.Flags().StringVar(
 		&opts.CodecEndpoint, "codec-endpoint",
