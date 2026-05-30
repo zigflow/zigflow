@@ -128,6 +128,38 @@ function WorkflowExample() {
   );
 }
 
+function McpFeature() {
+  return (
+    <section className={styles.workflowExample}>
+      <div className="container">
+        <div className={styles.workflowExampleGrid}>
+          <div className={styles.workflowExampleText}>
+            <Heading as="h2">Author workflows with your AI tools</Heading>
+            <p>
+              Zigflow runs a hosted, public, read-only Model Context Protocol
+              (MCP) server. Connect any MCP-compatible AI tool to scaffold
+              workflows from real examples and validate them against the current
+              DSL schema.
+            </p>
+            <p>No install and no API key required.</p>
+            <Link
+              className="button button--outline button--primary"
+              to="/docs/cli/mcp-server"
+            >
+              Explore the MCP server
+            </Link>
+          </div>
+          <div className={styles.workflowExampleCode}>
+            <CodeBlock language="text" title="MCP endpoint">
+              https://mcp.zigflow.dev
+            </CodeBlock>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const { siteConfig } = useDocusaurusContext();
 
@@ -140,6 +172,7 @@ export default function Home() {
       <main>
         <HomepageFeatures />
         <WorkflowExample />
+        <McpFeature />
 
         <section className={styles.info_box}>
           <div className="container">
