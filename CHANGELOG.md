@@ -2,6 +2,14 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.12.1](https://github.com/zigflow/zigflow/releases/tag/v0.12.1) - 2026-05-30
+
+## Changelog
+* 70ee0d29eca355662de9eb0421da1ca74a6725e7 chore: split ai rules into claude.md and agents.md
+* b1ee4de8af3032792ae70dfc3a3478d93832cdd3 chore: update changelog
+* a3f9941d60f19de4fa5bd7ca2c37404b044ce5a3 feat: create a bash installer for zigflow
+* bc8aa1fba5ed119435b10d6d70d6f79f025662bd feat: run the mcp server over http
+
 ## [v0.12.0](https://github.com/zigflow/zigflow/releases/tag/v0.12.0) - 2026-05-28
 
 ## What's Changed
