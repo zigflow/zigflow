@@ -253,6 +253,11 @@ const config = {
             href: 'https://buymeacoffee.com/mrsimonemms',
           },
           {
+            href: '/docs/cli/mcp-server',
+            position: 'right',
+            label: 'MCP',
+          },
+          {
             label: 'Built on Temporal',
             position: 'right',
             href: 'https://temporal.io',

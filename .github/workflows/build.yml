@@ -555,7 +555,7 @@ jobs:
   # Deploy the hosted MCP service on Northflank to the freshly published image.
   # Runs only for full release tags (never prereleases) and only after the
   # multi-arch image manifests have been published to GHCR.
-  northflank:
+  deploy_mcp:
     runs-on: ubuntu-latest
     needs:
       - metadata
@@ -567,7 +567,11 @@ jobs:
           NORTHFLANK_API_TOKEN: ${{ secrets.NORTHFLANK_API_TOKEN }}
           NORTHFLANK_PROJECT_ID: ${{ secrets.NORTHFLANK_PROJECT_ID }}
           NORTHFLANK_SERVICE_ID: ${{ secrets.NORTHFLANK_SERVICE_ID }}
-          IMAGE: ghcr.io/${{ github.repository }}:${{ needs.metadata.outputs.tag }}
+          NORTHFLANK_DOMAIN: ${{ secrets.NORTHFLANK_DOMAIN }}
+          NORTHFLANK_SUBDOMAIN: ${{ secrets.NORTHFLANK_SUBDOMAIN }}
+          NORTHFLANK_PORT_NAME: http
+          NORTHFLANK_INSTANCES: 1
+          IMAGE: ghcr.io/${{ github.repository }}:${{ needs.metadata.outputs.tag }}-core
         run: |
           set -euo pipefail
 
@@ -579,8 +583,11 @@ jobs:
           PAYLOAD="$(jq -n \
             --arg image "${IMAGE}" \
             --arg command "mcp --transport http --address 0.0.0.0:8080" \
+            --arg portName "${NORTHFLANK_PORT_NAME}" \
+            --argjson instances "${NORTHFLANK_INSTANCES}" \
             '{
               deployment: {
+                instances: $instances,
                 external: { imagePath: $image },
                 docker: {
                   configType: "customCommand",
@@ -589,10 +596,10 @@ jobs:
               },
               ports: [
                 {
-                  name: "http",
+                  name: $portName,
                   internalPort: 8080,
                   protocol: "HTTP",
-                  public: true
+                  public: false
                 }
               ]
             }')"
@@ -605,3 +612,14 @@ jobs:
             --header "Content-Type: application/json" \
             --data "${PAYLOAD}" \
             "https://api.northflank.com/v1/projects/${NORTHFLANK_PROJECT_ID}/services/deployment/${NORTHFLANK_SERVICE_ID}"
+
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer ${NORTHFLANK_API_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "$(jq -n \
+              --arg serviceId "${NORTHFLANK_SERVICE_ID}" \
+              --arg projectId "${NORTHFLANK_PROJECT_ID}" \
+              --arg portName "${NORTHFLANK_PORT_NAME}" \
+              '{serviceId: $serviceId, projectId: $projectId, portName: $portName}')" \
+            "https://api.northflank.com/v1/domains/${NORTHFLANK_DOMAIN}/subdomains/${NORTHFLANK_SUBDOMAIN}/assign"
