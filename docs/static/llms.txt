@@ -58,3 +58,19 @@ It is particularly useful for:
 ## Summary
 
 Zigflow is a declarative workflow orchestration layer for Temporal that lets you define workflows in YAML or JSON and compile them into production-grade workflows. It is designed for visual workflow tooling and helps teams build reliable distributed systems with less code.
+
+## AI Integration
+
+Zigflow provides a public read-only Model Context Protocol (MCP) server for AI assistants and agents.
+
+Documentation:
+https://zigflow.dev/docs/cli/mcp-server
+
+Endpoint:
+https://mcp.zigflow.dev
+
+Capabilities:
+- Retrieve Zigflow workflow schemas
+- List bundled examples
+- Retrieve example workflows
+- Validate Zigflow workflow definitions

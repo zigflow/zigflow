@@ -19,6 +19,7 @@ package mcp
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -75,12 +76,21 @@ func newHTTPHandler(server *mcp.Server) http.Handler {
 	return handler
 }
 
+func acceptsHTML(r *http.Request) bool {
+	return strings.Contains(r.Header.Get("Accept"), "text/html")
+}
+
+func acceptsEventStream(r *http.Request) bool {
+	return strings.Contains(r.Header.Get("Accept"), "text/event-stream")
+}
+
 // withDocsRedirect redirects humans visiting the root endpoint to the MCP
 // documentation. MCP clients should continue to call the configured MCP
 // endpoint programmatically.
 func withDocsRedirect(next http.Handler, target string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet && r.URL.Path == "/" {
+		if r.Method == http.MethodGet && r.URL.Path == "/" && acceptsHTML(r) && !acceptsEventStream(r) {
+			// Redirect homepage if not a machine
 			http.Redirect(w, r, target, http.StatusMovedPermanently)
 			return
 		}
