@@ -28,7 +28,10 @@ These are the non-negotiable rules. Most invalid workflows break one of them:
 
 - A workflow has exactly two required top-level keys: `document` and `do`.
 - `do` is an array of single-key maps, written `do: [ { stepName: { task } } ]`.
-  It is not a map of steps. There is no `steps:` or `tasks:` key.
+  A step may itself be a `do` task, allowing nested task sequences. If every top-level
+  task is a `do`, Zigflow treats those top-level names as workflow types and does
+  not register `document.workflowType`, although the field is still required by
+  the schema.
 - Each step's task type is identified by which task key it contains (one of the
   11 task types below).
 - Runtime expressions are jq (gojq) wrapped in `${ ... }`. A string without
@@ -246,8 +249,8 @@ These commonly assumed constructs are not supported and will fail validation:
 - ISO 8601 duration strings or singular duration keys. Use the plural-key
   duration object.
 - Task-level `timeout`. Configure timeouts under `metadata.activityOptions`.
-- Runtime variables or functions beyond the five variables and three functions
-  listed above.
+- Runtime variables beyond the five listed above, or Zigflow custom functions
+  beyond `uuid`, `timestamp` and `timestamp_iso8601`.
 
 ## Validation guidance
 
