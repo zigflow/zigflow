@@ -2,6 +2,18 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.12.1](https://github.com/zigflow/zigflow/releases/tag/v0.12.1) - 2026-05-31
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/426
+* chore: split ai rules into claude.md and agents.md by @mrsimonemms in https://github.com/zigflow/zigflow/pull/427
+* feat: create a bash installer for zigflow by @mrsimonemms in https://github.com/zigflow/zigflow/pull/429
+* Create HTTP MCP server by @mrsimonemms in https://github.com/zigflow/zigflow/pull/440
+* feat: improved the NDE check and throw a validation error by @mrsimonemms in https://github.com/zigflow/zigflow/pull/428
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.12.0...v0.12.1
+
 ## [v0.12.0](https://github.com/zigflow/zigflow/releases/tag/v0.12.0) - 2026-05-28
 
 ## What's Changed
