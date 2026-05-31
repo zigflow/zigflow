@@ -22,6 +22,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestFilePrepender_DisablesEditURL(t *testing.T) {
+	got := FilePrepender("zigflow_version.md")
+	assert.Contains(t, got, `title: "zigflow version"`)
+	assert.Contains(t, got, "custom_edit_url: null")
+}
+
 func TestFixLabeledListSection_SingleArg(t *testing.T) {
 	input := "Some preamble.\n\nArguments:\n  workflow-file   Path to the workflow file\n\nMore text."
 	got := fixLabeledListSection(input)

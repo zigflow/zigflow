@@ -40,6 +40,7 @@ func FilePrepender(filename string) string {
 
 	return `---
 title: "` + title + `"
+custom_edit_url: null
 ---
 
 `
