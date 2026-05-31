@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkzigflow=self.webpackChunkzigflow||[]).push([["3220"],{1912(e){e.exports=JSON.parse('{"blogBasePath":"/preview/feat-447-llms-txt-dsl-reference/articles","blogTitle":"Blog","authorsListPath":"/preview/feat-447-llms-txt-dsl-reference/articles/authors"}')}}]);
