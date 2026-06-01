@@ -6,11 +6,14 @@ sidebar_position: 4
 
 ## What you will learn
 
-- How data flows through a Zigflow workflow
 - The expression syntax
-- Available variables
+- The variables available in expressions
 - Built-in functions
-- How `set`, `output.as` and `export.as` interact
+
+:::tip
+For how task results, `output.as`, `export.as` and `$context` move data through
+a workflow, see [Data Flow](/docs/concepts/data-flow).
+:::
 
 ---
 
@@ -46,10 +49,10 @@ endpoint: ${ "https://api.example.com/users/" + ($data.userId | tostring) }
 
 | Variable | Description |
 | --- | --- |
-| `$input` | The workflow's input data, as passed by the client |
-| `$context` | The accumulated context from previous `export` calls |
-| `$data` | The data stored by previous `set` tasks |
+| `$context` | The current workflow context, written by `export` calls |
+| `$data` | Internal workflow and execution state maintained by Zigflow, including workflow and activity metadata. Use `$context` for values exported by workflow tasks |
 | `$env` | Environment variables available to the worker |
+| `$input` | The original workflow input supplied by the caller. This value does not change as tasks execute. |
 | `$output` | The output of the most recent task |
 
 ### `$input`
@@ -65,29 +68,49 @@ and does not change.
 
 ### `$data`
 
-Data stored by `set` tasks. Each `set` task merges its keys into `$data`.
-Values persist for the remainder of the workflow.
+The workflow's accumulating data store. It persists for the whole workflow run
+and is never reset between tasks. Writes merge into it by top-level key, so a new
+write overwrites a key with the same name but leaves other keys untouched.
+
+Two things write to `$data`:
+
+- A `set` task merges its keys directly. `set: { userId: ... }` becomes
+  `$data.userId`.
+- A task that runs an activity stores its result under the task name. An `http`
+  call named `fetchUser` becomes `$data.fetchUser`, holding the response body.
+
+Workflow and activity metadata is also exposed here, under `$data.workflow` and
+`$data.activity`.
 
 ```yaml
-- captureId:
-    set:
-      userId: ${ $input.userId }
-- callApi:
+- fetchUser:
     call: http
     with:
       method: get
-      endpoint: ${ "https://api.example.com/users/" + ($data.userId | tostring) }
+      endpoint: https://api.example.com/users/42
+- greet:
+    set:
+      message: ${ "Hello " + $data.fetchUser.name }
 ```
+
+Here `fetchUser` runs an HTTP call. Its response is stored at `$data.fetchUser`,
+which the later `greet` task reads by task name.
+
+`$data` differs from the other variables in scope. `$context` is replaced
+wholesale by each `export` call, whereas `$data` accumulates. `$output` holds
+only the most recent task's result, whereas `$data` keeps every task's result
+keyed by name.
 
 ### `$context`
 
-The accumulated context built up by `export` statements. Use it to carry
+The current workflow context, written by `export` calls. Each `export`
+replaces `$context` unless you explicitly merge into it. Use it to carry
 structured data forward without polluting `$data`.
 
 ```yaml
 - step1:
     export:
-      as: ${ $context + { step1Result: . } }
+      as: '${ $context + { step1Result: . } }'
     set:
       foo: bar
 ```
@@ -157,41 +180,11 @@ records the value in the history so it is stable across replays.
 
 ## Output and export
 
-Two properties control what a task passes forward:
-
-### `output.as`
-
-Transforms the task's output before it is passed to the next task. The
-expression is evaluated against the raw task output.
-
-```yaml
-- getUser:
-    call: http
-    output:
-      as:
-        userId: ${ .id }
-        name: ${ .name }
-    with:
-      method: get
-      endpoint: https://api.example.com/users/1
-```
-
-### `export.as`
-
-Saves the task's (optionally transformed) output into `$context`. This is
-how you accumulate data across multiple tasks.
-
-```yaml
-- step1:
-    export:
-      as: ${ $context + { result: . } }
-    set:
-      value: 42
-```
-
-### Combining them
-
-`output.as` runs first, then `export.as` runs against the transformed output.
+:::tip
+`output.as` shapes `$output` and `export.as` writes to `$context`. Both are
+evaluated against the task's raw result. For the full model, the difference
+between them and worked examples, see [Data Flow](/docs/concepts/data-flow).
+:::
 
 ---
 
@@ -219,18 +212,21 @@ Inside workflow execution, metadata is accessible via `$data.workflow` and
 This causes a Non-Determinism Error on workflow replay. Always generate
 values in a `set` task and reference them via `$data`.
 
-**Accessing `$data.key` before the `set` task that defines it.**
-`$data` keys are only available after the `set` task that created them has
-run. Access them in a later task.
+**Accessing a `$data` key before the task that defines it.**
+A `$data` key is only available after the task that wrote it has run. A `set`
+task merges its keys directly, and an activity-backed task such as an HTTP call
+stores its result under the task name. Access them in a later task.
 
 **Confusing `$output` with `$data`.**
-`$output` is the output of the last task only. `$data` accumulates across
-`set` tasks.
+`$output` is the output of the last task only. `$data` accumulates workflow data
+from task execution, keyed by name, and unlike `$context` is never replaced by
+`export`.
 
 ---
 
 ## Related pages
 
+- [Data Flow](/docs/concepts/data-flow): how data moves between tasks
 - [Set task](/docs/dsl/tasks/set): storing data
 - [DSL reference](/docs/dsl/intro): full expression context
 - [How Zigflow runs](/docs/concepts/how-zigflow-runs): determinism and replay

@@ -156,7 +156,7 @@ others exist, and referencing any other `$`-variable fails to compile:
 | `$context` | Data exported by earlier tasks via `export`.                                                                                                                 |
 | `$data`    | Internal workflow and execution state maintained by Zigflow, including workflow and activity metadata. Use `$context` for values exported by workflow tasks. |
 | `$env`     | Environment variables (see below).                                                                                                                           |
-| `$input`   | The input given by the caller.                                                                                                                               |
+| `$input`   | The input given by the caller. This value does not change as tasks execute.                                                                                  |
 | `$output`  | The current output value.                                                                                                                                    |
 
 Variables such as `$workflow`, `$task`, `$secret`, `$secrets`, `$vars`, `$self`,
@@ -166,6 +166,39 @@ Variables such as `$workflow`, `$task`, `$secret`, `$secrets`, `$vars`, `$self`,
 which is `ZIGGY_` by default, with the prefix stripped. For example,
 `ZIGGY_API_URL` becomes `$env.API_URL`. The prefix is configurable with
 `--env-prefix`.
+
+## Data flow
+
+Data moves on two separate channels. Confusing them is the most common
+authoring error.
+
+- `$output` holds the result of the most recent task only. It is overwritten by
+  every task and is what the workflow returns. Shape it with a task's
+  `output.as`.
+- `$context` is shared data that persists across tasks. Write to it with a
+  task's `export.as` and read it later with `$context`.
+
+Per-task order of operations: the task produces a raw result, then `output.as`
+is evaluated against that raw result and stored as `$output`, then `export.as`
+is evaluated against the same raw result and its value replaces `$context`. Both
+`output.as` and `export.as` see the raw task result as `.`.
+
+Key rules:
+
+- `export` replaces `$context` entirely. To accumulate, merge explicitly, for
+  example `export: { as: '${ $context + { key: . } }' }`. An expression
+  containing `: ` must be quoted in YAML.
+- A workflow returns the output of its final task. To shape the returned value,
+  set `output.as` on the final task. `output.schema` describes the expected
+  workflow output shape.
+- To pass a value to a task that is not the immediate next one, use `export`
+  into `$context`, not `output`. By then `$output` has been overwritten.
+
+Choosing between them:
+
+- Use `output.as` to shape the result that flows forward or that the workflow
+  returns.
+- Use `export.as` to keep a value available to later tasks via `$context`.
 
 ## Expression syntax
 
@@ -302,5 +335,6 @@ Tools:
 - DSL overview: https://zigflow.dev/docs/dsl/intro
 - Tasks: https://zigflow.dev/docs/dsl/tasks/intro
 - Data and expressions: https://zigflow.dev/docs/concepts/data-and-expressions
+- Data flow: https://zigflow.dev/docs/concepts/data-flow
 - Metadata: https://zigflow.dev/docs/dsl/metadata/intro
 - Getting started: https://zigflow.dev/docs/intro
