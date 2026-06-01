@@ -21,6 +21,8 @@ import (
 
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"go.temporal.io/sdk/activity"
 )
 
 func TestCallGRPCTaskBuilderPostLoadSetsHostDefault(t *testing.T) {
@@ -95,4 +97,49 @@ func TestCallGRPCTaskBuilderBuildDoesNotMutateTask(t *testing.T) {
 
 	assert.Equal(t, "", task.With.Service.Host, "Build() must not set Host default")
 	assert.Equal(t, 0, task.With.Service.Port, "Build() must not set Port default")
+}
+
+func newTestGRPCTask() *model.CallGRPC {
+	return &model.CallGRPC{
+		With: model.GRPCArguments{
+			Service: model.GRPCService{Host: "localhost", Port: 50051},
+		},
+	}
+}
+
+func TestCallGRPCTaskBuilderRegistersPerTaskActivityName(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-grpc-metrics"}}
+
+	w := new(WorkflowRegistryMock)
+	w.
+		On("RegisterActivityWithOptions", mock.Anything, activity.RegisterOptions{
+			Name: "wf-grpc-metrics.callBackend",
+		}).
+		Once()
+
+	b, err := NewCallGRPCTaskBuilder(w, newTestGRPCTask(), "callBackend", doc, testEvents, nil)
+	assert.NoError(t, err)
+
+	_, err = b.Build()
+	assert.NoError(t, err)
+
+	w.AssertExpectations(t)
+}
+
+func TestCallGRPCTaskBuilderRegistersOncePerWorker(t *testing.T) {
+	assertRegistersOncePerWorker(t, "wf-grpc-dedup", "invoke",
+		func(w *WorkflowRegistryMock, doc *model.Workflow, taskName string) (TaskBuilder, error) {
+			return NewCallGRPCTaskBuilder(w, newTestGRPCTask(), taskName, doc, testEvents, nil)
+		})
+}
+
+func TestCallGRPCTaskBuilderBuildWithoutWorker(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-grpc-nil-worker"}}
+
+	b, err := NewCallGRPCTaskBuilder(nil, newTestGRPCTask(), "step", doc, testEvents, nil)
+	assert.NoError(t, err)
+
+	fn, err := b.Build()
+	assert.NoError(t, err)
+	assert.NotNil(t, fn)
 }

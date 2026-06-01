@@ -687,7 +687,7 @@ func (m *WorkflowRegistryMock) RegisterActivity(a any) {
 
 // RegisterActivityWithOptions implements [worker.Worker].
 func (m *WorkflowRegistryMock) RegisterActivityWithOptions(a any, options activity.RegisterOptions) {
-	panic("unimplemented")
+	m.Called(a, options)
 }
 
 // RegisterDynamicActivity implements [worker.Worker].

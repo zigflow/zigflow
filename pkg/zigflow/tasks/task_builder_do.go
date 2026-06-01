@@ -104,7 +104,7 @@ func (t *DoTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 		// Build a task builder
 		l.Debug().Msg("Creating task builder")
-		builder, err := NewTaskBuilder(task.Key, task.Task, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts)
+		builder, err := NewTaskBuilder(task.Key, task.Task, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts, t.childTaskPath(task.Key))
 		if err != nil {
 			return nil, fmt.Errorf("error creating task builder: %w", err)
 		}
@@ -146,7 +146,7 @@ func (t *DoTaskBuilder) PostLoad() error {
 
 		// Build a task builder
 		l.Debug().Msg("Creating prep task builder")
-		builder, err := NewTaskBuilder(task.Key, task.Task, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts)
+		builder, err := NewTaskBuilder(task.Key, task.Task, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts, t.childTaskPath(task.Key))
 		if err != nil {
 			return fmt.Errorf("error creating task prep builder: %w", err)
 		}
@@ -162,7 +162,7 @@ func (t *DoTaskBuilder) PostLoad() error {
 
 func (t *DoTaskBuilder) Validate() error {
 	for _, task := range *t.task.Do {
-		builder, err := NewTaskBuilder(task.Key, task.Task, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts)
+		builder, err := NewTaskBuilder(task.Key, task.Task, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts, t.childTaskPath(task.Key))
 		if err != nil {
 			return fmt.Errorf("error creating task validate builder: %w", err)
 		}

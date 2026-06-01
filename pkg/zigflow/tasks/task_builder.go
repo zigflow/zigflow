@@ -18,6 +18,8 @@ package tasks
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 	swUtils "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
@@ -62,6 +64,104 @@ type builder[T model.Task] struct {
 	task           T
 	taskOpts       *TaskOpts
 	temporalWorker worker.Worker
+	// Path from the workflow root; disambiguates per-task activity names
+	// when sibling scopes reuse a leaf name.
+	taskPath []string
+}
+
+func (d *builder[T]) perTaskActivityName() string {
+	if d.doc == nil || d.doc.Document.Name == "" {
+		return d.name
+	}
+	segments := []string{d.doc.Document.Name}
+	if len(d.taskPath) == 0 {
+		segments = append(segments, d.name)
+	} else {
+		segments = append(segments, d.taskPath...)
+	}
+	return joinActivityNameSegments(segments)
+}
+
+// joinActivityNameSegments builds a per-task activity name by escaping each
+// segment and joining them with ".".
+//
+// A task key may legitimately contain dots (e.g. "a.b"). Joining raw
+// segments with "." would make such a key indistinguishable from the
+// separator, so two different task paths could collide on one activity name
+// (["a.b", "c"] and ["a", "b.c"] would both yield "a.b.c"). Escaping makes
+// the join unambiguous, so distinct task paths always produce distinct
+// activity names and valid task keys are preserved rather than rejected.
+func joinActivityNameSegments(segments []string) string {
+	escaped := make([]string, len(segments))
+	for i, segment := range segments {
+		escaped[i] = escapeActivityNameSegment(segment)
+	}
+	return strings.Join(escaped, ".")
+}
+
+// escapeActivityNameSegment makes a single segment safe to join with "."
+// into a per-task activity name. It escapes the escape character first and
+// then the separator, so the encoding is reversible and injective: an
+// unescaped "." in the joined name is always a separator, and a "\" always
+// introduces a literal "\" or ".". Segments that contain neither character
+// (the common case) are returned unchanged, keeping the clean
+// "<workflowType>.<task>" form.
+func escapeActivityNameSegment(segment string) string {
+	segment = strings.ReplaceAll(segment, `\`, `\\`)
+	return strings.ReplaceAll(segment, ".", `\.`)
+}
+
+func (d *builder[T]) setTaskPath(path []string) {
+	d.taskPath = path
+}
+
+// slices.Concat allocates a fresh slice so sibling iterations do not
+// share the parent's underlying array.
+func (d *builder[T]) childTaskPath(name string) []string {
+	return slices.Concat(d.taskPath, []string{name})
+}
+
+type taskPathSetter interface {
+	setTaskPath([]string)
+}
+
+func (d *builder[T]) registerActivityForTask(fn any) string {
+	name := d.perTaskActivityName()
+	registerActivityOnce(d.temporalWorker, fn, name)
+	return name
+}
+
+// Combines registerActivityForTask with the dispatch closure used by
+// CallHTTP/CallGRPC. RunTaskBuilder picks between sub-activities and
+// uses registerActivityForTask directly instead.
+//
+// legacyName is the fixed activity type name recorded by histories created
+// before per-task aliases existed; dispatchActivityName decides at runtime
+// which name to schedule so open executions keep replaying deterministically.
+func (d *builder[T]) buildActivityFunc(fn any, legacyName string) TemporalWorkflowFunc {
+	perTaskName := d.registerActivityForTask(fn)
+	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
+		return d.executeActivity(ctx, dispatchActivityName(ctx, legacyName, perTaskName), input, state)
+	}
+}
+
+// dispatchActivityName selects the activity type to schedule, using Temporal
+// workflow versioning so renaming activities to per-task aliases does not
+// break open histories.
+//
+// On a new execution GetVersion records a marker and returns the current
+// version, so the per-task alias is scheduled. On an execution that started
+// before the change there is no marker, GetVersion returns
+// workflow.DefaultVersion, and the legacy name the history already recorded
+// is scheduled again, keeping the replay deterministic. The worker registers
+// both names, so either resolves at runtime.
+func dispatchActivityName(ctx workflow.Context, legacyName, perTaskName string) string {
+	if workflow.GetVersion(
+		ctx, activityNamingVersionChangeID, workflow.DefaultVersion, activityNamingVersion,
+	) == workflow.DefaultVersion {
+		return legacyName
+	}
+	return perTaskName
 }
 
 func (d *builder[T]) executeActivity(ctx workflow.Context, activity, input any, state *utils.State) (output any, err error) {
@@ -153,42 +253,55 @@ func NewTaskBuilder(
 	doc *model.Workflow,
 	emitter *cloudevents.Events,
 	taskOpts *TaskOpts,
+	taskPath []string,
 ) (TaskBuilder, error) {
+	var b TaskBuilder
+	var err error
+
 	switch t := task.(type) {
 	case *model.CallFunction:
 		if t.Call == customCallFunctionActivity {
-			return NewCallActivityTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+			b, err = NewCallActivityTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		} else {
+			return nil, fmt.Errorf("unsupported call type '%s' for task '%s'", t.Call, taskName)
 		}
-		return nil, fmt.Errorf("unsupported call type '%s' for task '%s'", t.Call, taskName)
 	case *model.CallGRPC:
-		return NewCallGRPCTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		b, err = NewCallGRPCTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.CallHTTP:
-		return NewCallHTTPTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		b, err = NewCallHTTPTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.DoTask:
-		return NewDoTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		b, err = NewDoTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.ForTask:
-		return NewForTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		b, err = NewForTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.ForkTask:
-		return NewForkTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		b, err = NewForkTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.ListenTask:
-		return NewListenTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		b, err = NewListenTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.RaiseTask:
-		return NewRaiseTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		b, err = NewRaiseTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.RunTask:
-		return NewRunTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		b, err = NewRunTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.SetTask:
-		return NewSetTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		b, err = NewSetTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.SwitchTask:
-		return NewSwitchTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		b, err = NewSwitchTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.TryTask:
-		return NewTryTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		b, err = NewTryTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.WaitTask:
-		return NewWaitTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		b, err = NewWaitTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *models.WaitExtTask:
-		return NewWaitExtTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		b, err = NewWaitExtTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	default:
 		return nil, fmt.Errorf("unsupported task type '%T' for task '%s'", t, taskName)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+	if setter, ok := b.(taskPathSetter); ok && taskPath != nil {
+		setter.setTaskPath(taskPath)
+	}
+	return b, nil
 }
 
 // Ensure the tasks meets the TaskBuilder type

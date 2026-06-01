@@ -22,8 +22,10 @@ import (
 
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
+	"go.temporal.io/sdk/activity"
 )
 
 func TestParseHTTPArguments(t *testing.T) {
@@ -91,4 +93,51 @@ func TestParseOutput(t *testing.T) {
 			assert.Equal(t, tc.expect, got)
 		})
 	}
+}
+
+func newTestHTTPTask() *model.CallHTTP {
+	return &model.CallHTTP{
+		Call: "http",
+		With: model.HTTPArguments{
+			Method:   "GET",
+			Endpoint: model.NewEndpoint("https://example.com"),
+		},
+	}
+}
+
+func TestCallHTTPTaskBuilderRegistersPerTaskActivityName(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-http-metrics"}}
+
+	w := new(WorkflowRegistryMock)
+	w.
+		On("RegisterActivityWithOptions", mock.Anything, activity.RegisterOptions{
+			Name: "wf-http-metrics.fetchData",
+		}).
+		Once()
+
+	b, err := NewCallHTTPTaskBuilder(w, newTestHTTPTask(), "fetchData", doc, testEvents, nil)
+	assert.NoError(t, err)
+
+	_, err = b.Build()
+	assert.NoError(t, err)
+
+	w.AssertExpectations(t)
+}
+
+func TestCallHTTPTaskBuilderRegistersOncePerWorker(t *testing.T) {
+	assertRegistersOncePerWorker(t, "wf-http-dedup", "authenticate",
+		func(w *WorkflowRegistryMock, doc *model.Workflow, taskName string) (TaskBuilder, error) {
+			return NewCallHTTPTaskBuilder(w, newTestHTTPTask(), taskName, doc, testEvents, nil)
+		})
+}
+
+func TestCallHTTPTaskBuilderBuildWithoutWorker(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-http-nil-worker"}}
+
+	b, err := NewCallHTTPTaskBuilder(nil, newTestHTTPTask(), "step", doc, testEvents, nil)
+	assert.NoError(t, err)
+
+	fn, err := b.Build()
+	assert.NoError(t, err)
+	assert.NotNil(t, fn)
 }

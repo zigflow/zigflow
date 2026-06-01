@@ -133,26 +133,44 @@ func (t *ForkTaskBuilder) buildOrPostLoad() ([]*forkedTask, []TaskBuilder, error
 	builders := make([]TaskBuilder, 0)
 
 	for _, branch := range *t.task.Fork.Branches {
-		childWorkflowName := utils.GenerateChildWorkflowName("fork", t.GetTaskName(), branch.Key)
+		// Capture the original, user-visible branch key before the branch
+		// is (potentially) wrapped as a synthetic child workflow below.
+		// Per-task activity aliases must read as
+		// <workflowType>.<fork>.<branch>..., using this key rather than the
+		// synthetic child workflow name.
+		originalKey := branch.Key
+		childWorkflowName := utils.GenerateChildWorkflowName("fork", t.GetTaskName(), originalKey)
 
 		forkedTasks = append(forkedTasks, &forkedTask{
 			task:              branch,
 			childWorkflowName: childWorkflowName,
-			taskName:          branch.Key,
+			taskName:          originalKey,
 		})
 
+		// Multi-task branches are a do-task scope, so the branch key is an
+		// intermediate path segment and the body's tasks nest beneath it.
+		childPath := t.childTaskPath(originalKey)
+
 		if d := branch.AsDoTask(); d == nil {
-			// Single task - register this as a single task workflow
-			log.Debug().Str("task", branch.Key).Msg("Registering single task workflow")
+			// Single task - register this as a single task workflow. The
+			// wrapper still contains the original task item (keyed
+			// originalKey), which re-supplies the branch key as the leaf
+			// path segment, so hand the wrapper the parent path to avoid
+			// duplicating originalKey in the generated alias.
+			log.Debug().Str("task", originalKey).Msg("Registering single task workflow")
 			branch = &model.TaskItem{
 				Key: childWorkflowName,
 				Task: &model.DoTask{
 					Do: &model.TaskList{branch},
 				},
 			}
+			childPath = t.taskPath
 		}
 
-		builder, err := NewTaskBuilder(childWorkflowName, branch.Task, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts)
+		builder, err := NewTaskBuilder(
+			childWorkflowName, branch.Task,
+			t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts, childPath,
+		)
 		if err != nil {
 			log.Error().Err(err).Msg("Error creating the forked task builder")
 			return nil, nil, fmt.Errorf("error creating the forked task builder: %w", err)

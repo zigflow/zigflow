@@ -23,9 +23,11 @@ import (
 
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
@@ -178,4 +180,100 @@ func TestForkTaskBuilderExecStillWrapsRealBranchFailure(t *testing.T) {
 	require.Error(t, workflowErr)
 	assert.Contains(t, workflowErr.Error(), "error forking task")
 	assert.NotContains(t, workflowErr.Error(), flow.ErrEnd.Error())
+}
+
+// testForkTaskName is the fork task's own name (and sole path segment) used
+// by the alias-derivation tests below.
+const testForkTaskName = "dispatch"
+
+// A single-task fork branch is wrapped in a synthetic child workflow before
+// being built. The generated per-task activity alias must still be derived
+// from the original, user-visible branch key ("branchA"), not from the
+// synthetic child workflow name ("workflow_fork_dispatch_branchA").
+//
+// Only the original-key alias is registered as an expectation; the mock
+// fails any RegisterActivityWithOptions call with a different name, so an
+// alias built from the synthetic name would fail the test rather than pass
+// silently.
+func TestForkSingleTaskBranchAliasUsesOriginalBranchKey(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-fork-single"}}
+
+	w := new(WorkflowRegistryMock)
+	// The wrapper child workflow registration is incidental here.
+	w.On("RegisterWorkflowWithOptions", mock.Anything, mock.Anything).Maybe()
+	w.
+		On("RegisterActivityWithOptions", mock.Anything, activity.RegisterOptions{
+			Name: "wf-fork-single.dispatch.branchA",
+		}).
+		Once()
+
+	forkTask := &model.ForkTask{
+		Fork: model.ForkTaskConfiguration{
+			Branches: &model.TaskList{
+				&model.TaskItem{Key: "branchA", Task: newTestHTTPTask()},
+			},
+		},
+	}
+
+	b := &ForkTaskBuilder{
+		builder: builder[*model.ForkTask]{
+			doc:            doc,
+			eventEmitter:   testEvents,
+			name:           testForkTaskName,
+			taskPath:       []string{testForkTaskName},
+			task:           forkTask,
+			temporalWorker: w,
+		},
+	}
+
+	_, err := b.Build()
+	assert.NoError(t, err)
+
+	w.AssertExpectations(t)
+}
+
+// A multi-task fork branch is a do-task scope: the branch key is an
+// intermediate path segment and the body's leaf tasks nest beneath it. This
+// pins the sibling behaviour the single-task case is kept consistent with.
+func TestForkMultiTaskBranchAliasNestsUnderBranchKey(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-fork-multi"}}
+
+	w := new(WorkflowRegistryMock)
+	w.On("RegisterWorkflowWithOptions", mock.Anything, mock.Anything).Maybe()
+	w.
+		On("RegisterActivityWithOptions", mock.Anything, activity.RegisterOptions{
+			Name: "wf-fork-multi.dispatch.branchB.leaf",
+		}).
+		Once()
+
+	forkTask := &model.ForkTask{
+		Fork: model.ForkTaskConfiguration{
+			Branches: &model.TaskList{
+				&model.TaskItem{
+					Key: "branchB",
+					Task: &model.DoTask{
+						Do: &model.TaskList{
+							&model.TaskItem{Key: "leaf", Task: newTestHTTPTask()},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	b := &ForkTaskBuilder{
+		builder: builder[*model.ForkTask]{
+			doc:            doc,
+			eventEmitter:   testEvents,
+			name:           testForkTaskName,
+			taskPath:       []string{testForkTaskName},
+			task:           forkTask,
+			temporalWorker: w,
+		},
+	}
+
+	_, err := b.Build()
+	assert.NoError(t, err)
+
+	w.AssertExpectations(t)
 }

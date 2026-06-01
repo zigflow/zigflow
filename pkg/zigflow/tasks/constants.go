@@ -25,3 +25,43 @@ const (
 	constDefaultNamespace     = "default"
 	constScriptLanguagePython = "python"
 )
+
+// Path segments threaded through Try's try/catch bodies so a leaf-named
+// task appearing in both does not collide.
+const (
+	tryBodyPathSegment   = "try"
+	catchBodyPathSegment = "catch"
+)
+
+// activityNamingVersionChangeID is the Temporal workflow versioning marker
+// that gates the switch from the legacy fixed per-transport activity type
+// names to the per-task aliases introduced for metrics and observability.
+//
+// Executions started before this change have no version marker in their
+// history, so workflow.GetVersion returns workflow.DefaultVersion and they
+// keep scheduling the legacy name they originally recorded; new executions
+// record the marker and schedule the per-task alias. This keeps open
+// histories deterministic across the upgrade.
+//
+// This string is a durable contract written into workflow histories. It
+// must never change once released.
+const activityNamingVersionChangeID = "zigflow.per-task-activity-aliases"
+
+// activityNamingVersion is the version recorded for
+// activityNamingVersionChangeID on new executions.
+const activityNamingVersion = 1
+
+// Legacy fixed activity type names. These are the names Temporal derived
+// from the activity method names before per-task aliases existed, and they
+// remain registered on every worker via ActivitiesList for back-compat.
+// Open workflow histories scheduled activities under these names, so a
+// replaying execution must continue to schedule them. They must stay
+// aligned with the corresponding activities.* method names and must never
+// change.
+const (
+	legacyCallHTTPActivityName      = "CallHTTPActivity"
+	legacyCallGRPCActivityName      = "CallGRPCActivity"
+	legacyCallContainerActivityName = "CallContainerActivity"
+	legacyCallScriptActivityName    = "CallScriptActivity"
+	legacyCallShellActivityName     = "CallShellActivity"
+)

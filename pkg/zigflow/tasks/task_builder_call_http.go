@@ -19,10 +19,8 @@ package tasks
 import (
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
-	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
 	"go.temporal.io/sdk/worker"
-	"go.temporal.io/sdk/workflow"
 )
 
 func NewCallHTTPTaskBuilder(
@@ -49,8 +47,11 @@ type CallHTTPTaskBuilder struct {
 	builder[*model.CallHTTP]
 }
 
+// Singleton whose bound method value is registered under per-task names.
+// A bound value (not the unbound method expression) is required so
+// Temporal invokes the activity with the receiver supplied.
+var callHTTPActivity = &activities.CallHTTP{}
+
 func (t *CallHTTPTaskBuilder) Build() (TemporalWorkflowFunc, error) {
-	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
-		return t.executeActivity(ctx, (*activities.CallHTTP).CallHTTPActivity, input, state)
-	}, nil
+	return t.buildActivityFunc(callHTTPActivity.CallHTTPActivity, legacyCallHTTPActivityName), nil
 }

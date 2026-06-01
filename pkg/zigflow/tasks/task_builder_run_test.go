@@ -27,6 +27,7 @@ import (
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
@@ -391,8 +392,11 @@ func TestRunTaskBuilderRunScriptExecutesActivity(t *testing.T) {
 	assert.NoError(t, err)
 
 	state := utils.NewState()
+	// Per-task registration: Build() dispatches by per-task name; the
+	// testsuite needs the activity registered under that name to resolve.
+	env.RegisterActivityWithOptions(runActivities.CallScriptActivity, activity.RegisterOptions{Name: "script-task"})
 	env.OnActivity(
-		runActivities.CallScriptActivity,
+		"script-task",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything,
@@ -564,11 +568,12 @@ func TestRunTaskBuilderRunContainerPassesRuntimeOptions(t *testing.T) {
 
 	state := utils.NewState()
 
+	env.RegisterActivityWithOptions(runActivities.CallContainerActivity, activity.RegisterOptions{Name: "container-task"})
 	// Matchers: ctx, task, input, state, namespace, runtime, serviceAccount.
 	// The runtime arg is the strongly typed activities.ContainerRuntime, so the
 	// matcher must use the same type rather than the raw string value.
 	env.OnActivity(
-		runActivities.CallContainerActivity,
+		"container-task",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything,
@@ -619,8 +624,9 @@ func TestRunTaskBuilderRunContainerPassesEmptyRuntimeOptionsWhenTaskOptsNil(t *t
 
 	state := utils.NewState()
 
+	env.RegisterActivityWithOptions(runActivities.CallContainerActivity, activity.RegisterOptions{Name: "container-task"})
 	env.OnActivity(
-		runActivities.CallContainerActivity,
+		"container-task",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything,
@@ -660,8 +666,9 @@ func TestRunTaskBuilderRunShellExecutesActivity(t *testing.T) {
 	assert.NoError(t, err)
 
 	state := utils.NewState()
+	env.RegisterActivityWithOptions(runActivities.CallShellActivity, activity.RegisterOptions{Name: "shell-task"})
 	env.OnActivity(
-		runActivities.CallShellActivity,
+		"shell-task",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything,
@@ -681,4 +688,115 @@ func TestRunTaskBuilderRunShellExecutesActivity(t *testing.T) {
 	assert.Equal(t, "shell-success", result)
 
 	assert.Equal(t, "shell-success", state.Data["shell-task"])
+}
+
+func TestRunTaskBuilderRegistersPerTaskActivityName(t *testing.T) {
+	cases := []struct {
+		name        string
+		makeTask    func() *model.RunTask
+		taskName    string
+		expectedReg string
+	}{
+		{
+			name: "container variant",
+			makeTask: func() *model.RunTask {
+				return &model.RunTask{
+					Run: model.RunTaskConfiguration{
+						Await:     utils.Ptr(true),
+						Container: &model.Container{Image: "busybox:latest"},
+					},
+				}
+			},
+			taskName:    "runContainer",
+			expectedReg: "wf-run.runContainer",
+		},
+		{
+			name: "script variant",
+			makeTask: func() *model.RunTask {
+				return &model.RunTask{
+					Run: model.RunTaskConfiguration{
+						Await: utils.Ptr(true),
+						Script: &model.Script{
+							Language:   constScriptLanguagePython,
+							InlineCode: utils.Ptr("print(1)"),
+						},
+					},
+				}
+			},
+			taskName:    "runScript",
+			expectedReg: "wf-run.runScript",
+		},
+		{
+			name: "shell variant",
+			makeTask: func() *model.RunTask {
+				return &model.RunTask{
+					Run: model.RunTaskConfiguration{
+						Await: utils.Ptr(true),
+						Shell: &model.Shell{Command: "echo hello"},
+					},
+				}
+			},
+			taskName:    "runShell",
+			expectedReg: "wf-run.runShell",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			doc := &model.Workflow{Document: model.Document{Name: "wf-run"}}
+
+			w := new(WorkflowRegistryMock)
+			w.
+				On("RegisterActivityWithOptions", mock.Anything, activity.RegisterOptions{
+					Name: tc.expectedReg,
+				}).
+				Once()
+
+			b, err := NewRunTaskBuilder(w, tc.makeTask(), tc.taskName, doc, testEvents, nil)
+			require.NoError(t, err)
+			require.NoError(t, b.PostLoad())
+
+			_, err = b.Build()
+			assert.NoError(t, err)
+			w.AssertExpectations(t)
+		})
+	}
+}
+
+func TestRunTaskBuilderWorkflowVariantDoesNotRegisterActivity(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-run-child"}}
+	task := &model.RunTask{
+		Run: model.RunTaskConfiguration{
+			Await:    utils.Ptr(true),
+			Workflow: &model.RunWorkflow{Namespace: constDefaultNamespace, Name: "child", Version: testConstRunWorkflowVersion},
+		},
+	}
+
+	w := new(WorkflowRegistryMock)
+	// no .On("RegisterActivityWithOptions", ...): runWorkflow uses a child workflow, not an activity
+
+	b, err := NewRunTaskBuilder(w, task, "runWf", doc, testEvents, nil)
+	require.NoError(t, err)
+	require.NoError(t, b.PostLoad())
+
+	_, err = b.Build()
+	assert.NoError(t, err)
+	w.AssertExpectations(t)
+}
+
+func TestRunTaskBuilderBuildWithoutWorker(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-run-nil-worker"}}
+	task := &model.RunTask{
+		Run: model.RunTaskConfiguration{
+			Await: utils.Ptr(true),
+			Shell: &model.Shell{Command: "echo hello"},
+		},
+	}
+
+	b, err := NewRunTaskBuilder(nil, task, "step", doc, testEvents, nil)
+	require.NoError(t, err)
+	require.NoError(t, b.PostLoad())
+
+	fn, err := b.Build()
+	assert.NoError(t, err)
+	assert.NotNil(t, fn)
 }

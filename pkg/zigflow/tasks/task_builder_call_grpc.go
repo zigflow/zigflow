@@ -19,10 +19,8 @@ package tasks
 import (
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
-	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
 	"go.temporal.io/sdk/worker"
-	"go.temporal.io/sdk/workflow"
 )
 
 func NewCallGRPCTaskBuilder(
@@ -59,8 +57,9 @@ func (t *CallGRPCTaskBuilder) PostLoad() error {
 	return nil
 }
 
+// Singleton whose bound method value is registered under per-task names.
+var callGRPCActivity = &activities.CallGRPC{}
+
 func (t *CallGRPCTaskBuilder) Build() (TemporalWorkflowFunc, error) {
-	return func(ctx workflow.Context, input any, state *utils.State) (output any, err error) {
-		return t.executeActivity(ctx, (*activities.CallGRPC).CallGRPCActivity, input, state)
-	}, nil
+	return t.buildActivityFunc(callGRPCActivity.CallGRPCActivity, legacyCallGRPCActivityName), nil
 }

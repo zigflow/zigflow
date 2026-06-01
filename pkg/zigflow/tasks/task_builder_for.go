@@ -101,6 +101,9 @@ func (t *ForTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		log.Error().Str("task", t.childWorkflowName).Err(err).Msg("Error creating the for task builder")
 		return nil, fmt.Errorf("error creating the for task builder: %w", err)
 	}
+	// Direct construction bypasses NewTaskBuilder's path setter; thread it
+	// here so the body's tasks inherit the For's path.
+	innerBuilder.setTaskPath(t.taskPath)
 
 	innerFn, err := innerBuilder.Build()
 	if err != nil {
@@ -195,7 +198,10 @@ func (t *ForTaskBuilder) createBuilder() (TaskBuilder, error) {
 	// Register the ForTask's Do as a child workflow
 	t.childWorkflowName = utils.GenerateChildWorkflowName("for", t.GetTaskName())
 
-	builder, err := NewTaskBuilder(t.childWorkflowName, &model.DoTask{Do: t.task.Do}, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts)
+	builder, err := NewTaskBuilder(
+		t.childWorkflowName, &model.DoTask{Do: t.task.Do},
+		t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts, t.taskPath,
+	)
 	if err != nil {
 		log.Error().Str("task", t.childWorkflowName).Err(err).Msg("Error creating the for task builder")
 		return nil, fmt.Errorf("error creating the for task builder: %w", err)

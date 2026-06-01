@@ -154,6 +154,23 @@ backoff.
 `Retry-After` delays are not capped by Zigflow. Use Temporal timeout settings,
 such as `ScheduleToCloseTimeout`, to enforce a maximum execution time.
 
+### SDK metrics {/*#sdk-metrics*/}
+
+Activity-dispatching tasks (`call: http`, `call: grpc`, and `run:` tasks
+of type Container, Script and Shell) are each registered on their worker
+under a name derived from the task's path from the workflow root. For a
+task at the top of a workflow's `do:` list, the registered name is
+`<workflowType>.<taskName>` (for example `call-http.getUser`). For
+nested tasks, the path includes each parent's name, so a task `step`
+inside a `for:` task `loop` registers as `<workflowType>.loop.step`.
+Try bodies use `try` and `catch` as path segments to disambiguate the
+two scopes.
+
+Temporal's SDK metrics use the registered name for the `activity_type`
+label, so individual tasks can be attributed in dashboards and alerts
+without colliding when sibling scopes happen to reuse a leaf name.
+`run.workflow` is a child workflow and is not affected.
+
 **Activity names are case-sensitive.** The `name` field in an activity call
 must exactly match the name the activity was registered with on the remote
 worker.

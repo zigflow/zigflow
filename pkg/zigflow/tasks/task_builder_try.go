@@ -69,7 +69,7 @@ func (t *TryTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 			return nil, fmt.Errorf("error building for workflow: %w", err)
 		}
 
-		if taskType == "try" {
+		if taskType == tryBodyPathSegment {
 			t.tryChildWorkflowName = name
 		} else {
 			t.catchChildWorkflowName = name
@@ -253,8 +253,8 @@ func (t *TryTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 
 func (t *TryTaskBuilder) getTasks() map[string]*model.TaskList {
 	return map[string]*model.TaskList{
-		"try":   t.task.Try,
-		"catch": t.task.Catch.Do,
+		tryBodyPathSegment:   t.task.Try,
+		catchBodyPathSegment: t.task.Catch.Do,
 	}
 }
 
@@ -270,7 +270,11 @@ func (t *TryTaskBuilder) createBuilder(
 
 	childWorkflowName = utils.GenerateChildWorkflowName(taskType, t.GetTaskName())
 
-	b, err := NewTaskBuilder(childWorkflowName, &model.DoTask{Do: list}, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts)
+	childPath := t.childTaskPath(taskType)
+	b, err := NewTaskBuilder(
+		childWorkflowName, &model.DoTask{Do: list},
+		t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts, childPath,
+	)
 	if err != nil {
 		l.Error().Msg("Error creating the for task builder")
 		err = fmt.Errorf("error creating the for task builder: %w", err)

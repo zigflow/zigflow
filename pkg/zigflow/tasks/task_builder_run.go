@@ -59,21 +59,47 @@ func NewRunTaskBuilder(
 
 type RunTaskBuilder struct {
 	builder[*model.RunTask]
+	// activityName is set by Build() once we know which sub-activity
+	// (Container, Script, Shell) will run. Sub-factories use it as the
+	// dispatch name so SDK metrics carry activity_type=<workflowType>.<taskName>.
+	// Empty for the runWorkflow sub-factory (no activity registration).
+	activityName string
+	// legacyActivityName is the fixed activity type name the chosen
+	// sub-activity used before per-task aliases existed. Sub-factories pass
+	// both names to dispatchActivityName so open histories keep scheduling
+	// the legacy name during replay.
+	legacyActivityName string
 }
+
+// Singleton whose bound method values are registered under per-task names.
+var runActivityInstance = &activities.Run{}
 
 func (t *RunTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	var factory TemporalWorkflowFunc
+	var activityFn any
+	var legacyName string
 	switch {
 	case t.task.Run.Container != nil:
+		activityFn = runActivityInstance.CallContainerActivity
+		legacyName = legacyCallContainerActivityName
 		factory = t.runContainer
 	case t.task.Run.Script != nil:
+		activityFn = runActivityInstance.CallScriptActivity
+		legacyName = legacyCallScriptActivityName
 		factory = t.runScript
 	case t.task.Run.Shell != nil:
+		activityFn = runActivityInstance.CallShellActivity
+		legacyName = legacyCallShellActivityName
 		factory = t.runShell
 	case t.task.Run.Workflow != nil:
 		factory = t.runWorkflow
 	default:
 		return nil, fmt.Errorf("unsupported run task: %s", t.GetTaskName())
+	}
+
+	if activityFn != nil {
+		t.activityName = t.registerActivityForTask(activityFn)
+		t.legacyActivityName = legacyName
 	}
 
 	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
@@ -188,15 +214,18 @@ func (t *RunTaskBuilder) runContainer(ctx workflow.Context, input any, state *ut
 		serviceAccount = t.taskOpts.Run.ServiceAccount
 	}
 
-	return t.executeCommand(ctx, (*activities.Run).CallContainerActivity, input, state, namespace, runtime, serviceAccount)
+	name := dispatchActivityName(ctx, t.legacyActivityName, t.activityName)
+	return t.executeCommand(ctx, name, input, state, namespace, runtime, serviceAccount)
 }
 
 func (t *RunTaskBuilder) runScript(ctx workflow.Context, input any, state *utils.State) (any, error) {
-	return t.executeCommand(ctx, (*activities.Run).CallScriptActivity, input, state)
+	name := dispatchActivityName(ctx, t.legacyActivityName, t.activityName)
+	return t.executeCommand(ctx, name, input, state)
 }
 
 func (t *RunTaskBuilder) runShell(ctx workflow.Context, input any, state *utils.State) (any, error) {
-	return t.executeCommand(ctx, (*activities.Run).CallShellActivity, input, state)
+	name := dispatchActivityName(ctx, t.legacyActivityName, t.activityName)
+	return t.executeCommand(ctx, name, input, state)
 }
 
 func (t *RunTaskBuilder) runWorkflow(ctx workflow.Context, input any, state *utils.State) (any, error) {

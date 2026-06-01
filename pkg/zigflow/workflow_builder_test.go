@@ -38,9 +38,10 @@ func (stubWorker) RegisterWorkflowWithOptions(_ any, _ workflow.RegisterOptions)
 func (stubWorker) RegisterWorkflow(_ any)                                        {}
 func (stubWorker) RegisterActivity(_ any)                                        { panic("unimplemented") }
 
-func (stubWorker) RegisterActivityWithOptions(_ any, _ activity.RegisterOptions) {
-	panic("unimplemented")
-}
+// Per-task activity registration in CallHTTP/CallGRPC/Run task builders
+// calls this at Build time; accept and discard so build/normalisation
+// tests can run without a real worker.
+func (stubWorker) RegisterActivityWithOptions(_ any, _ activity.RegisterOptions) {}
 
 func (stubWorker) RegisterDynamicActivity(_ any, _ activity.DynamicRegisterOptions) {
 	panic("unimplemented")
