@@ -30,7 +30,6 @@ import (
 	"strings"
 	"time"
 
-	swUtil "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
@@ -170,13 +169,7 @@ func (c *CallHTTP) callHTTPAction(ctx context.Context, task *model.CallHTTP, tim
 ) {
 	logger := activity.GetLogger(ctx)
 
-	args, err := ParseHTTPArguments(task, state)
-	if err != nil {
-		return resp,
-			method, url,
-			reqHeaders,
-			err
-	}
+	args := HTTPArgumentsFromTask(task)
 
 	method = strings.ToUpper(args.Method)
 	url = args.Endpoint.String()
@@ -241,42 +234,11 @@ func (c *CallHTTP) classifyHTTPStatus(code int) httpRetryability {
 	}
 }
 
-// ParseHTTPArguments note that I looked at the github.com/go-viper/mapstructure/v2.Decode
-// function, but this wasn't able to decode some of the more complex data types. This is
-// more heavyweight than I'd like, but it's fine for now.
-func ParseHTTPArguments(task *model.CallHTTP, state *utils.State) (*model.HTTPArguments, error) {
-	// First, we need to convert it to map[string]any
-	b, err := json.Marshal(task.With)
-	if err != nil {
-		return nil, fmt.Errorf("error marshalling object to bytes: %w", err)
-	}
-
-	// Next, convert it to a map so we can traverse
-	var data map[string]any
-	if err := json.Unmarshal(b, &data); err != nil {
-		return nil, fmt.Errorf("error unmarshalling data to map: %w", err)
-	}
-
-	// Clone and traverse, interpolating the data
-	cloneData := swUtil.DeepClone(data)
-	obj, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(cloneData), nil, state)
-	if err != nil {
-		return nil, fmt.Errorf("error traversing http data object: %w", err)
-	}
-
-	// Now, put it back to a JSON string
-	e, err := json.Marshal(obj)
-	if err != nil {
-		return nil, fmt.Errorf("error marshalling object to bytes: %w", err)
-	}
-
-	// Finally, convert back to HTTPArguments
-	var result model.HTTPArguments
-	if err := json.Unmarshal(e, &result); err != nil {
-		return nil, fmt.Errorf("error unmarshalling data to map: %w", err)
-	}
-
-	return &result, nil
+// HTTPArgumentsFromTask returns the call HTTP with payload. Runtime expressions
+// in the payload are resolved in the workflow before the activity is scheduled.
+func HTTPArgumentsFromTask(task *model.CallHTTP) *model.HTTPArguments {
+	with := task.With
+	return &with
 }
 
 // Calculate the delay in seconds. If 0 returned, use the default Temporal RetryPolicy

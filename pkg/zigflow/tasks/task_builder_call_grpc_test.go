@@ -17,11 +17,58 @@
 package tasks
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/zigflow/zigflow/pkg/utils"
+	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/testsuite"
+	"go.temporal.io/sdk/workflow"
 )
+
+func TestCallGRPCTaskBuilderEvaluatesWithBeforeActivity(t *testing.T) {
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+
+	var captured *model.CallGRPC
+	env.RegisterActivityWithOptions(func(_ context.Context, task *model.CallGRPC, _ any, _ *utils.State) (any, error) {
+		captured = task
+		return map[string]any{testConstOK: true}, nil
+	}, activity.RegisterOptions{Name: "CallGRPCActivity"})
+
+	task := &model.CallGRPC{
+		Call: "grpc",
+		With: model.GRPCArguments{
+			Method: "Command1",
+			Arguments: map[string]any{
+				"input": "${ $env." + testConstGRPCInputEnv + " }",
+			},
+		},
+	}
+
+	b, err := NewCallGRPCTaskBuilder(nil, task, "grpcTask", nil, testEvents, nil)
+	assert.NoError(t, err)
+
+	fn, err := b.Build()
+	assert.NoError(t, err)
+
+	workflowFunc := func(ctx workflow.Context) (any, error) {
+		state := utils.NewState()
+		state.Env[testConstGRPCInputEnv] = testConstHello
+		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+		return fn(ctx, nil, state)
+	}
+
+	env.ExecuteWorkflow(workflowFunc)
+
+	assert.NoError(t, env.GetWorkflowError())
+	require.NotNil(t, captured)
+	assert.Equal(t, testConstHello, captured.With.Arguments["input"])
+}
 
 func TestCallGRPCTaskBuilderPostLoadSetsHostDefault(t *testing.T) {
 	task := &model.CallGRPC{

@@ -161,8 +161,14 @@ func (t *RunTaskBuilder) executeCommand(ctx workflow.Context, activityFn, input 
 	logger := workflow.GetLogger(ctx)
 	logger.Debug("Executing a command", "task", t.GetTaskName())
 
+	resolvedTask, err := evaluateTaskForActivity(t.task, state.Clone().AddWorkflowInfo(ctx))
+	if err != nil {
+		logger.Error("Error evaluating run task expressions", "task", t.GetTaskName(), "error", err)
+		return nil, fmt.Errorf("error evaluating run task expressions: %w", err)
+	}
+
 	args := append([]any{
-		t.task, input, state,
+		resolvedTask, input, state,
 	}, additional...)
 
 	var res any

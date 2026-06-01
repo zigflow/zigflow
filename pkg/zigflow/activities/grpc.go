@@ -48,22 +48,12 @@ func (c *CallGRPC) CallGRPCActivity(
 	stopHeartbeat := metadata.StartActivityHeartbeat(ctx, task.GetBase())
 	defer stopHeartbeat()
 
-	ob, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(map[string]any{
-		"service": task.With.Service,
-		"args":    task.With.Arguments,
-		"method":  task.With.Method,
-		"proto":   task.With.Proto,
-	}), nil, state)
-	if err != nil {
-		return nil, temporal.NewNonRetryableApplicationError("error traversing grpc data object", "CallGRPC error", err)
-	}
-
-	obj := ob.(map[string]any)
-
-	service := obj["service"].(model.GRPCService)
-	args := obj["args"].(map[string]any)
-	method := obj["method"].(string)
-	proto := obj["proto"].(*model.ExternalResource)
+	// Runtime expressions in the task with payload are resolved in the workflow
+	// before the activity is scheduled.
+	service := task.With.Service
+	args := task.With.Arguments
+	method := task.With.Method
+	proto := task.With.Proto
 
 	address := fmt.Sprintf("%s:%d", service.Host, service.Port)
 

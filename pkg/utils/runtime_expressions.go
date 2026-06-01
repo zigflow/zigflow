@@ -39,6 +39,14 @@ const (
 
 type ExpressionWrapperFunc func(func() (any, error)) (any, error)
 
+// TraverseEvaluateOpts configures TraverseAndEvaluateObj. SkipExpression, when
+// set, leaves matching strict-form runtime expressions unchanged instead of
+// evaluating them. This is used when an expression must be evaluated later with
+// activity-scoped state (for example $data.activity references).
+type TraverseEvaluateOpts struct {
+	SkipExpression func(string) bool
+}
+
 // jqFunc describes a function exposed to Zigflow runtime expressions. The
 // Deterministic flag is the source of truth for replay-safety classification;
 // AnalyseExpressionDeterminism reads this list when walking expressions.
@@ -123,6 +131,16 @@ func TraverseAndEvaluateObj(
 	state *State,
 	evaluationWrapper ...ExpressionWrapperFunc,
 ) (any, error) {
+	return TraverseAndEvaluateObjWithOpts(runtimeExpr, ctx, state, TraverseEvaluateOpts{}, evaluationWrapper...)
+}
+
+func TraverseAndEvaluateObjWithOpts(
+	runtimeExpr *model.ObjectOrRuntimeExpr,
+	ctx any,
+	state *State,
+	opts TraverseEvaluateOpts,
+	evaluationWrapper ...ExpressionWrapperFunc,
+) (any, error) {
 	if runtimeExpr == nil {
 		return nil, nil
 	}
@@ -142,15 +160,26 @@ func TraverseAndEvaluateObj(
 	// export/output definitions at once.
 	//
 	// Clone the value first so each evaluation works on an isolated copy.
-	return traverseAndEvaluate(swUtil.DeepCloneValue(runtimeExpr.AsStringOrMap()), ctx, state, wrapperFn)
+	return traverseAndEvaluate(
+		swUtil.DeepCloneValue(runtimeExpr.AsStringOrMap()),
+		ctx,
+		state,
+		opts,
+		wrapperFn,
+	)
 }
 
-func traverseAndEvaluate(node, ctx any, state *State, evaluationWrapper ExpressionWrapperFunc) (any, error) {
+func traverseAndEvaluate(
+	node, ctx any,
+	state *State,
+	opts TraverseEvaluateOpts,
+	evaluationWrapper ExpressionWrapperFunc,
+) (any, error) {
 	switch v := node.(type) {
 	case map[string]any:
 		// Traverse a object
 		for key, value := range v {
-			evaluatedValue, err := traverseAndEvaluate(value, ctx, state, evaluationWrapper)
+			evaluatedValue, err := traverseAndEvaluate(value, ctx, state, opts, evaluationWrapper)
 			if err != nil {
 				return nil, err
 			}
@@ -163,7 +192,7 @@ func traverseAndEvaluate(node, ctx any, state *State, evaluationWrapper Expressi
 		// to avoid mutating the original, which may be shared across workflow executions.
 		clone := make(map[string]string, len(v))
 		for key, value := range v {
-			evaluatedValue, err := traverseAndEvaluate(value, ctx, state, evaluationWrapper)
+			evaluatedValue, err := traverseAndEvaluate(value, ctx, state, opts, evaluationWrapper)
 			if err != nil {
 				return nil, err
 			}
@@ -176,11 +205,14 @@ func traverseAndEvaluate(node, ctx any, state *State, evaluationWrapper Expressi
 		return clone, nil
 	case []any:
 		// Traverse an array
-		return traverseSlice(v, ctx, state, evaluationWrapper)
+		return traverseSlice(v, ctx, state, opts, evaluationWrapper)
 	case []string:
 		// Traverse an array
-		return traverseSlice(toAnySlice(v), ctx, state, evaluationWrapper)
+		return traverseSlice(toAnySlice(v), ctx, state, opts, evaluationWrapper)
 	case string:
+		if model.IsStrictExpr(v) && opts.SkipExpression != nil && opts.SkipExpression(v) {
+			return v, nil
+		}
 		if evaluationWrapper != nil {
 			return EvaluateString(v, ctx, state, evaluationWrapper)
 		}
@@ -191,9 +223,15 @@ func traverseAndEvaluate(node, ctx any, state *State, evaluationWrapper Expressi
 	}
 }
 
-func traverseSlice(v []any, ctx any, state *State, evaluationWrapper ExpressionWrapperFunc) ([]any, error) {
+func traverseSlice(
+	v []any,
+	ctx any,
+	state *State,
+	opts TraverseEvaluateOpts,
+	evaluationWrapper ExpressionWrapperFunc,
+) ([]any, error) {
 	for i, value := range v {
-		evaluatedValue, err := traverseAndEvaluate(value, ctx, state, evaluationWrapper)
+		evaluatedValue, err := traverseAndEvaluate(value, ctx, state, opts, evaluationWrapper)
 		if err != nil {
 			return nil, err
 		}

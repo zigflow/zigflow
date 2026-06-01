@@ -17,19 +17,30 @@
 package tasks
 
 import (
+	"context"
 	"encoding/base64"
 	"testing"
+	"time"
 
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
+	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/testsuite"
+	"go.temporal.io/sdk/workflow"
 )
 
-func TestParseHTTPArguments(t *testing.T) {
-	state := utils.NewState()
-	state.Env["token"] = "abc-123"
-	state.Data["flag"] = true
+func TestCallHTTPTaskBuilderEvaluatesWithBeforeActivity(t *testing.T) {
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+
+	var captured *model.CallHTTP
+	env.RegisterActivityWithOptions(func(_ context.Context, task *model.CallHTTP, _ any, _ *utils.State) (any, error) {
+		captured = task
+		return map[string]any{testConstOK: true}, nil
+	}, activity.RegisterOptions{Name: "CallHTTPActivity"})
 
 	task := &model.CallHTTP{
 		Call: "http",
@@ -37,7 +48,7 @@ func TestParseHTTPArguments(t *testing.T) {
 			Method:   "GET",
 			Endpoint: model.NewEndpoint("https://example.com"),
 			Headers: map[string]string{
-				// #nosec G101 -- DSL expression, not a hardcoded credential. Value is a JQ expression resolved at runtime from environment variables.
+				// #nosec G101 -- DSL expression, not a hardcoded credential.
 				"X-Token": "${ $env.token }",
 			},
 			Query: map[string]any{
@@ -46,12 +57,27 @@ func TestParseHTTPArguments(t *testing.T) {
 		},
 	}
 
-	got, err := activities.ParseHTTPArguments(task, state)
+	b, err := NewCallHTTPTaskBuilder(nil, task, "httpTask", nil, testEvents, nil)
 	assert.NoError(t, err)
-	assert.Equal(t, "GET", got.Method)
-	assert.Equal(t, "https://example.com", got.Endpoint.String())
-	assert.Equal(t, "abc-123", got.Headers["X-Token"])
-	assert.Equal(t, true, got.Query["debug"])
+
+	fn, err := b.Build()
+	assert.NoError(t, err)
+
+	workflowFunc := func(ctx workflow.Context) (any, error) {
+		state := utils.NewState()
+		state.Env["token"] = "abc-123"
+		state.Data["flag"] = true
+		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
+		return fn(ctx, nil, state)
+	}
+
+	env.ExecuteWorkflow(workflowFunc)
+
+	assert.NoError(t, env.GetWorkflowError())
+	require.NotNil(t, captured)
+	assert.Equal(t, "abc-123", captured.With.Headers["X-Token"])
+	assert.Equal(t, true, captured.With.Query["debug"])
+	assert.NotContains(t, captured.With.Headers["X-Token"], "${")
 }
 
 func TestParseOutput(t *testing.T) {

@@ -68,8 +68,14 @@ func (d *builder[T]) executeActivity(ctx workflow.Context, activity, input any, 
 	logger := workflow.GetLogger(ctx)
 	logger.Debug("Calling activity", "name", d.name)
 
+	resolvedTask, err := evaluateTaskForActivity(d.task, state.Clone().AddWorkflowInfo(ctx))
+	if err != nil {
+		logger.Error("Error evaluating activity task expressions", "name", d.name, "error", err)
+		return nil, fmt.Errorf("error evaluating activity task expressions: %w", err)
+	}
+
 	var res any
-	if err := workflow.ExecuteActivity(ctx, activity, d.task, input, state).Get(ctx, &res); err != nil {
+	if err := workflow.ExecuteActivity(ctx, activity, resolvedTask, input, state).Get(ctx, &res); err != nil {
 		if temporal.IsCanceledError(err) {
 			return nil, nil
 		}

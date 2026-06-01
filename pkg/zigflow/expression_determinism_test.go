@@ -674,3 +674,49 @@ func TestCollectExpressions_StableOrderForMapBackedStructures(t *testing.T) {
 		assert.Equal(t, first, pathsFor(), "collected order must be stable across runs")
 	}
 }
+
+// TestCollectExpressions_CollectsActivityWithPayload proves expressions inside
+// activity with payloads (for example grpc arguments) are collected for validation.
+func TestCollectExpressions_CollectsActivityWithPayload(t *testing.T) {
+	yaml := workflowHeader + `do:
+  - callGrpc:
+      call: grpc
+      with:
+        method: Command1
+        arguments:
+          input: ${ $env.GRPC_INPUT }
+`
+	wf, err := zigflow.LoadFromBytes([]byte(yaml))
+	require.NoError(t, err)
+
+	refs, err := zigflow.CollectExpressions(wf)
+	require.NoError(t, err)
+
+	var found bool
+	for _, ref := range refs {
+		if ref.Value == "${ $env.GRPC_INPUT }" {
+			found = true
+			assert.Contains(t, ref.Path, "arguments")
+			assert.False(t, ref.AllowsNonDeterminism)
+		}
+	}
+	assert.True(t, found, "grpc with.arguments expression must be collected")
+}
+
+// TestValidateBytes_RejectsInvalidExpressionInActivityWith proves invalid
+// expressions inside activity with payloads fail validation.
+func TestValidateBytes_RejectsInvalidExpressionInActivityWith(t *testing.T) {
+	yaml := workflowHeader + `do:
+  - getUser:
+      call: http
+      with:
+        method: get
+        endpoint: https://example.com
+        headers:
+          X-Token: ${ @@@ }
+`
+	err := zigflow.ValidateBytes([]byte(yaml))
+	require.Error(t, err)
+	assert.ErrorIs(t, err, zigflow.ErrInvalidRuntimeExpression)
+	assert.NotErrorIs(t, err, zigflow.ErrNonDeterministicExpression)
+}

@@ -85,6 +85,10 @@ const (
 	testConstChild = "child"
 	// testConstOK is the string value assigned to an env var in set-task tests.
 	testConstOK = "ok"
+	// testConstHello is a sample string used in grpc/http activity input tests.
+	testConstHello = "hello"
+	// testConstGRPCInputEnv is the env var name used in grpc with-payload tests.
+	testConstGRPCInputEnv = "GRPC_INPUT"
 	// testConstItems is the map key used for the items slice in for-task tests.
 	testConstItems = "items"
 	// testConstDone is the string value returned by child workflows in run-task tests.
