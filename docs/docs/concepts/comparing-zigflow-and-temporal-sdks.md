@@ -1,6 +1,6 @@
 ---
 title: "Zigflow vs Temporal SDK"
-sidebar_position: 7
+sidebar_position: 8
 description: "How Zigflow compares to a Temporal SDK, what each approach optimises for and when to choose declarative YAML workflows over SDK code."
 ---
 
@@ -27,13 +27,13 @@ rather than failing at runtime.
 ## What a Temporal SDK is
 
 A Temporal SDK is a library for writing workflows and activities in code.
-The Temporal project publishes SDKs for Go, Java, TypeScript, Python and
-.NET. You import the SDK, write a workflow function, register it with a
-worker and deploy it.
+Temporal is typically used through one of its language SDKs. You import the SDK,
+write a workflow function, register it with a worker and deploy it.
 
 The SDK exposes the full Temporal feature set, including signals, queries,
-child workflows, sagas, side effects and continue-as-new. Determinism is
-enforced by SDK constraints and by correct usage of Temporal patterns.
+child workflows, sagas, side effects and continue-as-new. Developers are
+responsible for preserving determinism and handling workflow evolution as their
+code changes over time.
 
 ## Key differences
 
