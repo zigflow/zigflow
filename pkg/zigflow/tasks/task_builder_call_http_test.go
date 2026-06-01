@@ -22,8 +22,10 @@ import (
 
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
+	"go.temporal.io/sdk/activity"
 )
 
 func TestParseHTTPArguments(t *testing.T) {
@@ -91,4 +93,65 @@ func TestParseOutput(t *testing.T) {
 			assert.Equal(t, tc.expect, got)
 		})
 	}
+}
+
+func newTestHTTPTask() *model.CallHTTP {
+	return &model.CallHTTP{
+		Call: "http",
+		With: model.HTTPArguments{
+			Method:   "GET",
+			Endpoint: model.NewEndpoint("https://example.com"),
+		},
+	}
+}
+
+func TestCallHTTPTaskBuilderRegistersPerTaskActivityName(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-http-metrics"}}
+
+	w := new(WorkflowRegistryMock)
+	w.
+		On("RegisterActivityWithOptions", mock.Anything, activity.RegisterOptions{
+			Name: "wf-http-metrics.fetchData",
+		}).
+		Once()
+
+	b, err := NewCallHTTPTaskBuilder(w, newTestHTTPTask(), "fetchData", doc, testEvents, nil)
+	assert.NoError(t, err)
+
+	_, err = b.Build()
+	assert.NoError(t, err)
+
+	w.AssertExpectations(t)
+}
+
+func TestCallHTTPTaskBuilderRegistersOncePerWorker(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-http-dedup"}}
+
+	w := new(WorkflowRegistryMock)
+	w.
+		On("RegisterActivityWithOptions", mock.Anything, activity.RegisterOptions{
+			Name: "wf-http-dedup.authenticate",
+		}).
+		Once()
+
+	b, err := NewCallHTTPTaskBuilder(w, newTestHTTPTask(), "authenticate", doc, testEvents, nil)
+	assert.NoError(t, err)
+
+	for i := 0; i < 3; i++ {
+		_, err = b.Build()
+		assert.NoError(t, err)
+	}
+
+	w.AssertExpectations(t)
+}
+
+func TestCallHTTPTaskBuilderBuildWithoutWorker(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-http-nil-worker"}}
+
+	b, err := NewCallHTTPTaskBuilder(nil, newTestHTTPTask(), "step", doc, testEvents, nil)
+	assert.NoError(t, err)
+
+	fn, err := b.Build()
+	assert.NoError(t, err)
+	assert.NotNil(t, fn)
 }

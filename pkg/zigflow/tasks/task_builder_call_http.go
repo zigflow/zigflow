@@ -49,8 +49,29 @@ type CallHTTPTaskBuilder struct {
 	builder[*model.CallHTTP]
 }
 
+// Per-task activity name "<workflowType>.<taskName>" so SDK metrics
+// carry a distinct activity_type label per HTTP task. Falls back to the
+// bare task name if the workflow has no name.
+func (t *CallHTTPTaskBuilder) callHTTPActivityName() string {
+	taskName := t.GetTaskName()
+	if t.doc == nil || t.doc.Document.Name == "" {
+		return taskName
+	}
+	return t.doc.Document.Name + "." + taskName
+}
+
+// callHTTPActivity is a package-level singleton whose method value is
+// registered under per-task names. A bound method value is required so
+// Temporal invokes the activity with the receiver supplied; an unbound
+// method expression would pass the activity's first argument as the
+// receiver, causing a nil pointer dereference at runtime.
+var callHTTPActivity = &activities.CallHTTP{}
+
 func (t *CallHTTPTaskBuilder) Build() (TemporalWorkflowFunc, error) {
+	activityName := t.callHTTPActivityName()
+	registerActivityOnce(t.temporalWorker, callHTTPActivity.CallHTTPActivity, activityName)
+
 	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
-		return t.executeActivity(ctx, (*activities.CallHTTP).CallHTTPActivity, input, state)
+		return t.executeActivity(ctx, activityName, input, state)
 	}, nil
 }

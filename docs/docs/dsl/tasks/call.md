@@ -154,6 +154,14 @@ backoff.
 `Retry-After` delays are not capped by Zigflow. Use Temporal timeout settings,
 such as `ScheduleToCloseTimeout`, to enforce a maximum execution time.
 
+### SDK metrics {/*#http-sdk-metrics*/}
+
+Each `call: http` task is registered on its worker under the name
+`<workflowType>.<taskName>` (for example `call-http.getUser`). Temporal's
+SDK metrics use that name for the `activity_type` label, so individual
+HTTP tasks can be attributed in dashboards and alerts. The original
+`CallHTTPActivity` registration is preserved for backwards compatibility.
+
 **Activity names are case-sensitive.** The `name` field in an activity call
 must exactly match the name the activity was registered with on the remote
 worker.
