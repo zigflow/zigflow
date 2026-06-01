@@ -189,8 +189,8 @@ Key rules:
   example `export: { as: '${ $context + { key: . } }' }`. An expression
   containing `: ` must be quoted in YAML.
 - A workflow returns the output of its final task. To shape the returned value,
-  set `output.as` on the final task. `output.schema` documents and
-  validates the workflow output shape.
+  set `output.as` on the final task. `output.schema` describes the expected
+  workflow output shape.
 - To pass a value to a task that is not the immediate next one, use `export`
   into `$context`, not `output`. By then `$output` has been overwritten.
 
