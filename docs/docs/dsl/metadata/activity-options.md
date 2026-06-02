@@ -50,8 +50,8 @@ cases. In most scenarios, you probably won't need to configure this.
 
 | Name | Type | Required | Default | Description |
 | :--- | :---: | :---: | :---: | :--- |
-| `initialInterval` | [`duration`](/docs/dsl/intro#duration) | `no` | `{"second":1}` | Backoff interval for the first retry. If BackoffCoefficient is `1.0` then it is used for all retries |
+| `initialInterval` | [`duration`](/docs/dsl/intro#duration) | `no` | `{"seconds":1}` | Backoff interval for the first retry. If BackoffCoefficient is `1.0` then it is used for all retries |
 | `backoffCoefficient` | `float` | `no` | `2.0` | Coefficient used to calculate the next retry backoff interval |
-| `maximumInterval` | [`duration`](/docs/dsl/intro#duration) | `no` | `{"minute":1}` | Maximum backoff interval between retries |
+| `maximumInterval` | [`duration`](/docs/dsl/intro#duration) | `no` | `{"minutes":1}` | Maximum backoff interval between retries |
 | `maximumAttempts` | `integer` | `no` | `5` | Maximum number of attempts. When exceeded the retries stop even if not expired yet |
 | `nonRetryableErrorTypes` | `string[]` | `no` | `[]` | Temporal server will stop retry if error type matches this list |

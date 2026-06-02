@@ -39,9 +39,10 @@ These are the non-negotiable rules. Most invalid workflows break one of them:
 - Durations are objects with plural integer keys such as
   `{ minutes: 1, seconds: 30 }`, never ISO 8601 strings like `PT1M`.
 - `document.dsl` and `document.version` must be semantic versions like `1.0.0`.
-- `document.taskQueue` and `document.workflowType` must be RFC 1123 DNS labels:
-  letters, digits and hyphens, starting and ending with a letter or digit, with
-  no dots, underscores or spaces.
+- `document.taskQueue` and `document.workflowType` must be RFC 1123 DNS labels
+  (a Zigflow validation rule, not a Temporal one): letters, digits and hyphens,
+  starting and ending with a letter or digit, with no dots, underscores or
+  spaces.
 - The `document` object is closed, so unknown fields are rejected.
 
 ## Minimal valid workflow
@@ -83,8 +84,8 @@ Top-level properties:
 | Field          | Required | Constraint and notes                                     |
 |----------------|----------|----------------------------------------------------------|
 | `dsl`          | yes      | Semantic version of the DSL, such as `1.0.0`.            |
-| `taskQueue`    | yes      | Temporal task queue. RFC 1123 DNS label.                 |
-| `workflowType` | yes      | Temporal workflow type name. RFC 1123 DNS label.         |
+| `taskQueue`    | yes      | Temporal task queue name. Zigflow requires an RFC 1123 DNS label. |
+| `workflowType` | yes      | Temporal workflow type name. Zigflow requires an RFC 1123 DNS label. |
 | `version`      | yes      | Workflow semantic version, such as `0.0.1`.              |
 | `title`        | no       | Human-readable title.                                    |
 | `summary`      | no       | Markdown summary.                                        |
@@ -241,8 +242,9 @@ These are enforced by the schema and validator:
 
 - `document.dsl` and `document.version` must be a semantic version
   (`MAJOR.MINOR.PATCH`, such as `1.0.0`). `1.0` is invalid.
-- `document.taskQueue` and `document.workflowType` must be an RFC 1123 DNS
-  label matching `^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$`. `My Workflow`
+- `document.taskQueue` and `document.workflowType` must match the Zigflow schema
+  pattern `^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$` (an RFC 1123 DNS
+  label). This is a Zigflow validation rule, not a Temporal one. `My Workflow`
   and `order_processing` are invalid, while `order-processing` is valid.
 - A runtime expression must match `${ ... }`.
 - The `document` object rejects unknown properties.

@@ -1,6 +1,6 @@
 ---
 title: "Zigflow vs Temporal SDK"
-sidebar_position: 8
+sidebar_position: 9
 description: "How Zigflow compares to a Temporal SDK, what each approach optimises for and when to choose declarative YAML workflows over SDK code."
 ---
 
