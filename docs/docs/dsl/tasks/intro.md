@@ -197,7 +197,7 @@ do:
       call: http
       with:
         method: POST
-        url: https://api.example.com/orders
+        endpoint: https://api.example.com/orders
         headers:
           x-idempotency-key: ${ $data.idempotencyKey }
 ```
