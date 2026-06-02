@@ -55,8 +55,8 @@ Documents the workflow definition.
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
 | dsl | `string` | `yes` | The version of the DSL used to define the workflow. |
-| taskQueue | `string` | `yes` | The Temporal [Task Queue](https://docs.temporal.io/task-queue) this workflow runs on. Workers register on this queue; clients must target the same name. |
-| workflowType | `string` | `yes` | The Temporal workflow type name. This will be ignored if multiple [`do`](/docs/dsl/tasks/do) are set and the workflow names will be taken from the step name. |
+| taskQueue | `string` | `yes` | The Temporal [Task Queue](https://docs.temporal.io/task-queue) this workflow runs on. Workers register on this queue; clients must target the same name. Zigflow validates it against an RFC 1123 DNS-label pattern. |
+| workflowType | `string` | `yes` | The Temporal workflow type name. Zigflow validates it against an RFC 1123 DNS-label pattern. This will be ignored if multiple [`do`](/docs/dsl/tasks/do) are set and the workflow names will be taken from the step name. |
 | version | `string` | `yes` | The workflow's [semantic version](https://semver.org/) |
 | title | `string` | `no` | The workflow's title. |
 | summary | `string` | `no` | The workflow's Markdown summary. |
