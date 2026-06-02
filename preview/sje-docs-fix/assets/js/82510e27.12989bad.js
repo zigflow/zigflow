@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkzigflow=self.webpackChunkzigflow||[]).push([["3936"],{7857(e){e.exports=JSON.parse('{"metadata":{"permalink":"/preview/sje-docs-fix/articles","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
