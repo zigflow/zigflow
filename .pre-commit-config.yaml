@@ -34,7 +34,7 @@ repos:
     rev: v2.0.0
     hooks:
       - id: markdown-toc
-        exclude: ^docs
+        exclude: ^(docs|skills)
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.22.1
     hooks:
