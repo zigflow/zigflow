@@ -1662,7 +1662,8 @@
                 "do": {
                   "$ref": "#/$defs/taskList",
                   "title": "TryTaskCatchDo",
-                  "description": "The definition of the task(s) to run when catching an error."
+                  "description": "The definition of the task(s) to run when catching an error.",
+                  "minItems": 1
                 }
               },
               "title": "TryTaskCatch",
@@ -1675,7 +1676,8 @@
             "try": {
               "$ref": "#/$defs/taskList",
               "title": "TryTaskConfiguration",
-              "description": "The task(s) to perform."
+              "description": "The task(s) to perform.",
+              "minItems": 1
             }
           }
         }

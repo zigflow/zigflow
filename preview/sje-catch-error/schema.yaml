@@ -1134,6 +1134,7 @@ $defs:
             do:
               $ref: '#/$defs/taskList'
               description: The definition of the task(s) to run when catching an error.
+              minItems: 1
               title: TryTaskCatchDo
           required:
           - do
@@ -1143,6 +1144,7 @@ $defs:
         try:
           $ref: '#/$defs/taskList'
           description: The task(s) to perform.
+          minItems: 1
           title: TryTaskConfiguration
     description: Serves as a mechanism within workflows to handle errors gracefully,
       potentially retrying failed tasks before proceeding with alternate ones.
