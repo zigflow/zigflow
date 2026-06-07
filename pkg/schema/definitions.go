@@ -729,7 +729,7 @@ var exportDefinition = &jsonschema.Schema{
 			Title:       "ExportSchema",
 			Description: "The schema used to describe and validate the workflow context.",
 		},
-		"as": {
+		propAs: {
 			Title:       "ExportAs",
 			Description: "A runtime expression, if any, used to export the output data to the context.",
 			OneOf: []*jsonschema.Schema{
@@ -926,7 +926,7 @@ var outputDefinition = &jsonschema.Schema{
 			Title:       "OutputSchema",
 			Description: "The schema used to describe and validate the output of the workflow or task.",
 		},
-		"as": {
+		propAs: {
 			Title:       "OutputAs",
 			Description: "A runtime expression, if any, used to mutate and/or filter the output of the workflow or task.",
 			OneOf: []*jsonschema.Schema{
@@ -1464,6 +1464,13 @@ var tryTaskDefinition = &jsonschema.Schema{
 							Ref:         SchemaRef("taskList"),
 							Title:       "TryTaskCatchDo",
 							Description: "The definition of the task(s) to run when catching an error.",
+							MinItems:    utils.Ptr(1),
+						},
+						propAs: {
+							Type:        typeString,
+							Title:       "CatchAs",
+							Description: "The name of the runtime expression variable to save the error as. Defaults to 'error'",
+							Default:     json.RawMessage(`"error"`),
 						},
 					},
 				},
@@ -1471,6 +1478,7 @@ var tryTaskDefinition = &jsonschema.Schema{
 					Ref:         SchemaRef("taskList"),
 					Title:       "TryTaskConfiguration",
 					Description: "The task(s) to perform.",
+					MinItems:    utils.Ptr(1),
 				},
 			},
 		},

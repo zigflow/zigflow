@@ -17,6 +17,7 @@
 package tasks
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/rs/zerolog/log"
@@ -24,6 +25,7 @@ import (
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"
+	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 )
@@ -106,6 +108,79 @@ func (t *TryTaskBuilder) Validate() error {
 	return nil
 }
 
+func (t *TryTaskBuilder) buildCatchError(err error) map[string]any {
+	out := map[string]any{}
+
+	if childErr, ok := errors.AsType[*temporal.ChildWorkflowExecutionError](err); ok {
+		out["childWorkflow"] = map[string]any{
+			"workflowType":     childErr.WorkflowType(),
+			"workflowID":       childErr.WorkflowID(),
+			"runID":            childErr.RunID(),
+			"initiatedEventID": childErr.InitiatedEventID(),
+			"startedEventID":   childErr.StartedEventID(),
+		}
+	}
+
+	if actErr, ok := errors.AsType[*temporal.ActivityError](err); ok {
+		retryStateName := actErr.RetryState().String()
+		out["activity"] = map[string]any{
+			"type":             actErr.ActivityType().Name,
+			"activityID":       actErr.ActivityID(),
+			"identity":         actErr.Identity(),
+			"scheduledEventID": actErr.ScheduledEventID(),
+			"startedEventID":   actErr.StartedEventID(),
+			"retryState":       retryStateName,
+		}
+	}
+
+	if appErr, ok := errors.AsType[*temporal.ApplicationError](err); ok {
+		out["type"] = appErr.Type()
+		out["message"] = appErr.Message() // cleaner than Error()
+		out["nonRetryable"] = appErr.NonRetryable()
+
+		if d := appErr.NextRetryDelay(); d > 0 {
+			out["nextRetryDelay"] = d.String()
+		}
+
+		if cat := appErr.Category(); cat != temporal.ApplicationErrorCategoryUnspecified {
+			switch cat {
+			case temporal.ApplicationErrorCategoryBenign:
+				out["category"] = "benign"
+			default:
+				out["category"] = "unknown"
+			}
+		}
+
+		// Unwrap one level to get the immediate cause message
+		if cause := errors.Unwrap(appErr); cause != nil {
+			out["cause"] = cause.Error()
+		}
+
+		if appErr.HasDetails() {
+			var details any
+			if derr := appErr.Details(&details); derr == nil {
+				out["details"] = details
+			}
+		}
+	}
+
+	if timeoutErr, ok := errors.AsType[*temporal.TimeoutError](err); ok {
+		out["errorKind"] = "timeout"
+		out["timeoutType"] = timeoutErr.TimeoutType().String()
+	}
+
+	if panicErr, ok := errors.AsType[*temporal.PanicError](err); ok {
+		out["errorKind"] = "panic"
+		out["stackTrace"] = panicErr.StackTrace()
+	}
+
+	if _, ok := errors.AsType[*temporal.CanceledError](err); ok {
+		out["errorKind"] = "canceled"
+	}
+
+	return out
+}
+
 func (t *TryTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 	return func(ctx workflow.Context, input any, state *utils.State) (output any, err error) {
 		logger := workflow.GetLogger(ctx)
@@ -131,6 +206,25 @@ func (t *TryTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 			}
 
 			logger.Warn("Workflow failed, catching the error", "tryWorkflow", t.tryChildWorkflowName, "catchWorkflow", t.catchChildWorkflowName)
+
+			// Expose the caught error to the catch tasks so they can
+			// interrogate it. The Serverless Workflow spec names this
+			// variable via `catch.as`, defaulting to "error", and we expose
+			// it under $data so it reads as `$data.error` (or `$data.<as>`).
+			//
+			// Clone the state first so the injected error only lives on the
+			// catch state and never leaks back into the parent state visible
+			// to later tasks. Zigflow's explicit state propagation model means
+			// the error is only carried forward if the catch tasks output it.
+			errKey := "error"
+			if as := t.task.Catch.As; as != "" {
+				errKey = as
+			}
+			catchState := state.Clone()
+			catchState.AddData(map[string]any{
+				errKey: t.buildCatchError(err),
+			})
+
 			// The try workflow has failed - let's run the catch workflow
 			opts := workflow.ChildWorkflowOptions{
 				WorkflowID: fmt.Sprintf("%s_catch", workflow.GetInfo(ctx).WorkflowExecution.ID),
@@ -138,7 +232,7 @@ func (t *TryTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 
 			childCtx := workflow.WithChildOptions(ctx, opts)
 
-			if err := workflow.ExecuteChildWorkflow(childCtx, t.catchChildWorkflowName, state.Input, state).Get(ctx, &res); err != nil {
+			if err := workflow.ExecuteChildWorkflow(childCtx, t.catchChildWorkflowName, catchState.Input, catchState).Get(ctx, &res); err != nil {
 				// The catch handler itself may emit `then: end`. Propagate
 				// that as flow.ErrEnd rather than wrapping it as a generic
 				// catch-workflow failure.
@@ -149,7 +243,7 @@ func (t *TryTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 				}
 				// Everything has failed
 				logger.Error("Error calling try workflow", "error", err)
-				return nil, fmt.Errorf("error calling catcg workflow: %w", err)
+				return nil, fmt.Errorf("error calling catch workflow: %w", err)
 			}
 		}
 
@@ -170,7 +264,7 @@ func (t *TryTaskBuilder) createBuilder(
 	l := log.With().Str("task", t.GetTaskName()).Str("taskType", taskType).Logger()
 
 	if len(*list) == 0 {
-		l.Warn().Msg("No tasks detected")
+		err = fmt.Errorf("no tasks detected for %s in %s", taskType, t.GetTaskName())
 		return
 	}
 

@@ -70,6 +70,7 @@ errors.
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
 | do | [`map[string, task]`](/docs/dsl/tasks/intro) | `yes` | The definition of the task(s) to run when catching an error. This will be run as a [child workflow](https://docs.temporal.io/child-workflows). |
+| as | `string` | `no` | The key under `$data` where the caught error is stored. Defaults to `error`. |
 
 ## Gotchas
 

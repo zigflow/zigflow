@@ -1,0 +1,25 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: catch-error
+  version: 0.0.1
+  title: Catch Error
+  summary: Catch an error
+  metadata:
+    display: false
+do:
+  - tryHttp:
+      try:
+        - http:
+            call: http
+            with:
+              method: get
+              endpoint: https://httpbin.org/status/418
+      catch:
+        as: error
+        do:
+          - dumpEverythingVisibleInCatch:
+              output:
+                as: ${ . }
+              set:
+                data: ${ $data }

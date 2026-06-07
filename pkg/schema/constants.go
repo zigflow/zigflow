@@ -86,6 +86,7 @@ const (
 	defTimeout      = "timeout"
 
 	// Additional schema property names.
+	propAs                   = "as"
 	propEndpoint             = "endpoint"
 	propError                = "error"
 	propExport               = "export"

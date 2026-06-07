@@ -73,29 +73,99 @@ Use the `try` task to catch failures and handle them gracefully.
 The `try` block runs as a child workflow. If any task inside it fails, the
 `catch` block runs instead.
 
+When a task in the `try` block fails, Zigflow executes the `catch` workflow. The
+caught error is injected into the catch workflow's `$data` state. By default it
+is available as `$data.error`, or under a custom key when `catch.as` is
+specified.
+
+The output of the `try` task is whatever the `catch` block returns.
+
+### Accessing the error
+
+The catch workflow runs with its normal workflow state. Zigflow adds the caught
+error to `$data` under the key defined by `catch.as`, which defaults to `error`.
+
 ```yaml
-- fetchUser:
+- tryHttp:
     try:
-      - getUser:
+      - http:
           call: http
-          output:
-            as:
-              user: ${ . }
           with:
             method: get
-            endpoint: https://api.example.com/users/999
+            endpoint: https://httpbin.org/status/418
     catch:
       do:
-        - handleMissing:
+        - dumpEverythingVisibleInCatch:
             output:
-              as:
-                error: ${ . }
+              as: ${ . }
             set:
-              message: User not found
+              data: ${ $data }
 ```
 
-The `catch` block receives the error as its input. The output of the `try`
-task is whatever the `catch` block returns.
+The caught error is available as:
+
+```yaml
+$data.error
+```
+
+### Using a custom key with `catch.as`
+
+Set `catch.as` to store the error under a different key. With `as: err` the
+error is available as `$data.err`:
+
+```yaml
+- tryHttp:
+    try:
+      - http:
+          call: http
+          with:
+            method: get
+            endpoint: https://httpbin.org/status/418
+    catch:
+      as: err
+      do:
+        - dumpEverythingVisibleInCatch:
+            output:
+              as: ${ . }
+            set:
+              data: ${ $data }
+```
+
+The error is available as:
+
+```yaml
+$data.err
+```
+
+When a custom key is used, `$data.error` is not populated.
+
+The error is scoped to the catch workflow. It is not automatically propagated
+into the parent workflow state after the catch block completes. To carry it
+forward, output or export it from a task in the catch block.
+
+### The error object
+
+Zigflow enriches the caught error with details from the underlying Temporal
+error. The object may contain fields such as:
+
+```yaml
+type:
+message:
+nonRetryable:
+details:
+cause:
+activity:
+childWorkflow:
+```
+
+The exact fields depend on the underlying Temporal error, so do not rely on any
+single field always being present.
+
+:::warning Migration note
+Prior versions described the caught error as being passed to the catch workflow
+as input. The current behaviour stores the error in `$data` under the key
+defined by `catch.as`, defaulting to `error`.
+:::
 
 ---
 

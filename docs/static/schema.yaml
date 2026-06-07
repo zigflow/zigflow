@@ -1125,9 +1125,16 @@ $defs:
         catch:
           description: The object used to define the errors to catch.
           properties:
+            as:
+              default: error
+              description: The name of the runtime expression variable to save the
+                error as. Defaults to 'error'
+              title: CatchAs
+              type: string
             do:
               $ref: '#/$defs/taskList'
               description: The definition of the task(s) to run when catching an error.
+              minItems: 1
               title: TryTaskCatchDo
           required:
           - do
@@ -1137,6 +1144,7 @@ $defs:
         try:
           $ref: '#/$defs/taskList'
           description: The task(s) to perform.
+          minItems: 1
           title: TryTaskConfiguration
     description: Serves as a mechanism within workflows to handle errors gracefully,
       potentially retrying failed tasks before proceeding with alternate ones.

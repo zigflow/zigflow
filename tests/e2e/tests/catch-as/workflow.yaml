@@ -1,0 +1,31 @@
+document:
+  dsl: 1.0.0
+  taskQueue: catch-as
+  workflowType: workflow
+  version: 0.0.1
+do:
+  - tryHTTP:
+      try:
+        # /posts/9999 does not exist, so the mock returns 404. A 4xx is a
+        # non-retryable error, which fails the try body and runs the catch.
+        - getMissingPost:
+            call: http
+            with:
+              method: get
+              endpoint: ${ "http://" + $env.HTTP_MOCK + "/posts/9999" }
+      catch:
+        # `as` renames the caught error variable, so it is exposed under
+        # $data.caughtError rather than the default $data.error.
+        as: caughtError
+        do:
+          - exposeCaught:
+              set:
+                # The caught error is exposed under the `as` name, enriched
+                # with the Temporal error fields built by buildCatchError.
+                caughtErrorPresent: ${ $data.caughtError != null }
+                caughtErrorHasType: ${ $data.caughtError.type != null }
+                # The default `error` key must be absent when `as` is set.
+                defaultErrorKeyPresent: ${ $data.error != null }
+              output:
+                as:
+                  result: ${ . }

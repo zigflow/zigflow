@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"
+	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
@@ -195,6 +196,142 @@ func TestTryTaskBuilderExecPropagatesEndFromCatchChild(t *testing.T) {
 	wErr := env.GetWorkflowError()
 	require.Error(t, wErr)
 	assert.Contains(t, wErr.Error(), flow.ErrEnd.Error())
-	assert.NotContains(t, wErr.Error(), "error calling catcg workflow",
+	assert.NotContains(t, wErr.Error(), "error calling catch workflow",
 		"catch-emitted end must not be wrapped as a catch-workflow failure")
+}
+
+// runCatchAndCaptureState executes a try task whose try child fails, then
+// returns the $data the catch child workflow actually observed alongside the
+// parent state the exec function was handed. The catch child records the data
+// it receives into a closure-captured map so the test can assert on the exact
+// caught-error contract exposed under $data.
+func runCatchAndCaptureState(t *testing.T, catchAs string, tryErr error) (caughtData map[string]any, parentState *utils.State) {
+	t.Helper()
+
+	builder := &TryTaskBuilder{
+		builder: builder[*model.TryTask]{
+			name: "try-task-capture",
+			task: &model.TryTask{
+				Try: &model.TaskList{},
+				Catch: &model.TryTaskCatch{
+					As: catchAs,
+					Do: &model.TaskList{},
+				},
+			},
+		},
+		tryChildWorkflowName:   "try-child-capture",
+		catchChildWorkflowName: "catch-child-capture",
+	}
+
+	fn, err := builder.exec()
+	require.NoError(t, err)
+
+	parentState = utils.NewState()
+
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context, input any, st *utils.State) (map[string]any, error) {
+		return nil, tryErr
+	}, workflow.RegisterOptions{Name: builder.tryChildWorkflowName})
+
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context, input any, st *utils.State) (map[string]any, error) {
+		caughtData = st.Data
+		return map[string]any{testConstHandledKey: true}, nil
+	}, workflow.RegisterOptions{Name: builder.catchChildWorkflowName})
+
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+		return fn(ctx, nil, parentState)
+	}, workflow.RegisterOptions{Name: "try-exec-capture"})
+
+	env.ExecuteWorkflow("try-exec-capture")
+	require.NoError(t, env.GetWorkflowError())
+
+	return caughtData, parentState
+}
+
+// TestTryTaskBuilderExecExposesErrorUnderDefaultKey proves the catch child
+// workflow sees the caught error under $data.error when catch.as is unset.
+func TestTryTaskBuilderExecExposesErrorUnderDefaultKey(t *testing.T) {
+	caughtData, _ := runCatchAndCaptureState(t, "", temporal.NewApplicationError("kaboom", "MyAppError"))
+
+	caughtErr, ok := caughtData["error"].(map[string]any)
+	require.True(t, ok, "catch child must see the caught error under $data.error")
+
+	// The error crosses a real child workflow boundary, so it carries both the
+	// child workflow metadata and the unwrapped ApplicationError fields.
+	assert.Equal(t, "MyAppError", caughtErr["type"])
+	assert.Equal(t, "kaboom", caughtErr["message"])
+	assert.Contains(t, caughtErr, "childWorkflow")
+	childMeta, ok := caughtErr["childWorkflow"].(map[string]any)
+	require.True(t, ok)
+	assert.NotEmpty(t, childMeta["workflowType"])
+	assert.NotEmpty(t, childMeta["workflowID"])
+}
+
+// TestTryTaskBuilderExecExposesErrorUnderCustomKey proves the catch child
+// workflow sees the caught error under $data.<catch.as> when it is configured,
+// and that the default "error" key is not used in that case.
+func TestTryTaskBuilderExecExposesErrorUnderCustomKey(t *testing.T) {
+	const customKey = "failure"
+
+	caughtData, _ := runCatchAndCaptureState(t, customKey, temporal.NewApplicationError("kaboom", "MyAppError"))
+
+	caughtErr, ok := caughtData[customKey].(map[string]any)
+	require.True(t, ok, "catch child must see the caught error under the custom $data key")
+	assert.Equal(t, "MyAppError", caughtErr["type"])
+	assert.Equal(t, "kaboom", caughtErr["message"])
+
+	assert.NotContains(t, caughtData, "error", "default error key must not be set when catch.as is configured")
+}
+
+// TestTryTaskBuilderExecDoesNotLeakErrorIntoParentState proves the injected
+// caught error lives only on the cloned catch state and never mutates the
+// parent state that later tasks observe. This guards Zigflow's explicit state
+// propagation model: the error is only carried forward if the catch tasks
+// output it.
+func TestTryTaskBuilderExecDoesNotLeakErrorIntoParentState(t *testing.T) {
+	_, parentState := runCatchAndCaptureState(t, "", temporal.NewApplicationError("kaboom", "MyAppError"))
+
+	assert.NotContains(t, parentState.Data, "error",
+		"caught error must not leak back into the parent state after catch completes")
+	assert.Empty(t, parentState.Data, "parent state data must be untouched by catch error injection")
+}
+
+// TestBuildCatchError gives direct, deterministic coverage of the Temporal
+// error enrichment without round-tripping every error shape through a workflow.
+func TestBuildCatchError(t *testing.T) {
+	tb := &TryTaskBuilder{}
+
+	t.Run("application error fields", func(t *testing.T) {
+		details := map[string]any{"reason": "quota exceeded"}
+		appErr := temporal.NewNonRetryableApplicationError(
+			"boom message", "BoomError", errors.New("root cause"), details,
+		)
+
+		out := tb.buildCatchError(appErr)
+
+		assert.Equal(t, "BoomError", out["type"])
+		assert.Equal(t, "boom message", out["message"])
+		assert.Equal(t, true, out["nonRetryable"])
+		assert.Equal(t, "root cause", out["cause"])
+		assert.Equal(t, details, out["details"])
+	})
+
+	t.Run("retryable application error without details", func(t *testing.T) {
+		appErr := temporal.NewApplicationError("transient", "TransientError")
+
+		out := tb.buildCatchError(appErr)
+
+		assert.Equal(t, "TransientError", out["type"])
+		assert.Equal(t, "transient", out["message"])
+		assert.Equal(t, false, out["nonRetryable"])
+		assert.NotContains(t, out, "details")
+	})
+
+	t.Run("non-application error yields empty map", func(t *testing.T) {
+		out := tb.buildCatchError(errors.New("plain"))
+
+		assert.Empty(t, out)
+	})
 }
