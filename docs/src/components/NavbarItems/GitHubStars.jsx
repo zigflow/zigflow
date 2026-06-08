@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import PropTypes from 'prop-types';
 import React, { useEffect, useState } from 'react';
 
 function formatStars(count) {
@@ -29,8 +30,8 @@ function formatStars(count) {
 
 export default function GitHubStars({ mobile = false }) {
   const { siteConfig } = useDocusaurusContext();
-  const { githubDomain, githubURL } = siteConfig.customFields;
-  const apiURL = `https://api.github.com/repos/${githubDomain}`;
+  const { githubURL, organizationName } = siteConfig.customFields;
+  const apiURL = `https://api.github.com/orgs/${organizationName}/repos?per_page=100`;
 
   const [stars, setStars] = useState(null);
 
@@ -40,9 +41,12 @@ export default function GitHubStars({ mobile = false }) {
         if (!res.ok) throw new Error('fetch failed');
         return res.json();
       })
-      .then((data) => setStars(data.stargazers_count))
-      .catch(() => {
-        // leave stars as null on error — falls back to icon-only display
+      .then((repos) => {
+        const sum = repos
+          .filter((repo) => !repo.fork)
+          .reduce((sum, repo) => sum + repo.stargazers_count, 0);
+
+        setStars(sum);
       });
   }, [apiURL]);
 
@@ -75,3 +79,7 @@ export default function GitHubStars({ mobile = false }) {
     </a>
   );
 }
+
+GitHubStars.propTypes = {
+  mobile: PropTypes.bool,
+};

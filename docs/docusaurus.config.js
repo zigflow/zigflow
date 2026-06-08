@@ -77,6 +77,8 @@ const config = {
   customFields: {
     githubDomain,
     githubURL,
+    organizationName,
+    projectName,
   },
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
