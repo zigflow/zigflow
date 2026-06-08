@@ -22,7 +22,7 @@ require (
 	github.com/mrsimonemms/golang-helpers v0.7.5
 	github.com/mrsimonemms/temporal-codec-server/packages/golang v0.0.0-20260216220812-efae704c32dc
 	github.com/nexus-rpc/sdk-go v0.6.0
-	github.com/posthog/posthog-go v1.13.1
+	github.com/posthog/posthog-go v1.14.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.35.1
 	github.com/serverlessworkflow/sdk-go/v3 v3.2.0
