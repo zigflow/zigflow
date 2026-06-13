@@ -30,6 +30,7 @@ Read the comparison first.
 
 ```sh
 brew tap zigflow/tap
+brew trust --cask zigflow/tap/zigflow
 brew install --cask zigflow
 ```
 

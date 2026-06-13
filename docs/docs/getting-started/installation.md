@@ -17,6 +17,7 @@ Install Zigflow using Homebrew:
 
 ```sh
 brew tap zigflow/tap
+brew trust --cask zigflow/tap/zigflow
 brew install --cask zigflow
 ```
 

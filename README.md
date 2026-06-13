@@ -29,6 +29,7 @@ Run your first workflow in a few minutes and see the result.
 
    ```sh
    brew tap zigflow/tap
+   brew trust --cask zigflow/tap/zigflow
    brew install --cask zigflow
    ```
 
