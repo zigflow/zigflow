@@ -70,6 +70,10 @@ Returns the Zigflow DSL JSON Schema for the current version. The `output` field
 accepts `"json"` (the default) or `"yaml"`. Use this to understand valid workflow
 structure before generating or validating a definition.
 
+Set the optional `def` field to return a single schema definition from `$defs`,
+for example `{ "def": "taskList" }`. The name must match a `$defs` key exactly.
+Unknown definitions return a tool error.
+
 ### validate_workflow
 
 Validates a workflow YAML string and returns structured errors. The `yaml` field

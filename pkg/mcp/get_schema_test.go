@@ -44,7 +44,7 @@ func TestGetSchema_EmptyOutputDefaultsToJSON(t *testing.T) {
 
 func TestGetSchema_JSONOutput(t *testing.T) {
 	m := newTestMCP()
-	_, out, err := m.GetSchema(context.Background(), nil, GetSchemaInput{Output: "json"})
+	_, out, err := m.GetSchema(context.Background(), nil, GetSchemaInput{Output: outputFormatJSON})
 	require.NoError(t, err)
 	require.Empty(t, out.Errors)
 	require.NotEmpty(t, out.Schema)
@@ -58,7 +58,7 @@ func TestGetSchema_JSONOutput(t *testing.T) {
 
 func TestGetSchema_YAMLOutput(t *testing.T) {
 	m := newTestMCP()
-	_, out, err := m.GetSchema(context.Background(), nil, GetSchemaInput{Output: "yaml"})
+	_, out, err := m.GetSchema(context.Background(), nil, GetSchemaInput{Output: outputFormatYAML})
 	require.NoError(t, err)
 	require.Empty(t, out.Errors)
 	require.NotEmpty(t, out.Schema)
@@ -69,6 +69,51 @@ func TestGetSchema_YAMLOutput(t *testing.T) {
 	// $id key is present in the raw schema string since yaml.Unmarshal does not
 	// map $ prefixed keys into a plain Go map reliably.
 	assert.Contains(t, out.Schema, "schema.yaml", "schema ID must use yaml format")
+}
+
+func TestGetSchema_DefinitionOutput(t *testing.T) {
+	tests := []struct {
+		name      string
+		output    string
+		unmarshal func([]byte, interface{}) error
+	}{
+		{"json", outputFormatJSON, json.Unmarshal},
+		{"yaml", outputFormatYAML, yaml.Unmarshal},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := newTestMCP()
+			_, out, err := m.GetSchema(context.Background(), nil, GetSchemaInput{
+				Definition: "taskList",
+				Output:     tc.output,
+			})
+			require.NoError(t, err)
+			require.Empty(t, out.Errors)
+			require.NotEmpty(t, out.Schema)
+
+			var parsed map[string]interface{}
+			require.NoError(t, tc.unmarshal([]byte(out.Schema), &parsed),
+				"schema definition must be valid %s", tc.output)
+
+			assert.Equal(t, "TaskList", parsed["title"])
+			assert.Equal(t, "array", parsed["type"])
+			assert.NotContains(t, parsed, "$defs", "definition lookup must return the requested definition only")
+			assert.NotContains(t, parsed, "$id", "definition lookup must not return the complete schema document")
+		})
+	}
+}
+
+func TestGetSchema_UnknownDefinition_ReturnsToolError(t *testing.T) {
+	m := newTestMCP()
+	_, out, err := m.GetSchema(context.Background(), nil, GetSchemaInput{
+		Definition: "not-set",
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "definition (not-set) is not set")
+	assert.Empty(t, out.Errors)
+	assert.Empty(t, out.Schema)
 }
 
 func TestGetSchema_InvalidOutput_InputError(t *testing.T) {

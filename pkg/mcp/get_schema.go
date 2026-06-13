@@ -19,6 +19,7 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -32,7 +33,9 @@ const (
 )
 
 type GetSchemaInput struct {
-	Output string `json:"output" jsonschema:"Output format (json or yaml),enum=json,enum=yaml,default=json"`
+	//nolint:lll // Struct tag contains schema description used by MCP tooling.
+	Definition string `json:"def,omitempty" jsonschema:"Optional schema definition name. If omitted, returns the complete schema document. If provided, returns only the requested definition from $defs."`
+	Output     string `json:"output,omitempty" jsonschema:"Output format (json or yaml),enum=json,enum=yaml,default=json"`
 }
 
 type GetSchemaError struct {
@@ -55,6 +58,8 @@ func (m *MCP) GetSchema(
 		format = outputFormatJSON
 	}
 
+	targetDefinition := strings.TrimSpace(input.Definition)
+
 	if format != outputFormatJSON && format != outputFormatYAML {
 		return nil, GetSchemaOutput{Errors: []GetSchemaError{{
 			Stage:   stageInput,
@@ -68,6 +73,14 @@ func (m *MCP) GetSchema(
 	}
 
 	var res []byte
+	if targetDefinition != "" {
+		if def, ok := s.Defs[targetDefinition]; ok {
+			s = def
+		} else {
+			return nil, GetSchemaOutput{}, fmt.Errorf("definition (%s) is not set", targetDefinition)
+		}
+	}
+
 	switch format {
 	case outputFormatYAML:
 		res, err = yaml.Marshal(s)
