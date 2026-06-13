@@ -1233,7 +1233,7 @@ $defs:
     title: WaitTask
     type: object
     unevaluatedProperties: false
-$id: https://zigflow.dev/schemas/0.13.0/schema.yaml
+$id: https://zigflow.dev/schema.yaml
 $schema: https://json-schema.org/draft/2020-12/schema
 description: JSON Schema for a Zigflow workflow definition.
 if:
