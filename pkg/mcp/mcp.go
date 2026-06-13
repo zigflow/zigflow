@@ -175,17 +175,27 @@ func New(server *mcp.Server, version string) *MCP {
 		version: version,
 	}
 
+	idempotentAnnotations := &mcp.ToolAnnotations{
+		ReadOnlyHint:    true,
+		DestructiveHint: new(false),
+		IdempotentHint:  true,
+		OpenWorldHint:   new(false),
+	}
+
 	mcp.AddTool(server, &mcp.Tool{
 		Name:  "get_schema",
 		Title: "Get Schema",
 		Description: "Returns the Zigflow workflow JSON schema for the current version. Use this to understand valid " +
-			"workflow structure before generating or validating YAML.",
+			"workflow structure before generating or validating YAML. If a schema definition name is provided, only " +
+			"that definition is returned.",
+		Annotations: idempotentAnnotations,
 	}, m.GetSchema)
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "get_example",
 		Title:       "Get Example",
 		Description: "Returns a Zigflow example by name, including its YAML content and metadata.",
+		Annotations: idempotentAnnotations,
 	}, m.GetExample)
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -193,12 +203,14 @@ func New(server *mcp.Server, version string) *MCP {
 		Title: "List Examples",
 		Description: "Lists the bundled Zigflow workflow examples with short descriptions and tags. " +
 			"Use this to discover available examples before calling get_example.",
+		Annotations: idempotentAnnotations,
 	}, m.ListExamples)
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "validate_workflow",
 		Title:       "Validate Workflow",
 		Description: "Validates a Zigflow workflow YAML string and returns structured errors by stage.",
+		Annotations: idempotentAnnotations,
 	}, m.ValidateWorkflow)
 
 	return m
