@@ -326,7 +326,8 @@ assistants and agents.
 
 Tools:
 
-- `get_schema` retrieves the Zigflow workflow JSON or YAML schema.
+- `get_schema` retrieves the Zigflow workflow JSON or YAML schema. Pass `def`
+  to retrieve one `$defs` entry, for example `{ "def": "taskList" }`.
 - `list_examples` lists the bundled example workflows.
 - `get_example` retrieves a bundled example workflow by name.
 - `validate_workflow` validates a workflow YAML string and returns structured,
