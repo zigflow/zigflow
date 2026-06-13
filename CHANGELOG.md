@@ -2,6 +2,29 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.13.0](https://github.com/zigflow/zigflow/releases/tag/v0.13.0) - 2026-06-13
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/444
+* docs: update cli docs generator to ignore edit lint by @mrsimonemms in https://github.com/zigflow/zigflow/pull/445
+* Improve mcp server by @mrsimonemms in https://github.com/zigflow/zigflow/pull/446
+* docs: enhance llms.txt for AI-assisted workflow authoring by @mrsimonemms in https://github.com/zigflow/zigflow/pull/455
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/458
+* docs: add dedicated workflow data-flow documentation by @mrsimonemms in https://github.com/zigflow/zigflow/pull/461
+* docs: replace url with endpoint in HTTP examples by @mrsimonemms in https://github.com/zigflow/zigflow/pull/466
+* feat: add common mistakes documentation by @mrsimonemms in https://github.com/zigflow/zigflow/pull/465
+* chore: configure mcp servers for zigflow and temporal by @mrsimonemms in https://github.com/zigflow/zigflow/pull/470
+* fix: catch and enrich Temporal errors in try task by @mrsimonemms in https://github.com/zigflow/zigflow/pull/471
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/473
+* docs: count github stars from whole org repos by @mrsimonemms in https://github.com/zigflow/zigflow/pull/474
+* feat(activities)!: register HTTP, gRPC and Run activities by workflowType.taskName by @ShlomitSibony in https://github.com/zigflow/zigflow/pull/469
+* feat(mcp): add definition to get_schema for single lookup by @mrsimonemms in https://github.com/zigflow/zigflow/pull/476
+
+## New Contributors
+* @ShlomitSibony made their first contribution in https://github.com/zigflow/zigflow/pull/469
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.12.1...v0.13.0
+
 ## [v0.12.1](https://github.com/zigflow/zigflow/releases/tag/v0.12.1) - 2026-05-31
 
 ## What's Changed
