@@ -30,10 +30,10 @@
       "resolved": "ghcr.io/devcontainers-extra/features/temporal-cli@sha256:275980d00e6e4d291d1e71a7f94a7d4c70e4d0cb82e3a7e0db04a6b3b0390761",
       "integrity": "sha256:275980d00e6e4d291d1e71a7f94a7d4c70e4d0cb82e3a7e0db04a6b3b0390761"
     },
-    "ghcr.io/dhoeric/features/trivy:1": {
+    "ghcr.io/jasonthedeveloper/features/trivy:1": {
       "version": "1.0.0",
-      "resolved": "ghcr.io/dhoeric/features/trivy@sha256:c291ec03dd2938d1c4bc6cf87e6afab8067514fb000c9165bcc66a6f65092783",
-      "integrity": "sha256:c291ec03dd2938d1c4bc6cf87e6afab8067514fb000c9165bcc66a6f65092783"
+      "resolved": "ghcr.io/jasonthedeveloper/features/trivy@sha256:c2f95d6884821376bec12a7b778fce22dbfc41267bda00c2d09e653eea18345b",
+      "integrity": "sha256:c2f95d6884821376bec12a7b778fce22dbfc41267bda00c2d09e653eea18345b"
     },
     "ghcr.io/mrsimonemms/devcontainers/air:1": {
       "version": "1.0.0",
