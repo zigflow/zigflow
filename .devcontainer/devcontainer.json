@@ -14,9 +14,10 @@
       "shellautocompletion": true
     },
     "ghcr.io/azutake/devcontainer-features/go-packages-install:0": {
-      "PACKAGES": "github.com/cosmtrek/air@latest,google.golang.org/protobuf/cmd/protoc-gen-go@latest,google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest"
+      "PACKAGES": "google.golang.org/protobuf/cmd/protoc-gen-go@latest,google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest"
     },
     "ghcr.io/devcontainers-extra/features/protoc:1": {},
+    "ghcr.io/mrsimonemms/devcontainers/air:1": {},
     "ghcr.io/mrsimonemms/devcontainers/buf:1": {},
     "ghcr.io/devcontainers-extra/features/grpcurl-asdf:2": {},
     "ghcr.io/rio/features/skaffold:2": {
@@ -37,7 +38,6 @@
   "postCreateCommand": {
     "go-generate": "go generate ./...",
     "helm-plugin-unittest": "helm plugin install --verify=false https://github.com/helm-unittest/helm-unittest",
-    "install-air": "go install github.com/air-verse/air@latest",
     "task-completion": "task --completion bash | sudo tee -a /etc/bash_completion.d/task > /dev/null"
   },
   "containerEnv": {

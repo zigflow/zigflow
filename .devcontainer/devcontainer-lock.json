@@ -35,6 +35,11 @@
       "resolved": "ghcr.io/dhoeric/features/trivy@sha256:c291ec03dd2938d1c4bc6cf87e6afab8067514fb000c9165bcc66a6f65092783",
       "integrity": "sha256:c291ec03dd2938d1c4bc6cf87e6afab8067514fb000c9165bcc66a6f65092783"
     },
+    "ghcr.io/mrsimonemms/devcontainers/air:1": {
+      "version": "1.0.0",
+      "resolved": "ghcr.io/mrsimonemms/devcontainers/air@sha256:049fd008b735ea508cb58f99d77e2a8918ad6c28792a9bbbf06813a498502782",
+      "integrity": "sha256:049fd008b735ea508cb58f99d77e2a8918ad6c28792a9bbbf06813a498502782"
+    },
     "ghcr.io/mrsimonemms/devcontainers/buf:1": {
       "version": "1.0.1",
       "resolved": "ghcr.io/mrsimonemms/devcontainers/buf@sha256:34ac5681af43a19bb9f23b140080147d35ba1b2507e9d21d2dcee06b711bdbd8",
