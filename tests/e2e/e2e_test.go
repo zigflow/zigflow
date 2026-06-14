@@ -20,6 +20,7 @@ package e2e
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -42,9 +43,80 @@ import (
 
 type harness struct {
 	Cases []utils.TestCase
+	// ExampleFiles are the workflow.yaml paths of every discovered example. They
+	// are loaded into one shared worker rather than a worker per case.
+	ExampleFiles []string
 }
 
 var h *harness
+
+// zigflowBin is the path to the zigflow binary built once in TestMain. Tests
+// exec this prebuilt binary instead of "go run ." so the module is compiled a
+// single time, rather than once per parallel test case where the invocations
+// would otherwise serialise behind the Go build lock.
+var zigflowBin string
+
+// buildZigflow compiles the zigflow binary once into a temporary directory and
+// returns its path together with a cleanup function to remove it.
+func buildZigflow() (bin string, cleanup func(), err error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", nil, err
+	}
+
+	dir, err := os.MkdirTemp("", "zigflow-e2e-")
+	if err != nil {
+		return "", nil, err
+	}
+
+	bin = path.Join(dir, "zigflow")
+
+	cmd := exec.Command("go", "build", "-o", bin, ".") //nolint
+	cmd.Dir = path.Join(cwd, "..", "..")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		_ = os.RemoveAll(dir)
+		return "", nil, fmt.Errorf("building zigflow binary: %w", err)
+	}
+
+	return bin, func() { _ = os.RemoveAll(dir) }, nil
+}
+
+// startWorker launches a zigflow worker for the given workflow files and returns
+// a function that kills it (and its process group). The worker polls in the
+// background; callers do not wait for it to become ready because Temporal queues
+// the workflow task until a poller picks it up.
+func startWorker(ctx context.Context, workDir string, files ...string) (stop func(), err error) {
+	healthPort, err := getFreePort()
+	if err != nil {
+		return nil, err
+	}
+	metricsPort, err := getFreePort()
+	if err != nil {
+		return nil, err
+	}
+
+	args := []string{"run"}
+	for _, f := range files {
+		args = append(args, "--file", f)
+	}
+	args = append(
+		args,
+		"--health-listen-address", fmt.Sprintf("localhost:%d", healthPort),
+		"--metrics-listen-address", fmt.Sprintf("localhost:%d", metricsPort),
+	)
+
+	cmd := exec.CommandContext(ctx, zigflowBin, args...)
+	cmd.Env = os.Environ()
+	cmd.Dir = workDir
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	return func() { _ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }, nil
+}
 
 func getFreePort() (port int, err error) {
 	var a *net.TCPAddr
@@ -83,8 +155,28 @@ func setup() (*harness, error) {
 		cases = append(cases, c)
 	}
 
+	// Auto-discover example-based tests. These already carry an absolute
+	// WorkflowPath, so they are loaded directly rather than joined against the
+	// tests/ directory like the registry cases above.
+	exampleCases, err := utils.DiscoverExamples(path.Join(cwd, "..", "..", "examples"))
+	if err != nil {
+		return nil, err
+	}
+
+	exampleFiles := make([]string, 0, len(exampleCases))
+	for _, c := range exampleCases {
+		workflowDefinition, err := zigflow.LoadFromFile(c.WorkflowPath)
+		if err != nil {
+			return nil, err
+		}
+		c.Workflow = workflowDefinition
+		cases = append(cases, c)
+		exampleFiles = append(exampleFiles, c.WorkflowPath)
+	}
+
 	return &harness{
-		Cases: cases,
+		Cases:        cases,
+		ExampleFiles: exampleFiles,
 	}, nil
 }
 
@@ -103,15 +195,57 @@ func TestMain(m *testing.M) {
 
 	zerolog.SetGlobalLevel(level)
 
+	// Reuse a binary built by the caller (task e2e builds it while the Docker
+	// stack starts, so the two overlap). Fall back to building one here so a
+	// direct `go test -tags=e2e` still works on its own.
+	cleanup := func() {}
+	if bin := os.Getenv("ZIGFLOW_E2E_BINARY"); bin != "" {
+		zigflowBin = bin
+	} else {
+		bin, c, err := buildZigflow()
+		if err != nil {
+			log.Printf("e2e binary build failed: %v", err)
+			// Non-zero exit so the test run fails clearly.
+			os.Exit(1)
+		}
+		zigflowBin = bin
+		cleanup = c
+	}
+
 	testHarness, err := setup()
 	if err != nil {
 		log.Printf("e2e setup failed: %v", err)
+		cleanup()
 		// Non-zero exit so the test run fails clearly.
 		os.Exit(1)
 	}
 	h = testHarness
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Printf("e2e getwd failed: %v", err)
+		cleanup()
+		os.Exit(1)
+	}
+
+	// One shared worker serves every example. They run on the same task queue,
+	// so a worker per example would route workflow tasks between each other and
+	// stall. The repo root is the working directory so file:// references in
+	// example workflows resolve.
+	stopExamples := func() {}
+	if len(h.ExampleFiles) > 0 {
+		stop, err := startWorker(context.Background(), path.Join(cwd, "..", ".."), h.ExampleFiles...)
+		if err != nil {
+			log.Printf("e2e example worker failed to start: %v", err)
+			cleanup()
+			os.Exit(1)
+		}
+		stopExamples = stop
+	}
+
 	code := m.Run()
+	stopExamples()
+	cleanup()
 	os.Exit(code)
 }
 
@@ -123,48 +257,20 @@ func TestE2E(t *testing.T) {
 	cwd, err := os.Getwd()
 	assert.NoError(t, err, "working directory")
 
+	repoRoot := path.Join(cwd, "..", "..")
+
 	for _, test := range h.Cases {
 		t.Run(test.Name, func(t *testing.T) {
 			t.Parallel()
 
-			ctx := t.Context()
-
-			healthPort, err := getFreePort()
-			assert.NoError(t, err, "health port")
-
-			metricsPort, err := getFreePort()
-			assert.NoError(t, err, "metrics port")
-
-			args := []string{
-				"run",
-				".",
-				"run",
-				"--file", test.WorkflowPath,
+			// Example cases are served by the shared worker started in TestMain.
+			// Bespoke cases each get their own worker on their own task queue.
+			if !test.Example {
+				files := append([]string{test.WorkflowPath}, test.ExtraFiles...)
+				stop, err := startWorker(t.Context(), repoRoot, files...)
+				assert.NoError(t, err, "start worker")
+				t.Cleanup(stop)
 			}
-			for _, f := range test.ExtraFiles {
-				args = append(args, "--file", f)
-			}
-			args = append(
-				args,
-				"--health-listen-address", fmt.Sprintf("localhost:%d", healthPort),
-				"--metrics-listen-address", fmt.Sprintf("localhost:%d", metricsPort),
-			)
-
-			// Start the Zigflow binary with the loaded workflow
-			go (func() {
-				//nolint
-				cmd := exec.CommandContext(ctx, "go", args...)
-				cmd.Env = os.Environ()
-				cmd.Dir = path.Join(cwd, "..", "..")
-				cmd.SysProcAttr = &syscall.SysProcAttr{
-					Setpgid: true,
-				}
-				assert.NoError(t, cmd.Start())
-
-				t.Cleanup(func() {
-					syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-				})
-			})()
 
 			test.Test(t, &test)
 		})
@@ -188,9 +294,8 @@ func TestE2EMultiFileDuplicateRejected(t *testing.T) {
 	require.NoError(t, err)
 
 	var stderr bytes.Buffer
-	cmd := exec.Command(
-		"go", //nolint
-		"run", ".",
+	cmd := exec.Command( //nolint
+		zigflowBin,
 		"run",
 		"--file", path.Join(fixtureDir, "workflow-a.yaml"),
 		"--file", path.Join(fixtureDir, "workflow-b.yaml"),

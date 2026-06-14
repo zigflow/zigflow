@@ -1,0 +1,7 @@
+# An even input takes the "even" branch and skips the odd one, so the exported
+# context is fully deterministic and can be matched exactly.
+input:
+  integer: 2
+
+expected:
+  task: even

@@ -1,0 +1,12 @@
+# A past sendAt makes the "until" wait a no-op and a zero grace window skips the
+# expression-duration wait, so the workflow completes quickly and deterministically.
+input:
+  sendAt: "2020-01-01T00:00:00Z"
+  cancelGraceSeconds: 0
+  recipient: demo@example.com
+  body: Hello from Ziggy
+
+expected:
+  delivered:
+    recipient: demo@example.com
+    body: Hello from Ziggy

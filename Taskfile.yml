@@ -33,8 +33,20 @@ tasks:
     cmds:
       - go clean -testcache
       - defer: docker compose -f {{.E2E_COMPOSE}} down
-      - docker compose -f {{.E2E_COMPOSE}} up -d --wait
       - |
+        set -e
+
+        mkdir -p ./tmp
+        bin="$(pwd)/tmp/zigflow-e2e"
+
+        # Build the worker binary while the Docker stack starts so the two
+        # overlap. The tests reuse this binary rather than compiling per case.
+        go build -o "${bin}" . &
+        build_pid=$!
+        docker compose -f {{.E2E_COMPOSE}} up -d --wait
+        wait "${build_pid}"
+
+        export ZIGFLOW_E2E_BINARY="${bin}"
         export TEMPORAL_ADDRESS=$(docker compose -f {{.E2E_COMPOSE}} port temporal 7233)
         export ZIGGY_HTTP_MOCK=$(docker compose -f {{.E2E_COMPOSE}} port http_mock 8888)
 

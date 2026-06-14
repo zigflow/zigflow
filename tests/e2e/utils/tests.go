@@ -39,6 +39,11 @@ type TestCase struct {
 	Input          map[string]any
 	ExpectedOutput any
 	Test           func(t *testing.T, test *TestCase)
+	// Example marks a case discovered from examples/. These share a single
+	// long-lived worker started by the harness rather than one worker per case,
+	// because they all run on the same task queue and per-case workers would
+	// thrash routing workflow tasks between each other.
+	Example bool
 }
 
 // RunToCompletionNamed executes a single workflow identified by taskQueue and

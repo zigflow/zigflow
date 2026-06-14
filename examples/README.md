@@ -8,6 +8,7 @@ A collection of examples
 * [Running](#running)
   * [Running the worker](#running-the-worker)
   * [Starting the workflow](#starting-the-workflow)
+* [Testing](#testing)
 
 <!-- Regenerate with "pre-commit run -a markdown-toc" -->
 
@@ -71,3 +72,28 @@ task worker NAME=<example>
 ```sh
 task start NAME=<example>
 ```
+
+## Testing
+
+An example can opt into end-to-end testing by adding a `test.yaml` file next to
+its `workflow.yaml`. Examples without a `test.yaml` are ignored.
+
+```yaml
+input: {}
+
+# Exact matching for deterministic output.
+expected:
+  data:
+    message: Hello from Ziggy
+```
+
+`input` is passed to the workflow when it starts. The result is then validated
+with either or both of:
+
+* `expected`, compared exactly against the result, for deterministic output.
+* `assert`, which validates the shape and type of the result (for example
+  `type: uuid` or `type: timestamp`) for examples that produce variable values.
+
+These tests are auto-discovered and run as part of `task e2e` (and therefore in
+CI). See [tests/e2e](../tests/e2e/README.md) for the full assertion model and
+the list of supported types.

@@ -1,0 +1,23 @@
+# The workflow echoes its priority and fairness input back through context. The
+# output is deterministic, so it is matched exactly with "expected", while
+# "assert" demonstrates that both styles can be combined in one file.
+input:
+  priorityKey: 1
+  fairnessKey: group-1
+  fairnessWeight: 1
+
+expected:
+  data:
+    priorityKey: 1
+    fairnessKey: group-1
+    fairnessWeight: 1
+    message: Priority and Fairness demo
+
+assert:
+  data:
+    priorityKey:
+      type: number
+    fairnessKey:
+      type: non-empty-string
+    message:
+      type: non-empty-string

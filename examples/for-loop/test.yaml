@@ -1,0 +1,33 @@
+# The for-loop output is large but its shape is stable, so it is validated with
+# structural "assert" checks rather than an exact match. This exercises nested
+# object recursion alongside the string, non-empty-string, number, boolean and
+# array assertion types.
+input:
+  map:
+    key1: hello
+    key2: 37
+    key3: true
+  data:
+    - userId: 3
+    - userId: 4
+    - userId: 5
+
+assert:
+  forTaskMap:
+    key1:
+      key:
+        type: non-empty-string
+      value:
+        type: string
+    key2:
+      value:
+        type: number
+    key3:
+      value:
+        type: boolean
+  forTaskArray:
+    type: array
+  forTaskNumber:
+    type: array
+  forTaskStateCarryOver:
+    type: array
