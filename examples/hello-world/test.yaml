@@ -1,0 +1,5 @@
+input: {}
+
+expected:
+  data:
+    message: Hello from Ziggy

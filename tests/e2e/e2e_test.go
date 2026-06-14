@@ -83,6 +83,23 @@ func setup() (*harness, error) {
 		cases = append(cases, c)
 	}
 
+	// Auto-discover example-based tests. These already carry an absolute
+	// WorkflowPath, so they are loaded directly rather than joined against the
+	// tests/ directory like the registry cases above.
+	exampleCases, err := utils.DiscoverExamples(path.Join(cwd, "..", "..", "examples"))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, c := range exampleCases {
+		workflowDefinition, err := zigflow.LoadFromFile(c.WorkflowPath)
+		if err != nil {
+			return nil, err
+		}
+		c.Workflow = workflowDefinition
+		cases = append(cases, c)
+	}
+
 	return &harness{
 		Cases: cases,
 	}, nil
