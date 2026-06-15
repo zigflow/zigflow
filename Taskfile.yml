@@ -32,6 +32,13 @@ tasks:
   e2e:
     cmds:
       - go clean -testcache
+      - task: e2e:central
+      - task: e2e:examples
+
+  # Central e2e suite: shared dependencies managed by Docker Compose.
+  e2e:central:
+    internal: true
+    cmds:
       - defer: docker compose -f {{.E2E_COMPOSE}} down
       - docker compose -f {{.E2E_COMPOSE}} up -d --wait
       - |
@@ -42,6 +49,30 @@ tasks:
         echo "HTTP mock address: $ZIGGY_HTTP_MOCK"
 
         go test -v -tags=e2e ./tests/e2e/...
+
+  # Example-local e2e tests: each example owns its dependencies through
+  # Testcontainers, so any examples/<name>/e2e_test.go is picked up automatically
+  # with no central registration.
+  #
+  # The Zigflow worker binary is built once and shared with every example test
+  # via ZIGFLOW_E2E_BINARY, avoiding a per-test "go run" compile.
+  #
+  # Each example test starts its own Temporal container, so package parallelism
+  # is capped via "go test -p" to bound concurrent containers and keep the suite
+  # stable as more examples are added. The cap defaults to 4 and is overridable
+  # with E2E_PARALLEL, for example "task e2e E2E_PARALLEL=2" on a constrained
+  # machine or a higher value in CI with more resources.
+  e2e:examples:
+    internal: true
+    deps:
+      - generate-grpc
+    vars:
+      E2E_BINARY: '{{.ROOT_DIR}}/tmp/zigflow-e2e'
+      E2E_PARALLEL: '{{.E2E_PARALLEL | default 4}}'
+    cmds:
+      - mkdir -p {{.ROOT_DIR}}/tmp
+      - go build -o {{.E2E_BINARY}} .
+      - ZIGFLOW_E2E_BINARY={{.E2E_BINARY}} go test -p {{.E2E_PARALLEL}} -v -tags=e2e ./examples/...
 
   generate-grpc:
     desc: Regenerate gRPC examples
