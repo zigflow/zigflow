@@ -43,18 +43,26 @@ jobs:
           cache-dependency-path: |
             docs/package-lock.json
             scripts/package-lock.json
+            examples/**/package-lock.json
 
-      - name: Update docs npm dependencies
-        working-directory: docs
+      - name: Discover Node packages
         run: |
-          npm install
-          npm update
+          find docs scripts examples \
+            -name package.json \
+            -not -path "*/node_modules/*" \
+            -exec dirname {} \; \
+            | sort > /tmp/node-packages.txt
 
-      - name: Update scripts npm dependencies
-        working-directory: scripts
+          echo "Discovered Node packages:"
+          cat /tmp/node-packages.txt
+
+      - name: Update Node dependencies
         run: |
-          npm install
-          npm update
+          while IFS= read -r dir; do
+            echo "Updating npm dependencies in $dir"
+            npm --prefix "$dir" install
+            npm --prefix "$dir" update
+          done < /tmp/node-packages.txt
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v8
@@ -64,9 +72,10 @@ jobs:
           body: |
             Automated dependency refresh.
 
-            - Pre-commit dependencies update via `pre-commit autoupdate`
+            - Pre-commit dependencies updated via `pre-commit autoupdate`
             - Go dependencies updated via `go get -u ./...` and `go mod tidy`
             - Docs npm dependencies updated via `npm update` in `docs`
+            - Examples npm dependencies updated via `npm update` in `examples`
             - Scripts npm dependencies updated via `npm update` in `scripts`
           branch: chore/update-deps
           delete-branch: true
