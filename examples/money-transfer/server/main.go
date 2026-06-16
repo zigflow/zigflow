@@ -22,6 +22,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/healthcheck"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
@@ -65,6 +66,7 @@ func main() {
 
 	app.
 		Use(logger.New()).
+		Use(healthcheck.New()).
 		Use(func(c *fiber.Ctx) error {
 			// Log everything received - terrible for security, but ok for this demo
 			fmt.Println(string(c.Body()))
