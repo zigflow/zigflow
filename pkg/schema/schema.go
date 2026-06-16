@@ -166,4 +166,20 @@ var schemaProperties = map[string]*jsonschema.Schema{
 			},
 		},
 	},
+	"use": {
+		Type:                  typeObject,
+		Title:                 "Use",
+		Description:           "Defines the workflow's reusable components.",
+		UnevaluatedProperties: falseSchema(),
+		Properties: map[string]*jsonschema.Schema{
+			"catalogs": {
+				Type:        typeObject,
+				Title:       "UseCatalogs",
+				Description: "The workflow's reusable catalogues",
+				AdditionalProperties: &jsonschema.Schema{
+					Ref: SchemaRef("catalog"),
+				},
+			},
+		},
+	},
 }

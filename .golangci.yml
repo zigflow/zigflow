@@ -52,6 +52,9 @@ linters:
       line-length: 140
     misspell:
       locale: UK
+      ignore-rules:
+        - catalog
+        - catalogs
   exclusions:
     generated: lax
     presets:

@@ -155,7 +155,7 @@ func loadWorkflows(
 			}
 		}
 
-		def, err := zigflow.LoadFromFile(file)
+		def, reg, err := zigflow.LoadFromFile(file)
 		if err != nil {
 			return nil, gh.FatalError{
 				Cause: err,

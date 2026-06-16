@@ -16,7 +16,10 @@
 
 package tasks
 
-const customCallFunctionActivity = "activity"
+const (
+	customCallFunctionActivity = "activity"
+	customCallFunctionCatalog  = "catalog"
+)
 
 const (
 	constKeyInput             = "input"

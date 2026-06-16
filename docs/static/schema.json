@@ -112,6 +112,22 @@
           "description": "The workflow's timeout configuration, if any."
         }
       ]
+    },
+    "use": {
+      "type": "object",
+      "properties": {
+        "catalogs": {
+          "type": "object",
+          "title": "UseCatalogs",
+          "description": "The workflow's reusable catalogues",
+          "additionalProperties": {
+            "$ref": "#/$defs/catalog"
+          }
+        }
+      },
+      "title": "Use",
+      "description": "Defines the workflow's reusable components.",
+      "unevaluatedProperties": false
     }
   },
   "$id": "https://zigflow.dev/schema.json",
@@ -164,6 +180,30 @@
                     "taskQueue"
                   ],
                   "unevaluatedProperties": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "title": "CallCatalog",
+          "required": [
+            "name"
+          ],
+          "unevaluatedProperties": false,
+          "allOf": [
+            {
+              "properties": {
+                "call": {
+                  "type": "string",
+                  "const": "catalog"
+                },
+                "with": {
+                  "type": "object",
+                  "properties": {},
+                  "title": "CatalogWith",
+                  "unevaluatedProperties": true
                 }
               }
             }
@@ -346,6 +386,22 @@
           ]
         }
       ]
+    },
+    "catalog": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "$ref": "#/$defs/endpoint",
+          "title": "CatalogEndpoint",
+          "description": "The root URL where the catalog is hosted."
+        }
+      },
+      "title": "Catalog",
+      "description": "The definition of a resource catalog.",
+      "required": [
+        "endpoint"
+      ],
+      "additionalProperties": false
     },
     "commonMetadata": {
       "type": "object",
