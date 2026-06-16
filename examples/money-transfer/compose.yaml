@@ -6,6 +6,12 @@ services:
       - ./server:/go/app
     ports:
       - 3001:3000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/livez"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   temporal:
     image: temporalio/temporal
@@ -37,6 +43,8 @@ services:
       - server
       - temporal
     depends_on:
+      server:
+        condition: service_healthy
       temporal:
         condition: service_healthy
       # UI isn't actually linked, but allows us to run docker compose up workflow
