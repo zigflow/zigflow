@@ -83,16 +83,18 @@ func IsExpressionDeterministic(expr string) bool {
 	return a.Deterministic
 }
 
-// stateVars enumerates the variable names Zigflow injects into every jq
-// evaluation from workflow State. Reading these values is always replay-safe
-// because they come from workflow history.
-var stateVars = map[string]struct{}{
-	"$context": {},
-	"$data":    {},
-	"$env":     {},
-	"$input":   {},
-	"$output":  {},
-}
+// stateVars is the set form of StateVarNames, the variable names Zigflow
+// injects into every jq evaluation from workflow State. Reading these values is
+// always replay-safe because they come from workflow history. It is derived
+// from StateVarNames so the determinism allow-list cannot drift from the names
+// actually injected by State.GetAsMap.
+var stateVars = func() map[string]struct{} {
+	set := make(map[string]struct{}, len(StateVarNames))
+	for _, name := range StateVarNames {
+		set[name] = struct{}{}
+	}
+	return set
+}()
 
 // nonDeterministicReasons lists symbols that are explicitly non-deterministic
 // and the reason they are unsafe. Used to produce useful error messages; the
