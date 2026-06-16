@@ -1,0 +1,76 @@
+document:
+  dsl: 1.0.0
+  taskQueue: continue-as-new
+  workflowType: workflow
+  version: 0.0.1
+  title: Continue-As-New message routing
+  summary: Prove signal and query handlers survive Continue-As-New
+  metadata:
+    tags:
+      - signal
+      - query
+      - continue-as-new
+    # Force Continue-As-New quickly so the test can observe the run rolling over
+    # to a fresh run ID. This is the same testing override used by the query
+    # example.
+    #
+    # The threshold is chosen so Continue-As-New fires exactly once, when the
+    # loop reaches signalListener: the burnHistory loop grows the event history
+    # well past the threshold, while the history before burnHistory runs stays
+    # below it. Because the trigger point is signalListener, burnHistory is a
+    # completed task on the continued run and is skipped, so the continued run
+    # does not grow its history again and settles blocked on the signal
+    # listener. A single, deterministic Continue-As-New keeps the test from
+    # racing an endlessly-continuing workflow.
+    # @link https://docs.temporal.io/develop/go/continue-as-new
+    canMaxHistoryLength: 12
+do:
+  # Register a non-blocking query handler first. Query is registered before
+  # Continue-As-New, so this verifies query handlers are re-registered on the
+  # continued run.
+  - registerQuery:
+      listen:
+        to:
+          one:
+            with:
+              # ID maps to the query name in Temporal
+              id: get_state
+              type: query
+              data:
+                signal: ${ $data.signalListener }
+  # Grow the event history past canMaxHistoryLength inside a single task. Each
+  # iteration starts a durable timer, so the loop emits enough history events to
+  # cross the threshold. Continue-As-New is only checked between top-level tasks,
+  # so it fires once burnHistory completes and the loop reaches signalListener.
+  - burnHistory:
+      for:
+        in: ${ 6 }
+      do:
+        - tick:
+            wait:
+              seconds: 1
+  # Block on a signal. This listener is reached after Continue-As-New and verifies
+  # messages sent to the Workflow ID are routed to the continued execution.
+  - signalListener:
+      metadata:
+        timeout: 120s
+      listen:
+        to:
+          one:
+            with:
+              # ID maps to the signal name in Temporal - this blocks until received
+              id: approve
+              type: signal
+              # acceptIf requires a truthy payload to unblock
+              acceptIf: ${ $data.signalListener }
+  - outputSignal:
+      export:
+        as: '${ $context + { response: . } }'
+      set:
+        # Carry the received signal into the workflow output
+        signal: ${ $data.signalListener }
+  - done:
+      output:
+        as: ${ $context }
+      wait:
+        seconds: 1
