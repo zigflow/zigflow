@@ -25,10 +25,36 @@ jobs:
       final_message: ${{ steps.run_codex.outputs['final-message'] }}
       codex_succeeded: ${{ steps.run_codex.outcome == 'success' }}
     steps:
+      # Runner-level egress firewall: block all outbound traffic except the
+      # endpoints needed to check out code and run codex. Even if injected fork
+      # code escapes the codex sandbox, it cannot exfiltrate secrets.
+      # NOTE: if the workflow fails on a blocked endpoint, temporarily set
+      # `egress-policy: audit`, read the harden-runner run summary for the
+      # missing host, add it below, then switch back to `block`.
+      # Don't disable sudo here: codex-action needs it during setup to enable
+      # user namespaces / clear AppArmor for its bubblewrap sandbox. Its own
+      # `safety-strategy: drop-sudo` revokes sudo afterwards.
+      - uses: step-security/harden-runner@v2
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            api.openai.com:443
+            registry.npmjs.org:443
+            github.com:443
+            api.github.com:443
+            codeload.github.com:443
+            objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
+
       - uses: actions/checkout@v7
         with:
           ref: refs/pull/${{ github.event.pull_request.number }}/merge
           fetch-depth: 0
+          # pull_request_target intentionally reviews fork PRs gated behind the
+          # `ai-review` label; v7 requires explicit opt-in to check out fork code.
+          allow-unsafe-pr-checkout: true
+          # Don't leave the GITHUB_TOKEN on disk for the codex step to find.
+          persist-credentials: false
 
       - name: Fetch base branch and PR head
         run: |
@@ -82,7 +108,15 @@ jobs:
             Use British English spelling and punctuation.
 
             Be concise and specific.
-          sandbox: workspace-write
+          # read-only sandbox: codex may read the (untrusted) fork code and send
+          # it to the OpenAI API, but injected shell commands cannot write files
+          # or reach the network — so a prompt-injection attack cannot exfiltrate
+          # OPENAI_API_KEY.
+          # sandbox: read-only blocks codex's spawned commands from writing
+          # files or reaching the network (so injected fork code can't exfil
+          # OPENAI_API_KEY); drop-sudo revokes the runner user's sudo after the
+          # action's own sandbox setup completes.
+          sandbox: read-only
           safety-strategy: drop-sudo
 
   post_review_comment:
