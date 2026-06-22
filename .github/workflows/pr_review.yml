@@ -25,7 +25,7 @@ jobs:
       final_message: ${{ steps.run_codex.outputs['final-message'] }}
       codex_succeeded: ${{ steps.run_codex.outcome == 'success' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: refs/pull/${{ github.event.pull_request.number }}/merge
           fetch-depth: 0
