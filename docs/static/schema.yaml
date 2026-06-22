@@ -37,6 +37,25 @@ $defs:
       type: object
       unevaluatedProperties: false
     - allOf:
+      - properties:
+          call:
+            const: catalog
+            type: string
+          name:
+            title: CatalogName
+            type: string
+          with:
+            properties: {}
+            title: CatalogWith
+            type: object
+            unevaluatedProperties: true
+      required:
+      - call
+      - name
+      title: CallCatalog
+      type: object
+      unevaluatedProperties: false
+    - allOf:
       - $ref: '#/$defs/taskBase'
       - properties:
           call:
@@ -162,6 +181,18 @@ $defs:
       type: object
       unevaluatedProperties: false
     title: CallTask
+  catalog:
+    additionalProperties: false
+    description: The definition of a resource catalog.
+    properties:
+      endpoint:
+        $ref: '#/$defs/endpoint'
+        description: The root URL where the catalog is hosted.
+        title: CatalogEndpoint
+    required:
+    - endpoint
+    title: Catalog
+    type: object
   commonMetadata:
     additionalProperties: true
     properties:
@@ -1327,6 +1358,18 @@ properties:
       description: The workflow's timeout configuration, if any.
       title: TimeoutDefinition
     title: DoTimeout
+  use:
+    description: Defines the workflow's reusable components.
+    properties:
+      catalogs:
+        additionalProperties:
+          $ref: '#/$defs/catalog'
+        description: The workflow's reusable catalogues
+        title: UseCatalogs
+        type: object
+    title: Use
+    type: object
+    unevaluatedProperties: false
 required:
 - do
 - document

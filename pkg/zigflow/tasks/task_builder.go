@@ -260,9 +260,12 @@ func NewTaskBuilder(
 
 	switch t := task.(type) {
 	case *model.CallFunction:
-		if t.Call == customCallFunctionActivity {
+		switch t.Call {
+		case customCallFunctionActivity:
 			b, err = NewCallActivityTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
-		} else {
+		case customCallFunctionCatalog:
+			b, err = NewCallCatalogTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+		default:
 			return nil, fmt.Errorf("unsupported call type '%s' for task '%s'", t.Call, taskName)
 		}
 	case *model.CallGRPC:

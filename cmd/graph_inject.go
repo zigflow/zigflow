@@ -134,7 +134,7 @@ func execGraphInject(workflowFile, targetFile, outputFormat, startMarker, endMar
 		return gh.FatalError{Cause: pathErr, Msg: "Unable to resolve target file path"}
 	}
 
-	wf, err := zigflow.LoadFromFile(workflowFile)
+	wf, _, err := zigflow.LoadFromFile(workflowFile)
 	if err != nil {
 		return gh.FatalError{Cause: err, Msg: errMsgUnableToLoadWorkflowFile}
 	}

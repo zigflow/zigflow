@@ -126,7 +126,7 @@ func runValidateCmd(cmd *cobra.Command, filePath string, outputJSON bool) error 
 		}
 	}
 
-	workflowDefinition, err := zigflow.LoadFromFile(filePath)
+	workflowDefinition, _, err := zigflow.LoadFromFile(filePath)
 	if err != nil {
 		return gh.FatalError{
 			Cause: err,

@@ -26,6 +26,7 @@ import (
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/schema"
 	"github.com/zigflow/zigflow/pkg/zigflow/extensions"
+	"github.com/zigflow/zigflow/pkg/zigflow/registry"
 
 	// Imported for its init() side effect: the models package registers
 	// Zigflow extension task types (e.g. __zigflow_ext_wait) with both the
@@ -38,53 +39,58 @@ import (
 // JSON bytes. It does not perform schema validation.
 //
 // Call ValidateBytes before LoadFromBytes when schema enforcement is required.
-func LoadFromBytes(data []byte) (*model.Workflow, error) {
+func LoadFromBytes(data []byte) (*model.Workflow, *registry.Use, error) {
 	jsonBytes, err := yaml.YAMLToJSON(data)
 	if err != nil {
-		return nil, fmt.Errorf("error converting yaml to json: %w", err)
+		return nil, nil, fmt.Errorf("error converting yaml to json: %w", err)
 	}
 
 	// normalise the Zigflow data structure to Serverless Workflow data structure
 	var raw map[string]any
 	if err := json.Unmarshal(jsonBytes, &raw); err != nil {
-		return nil, fmt.Errorf("error unmarshalling to zigflow raw workflow: %w", err)
+		return nil, nil, fmt.Errorf("error unmarshalling to zigflow raw workflow: %w", err)
 	}
 
 	if err := normaliseWorkflowDocument(raw); err != nil {
-		return nil, fmt.Errorf("error normalising workflow document: %w", err)
+		return nil, nil, fmt.Errorf("error normalising workflow document: %w", err)
 	}
 
 	// Convert back to JSON
 	normalisedJSON, err := json.Marshal(raw)
 	if err != nil {
-		return nil, fmt.Errorf("error marshalling raw workflow to json: %w", err)
+		return nil, nil, fmt.Errorf("error marshalling raw workflow to json: %w", err)
 	}
 
 	// Now convert to Serverless Workflow's Workflow model
 	var wf *model.Workflow
 	if err := json.Unmarshal(normalisedJSON, &wf); err != nil {
-		return nil, fmt.Errorf("error unmarshaling json to workflow: %w", err)
+		return nil, nil, fmt.Errorf("error unmarshaling json to workflow: %w", err)
+	}
+
+	reg, err := ParseUse(wf)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error building workflow.use section: %w", err)
 	}
 
 	if err := newWorkflowPrepare(wf); err != nil {
-		return nil, fmt.Errorf("error preparing workflow: %w", err)
+		return nil, nil, fmt.Errorf("error preparing workflow: %w", err)
 	}
 
 	c, err := semver.NewConstraint(">= 1.0.0, <2.0.0")
 	if err != nil {
-		return nil, fmt.Errorf("error creating semver constraint: %w", err)
+		return nil, nil, fmt.Errorf("error creating semver constraint: %w", err)
 	}
 
 	v, err := semver.NewVersion(wf.Document.DSL)
 	if err != nil {
-		return nil, fmt.Errorf("error creating semver version: %w", err)
+		return nil, nil, fmt.Errorf("error creating semver version: %w", err)
 	}
 
 	if !c.Check(v) {
-		return nil, fmt.Errorf("%w: %s", ErrUnsupportedDSL, wf.Document.DSL)
+		return nil, nil, fmt.Errorf("%w: %s", ErrUnsupportedDSL, wf.Document.DSL)
 	}
 
-	return wf, nil
+	return wf, reg, nil
 }
 
 // ValidateBytes validates raw YAML or JSON bytes against the Zigflow JSON
@@ -117,7 +123,7 @@ func ValidateBytes(data []byte) error {
 	// newWorkflowPrepare, which validates task structure and expression
 	// determinism in one place. Doing the load here means ValidateBytes is a
 	// complete validation entry point: schema, structure, and determinism.
-	if _, err := LoadFromBytes(data); err != nil {
+	if _, _, err := LoadFromBytes(data); err != nil {
 		return err
 	}
 
@@ -130,10 +136,10 @@ func ValidateBytes(data []byte) error {
 //
 // Call ValidateFile before LoadFromFile when schema enforcement is required,
 // such as in CLI validation paths or when running with --validate=true.
-func LoadFromFile(file string) (*model.Workflow, error) {
+func LoadFromFile(file string) (*model.Workflow, *registry.Use, error) {
 	data, err := os.ReadFile(filepath.Clean(file))
 	if err != nil {
-		return nil, fmt.Errorf("error loading file: %w", err)
+		return nil, nil, fmt.Errorf("error loading file: %w", err)
 	}
 
 	return LoadFromBytes(data)

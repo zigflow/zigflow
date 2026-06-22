@@ -59,7 +59,7 @@ Arguments:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			filePath := args[0]
 
-			workflowDefinition, err := zigflow.LoadFromFile(filePath)
+			workflowDefinition, _, err := zigflow.LoadFromFile(filePath)
 			if err != nil {
 				return gh.FatalError{
 					Cause: err,

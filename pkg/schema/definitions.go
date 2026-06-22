@@ -26,6 +26,7 @@ import (
 func buildDefinitions() map[string]*jsonschema.Schema {
 	return map[string]*jsonschema.Schema{
 		"callTask":                 callTaskDefinition,
+		"catalog":                  catalogDefinition,
 		defCommonMetadata:          commonMetadataDefinition,
 		"containerLifetime":        containerLifetimeDefinition,
 		"doTask":                   doTaskDefinition,
@@ -101,6 +102,33 @@ var callTaskDefinition = &jsonschema.Schema{
 									Type: typeArray,
 								},
 							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Type:                  typeObject,
+			Title:                 "CallCatalog",
+			Description:           "",
+			UnevaluatedProperties: falseSchema(),
+			Required:              []string{propCall, propName},
+			AllOf: []*jsonschema.Schema{
+				{
+					Properties: map[string]*jsonschema.Schema{
+						propCall: {
+							Type:  typeString,
+							Const: utils.Ptr[any]("catalog"),
+						},
+						propName: {
+							Type:  typeString,
+							Title: "CatalogName",
+						},
+						propWith: {
+							Type:                  typeObject,
+							Title:                 "CatalogWith",
+							UnevaluatedProperties: trueSchema(),
+							Properties:            map[string]*jsonschema.Schema{},
 						},
 					},
 				},
@@ -253,6 +281,21 @@ var callTaskDefinition = &jsonschema.Schema{
 					},
 				},
 			},
+		},
+	},
+}
+
+var catalogDefinition = &jsonschema.Schema{
+	Type:                 typeObject,
+	Title:                "Catalog",
+	Description:          "The definition of a resource catalog.",
+	AdditionalProperties: falseSchema(),
+	Required:             []string{"endpoint"},
+	Properties: map[string]*jsonschema.Schema{
+		"endpoint": {
+			Ref:         SchemaRef("endpoint"),
+			Title:       "CatalogEndpoint",
+			Description: "The root URL where the catalog is hosted.",
 		},
 	},
 }
