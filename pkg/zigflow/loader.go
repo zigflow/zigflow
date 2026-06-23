@@ -24,7 +24,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
-	"github.com/zigflow/zigflow/pkg/schema"
+	"github.com/zigflow/schema"
 	"github.com/zigflow/zigflow/pkg/zigflow/extensions"
 
 	// Imported for its init() side effect: the models package registers

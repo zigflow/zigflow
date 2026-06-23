@@ -25,6 +25,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/zigflow/schema"
 	"github.com/zigflow/zigflow/pkg/telemetry"
 	"github.com/zigflow/zigflow/pkg/zigflow"
 )
@@ -113,7 +114,7 @@ platform.`,
 		newRunCmd(),
 		newVersionCmd(),
 		newValidateCmd(),
-		newSchemaCmd(),
+		schema.NewSchemaCmd(Version),
 		newGraphCmd(),
 		newGenerateDocsCmd(rootCmd),
 		newMCPCmd(),

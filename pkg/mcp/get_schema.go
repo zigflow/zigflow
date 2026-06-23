@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/zigflow/zigflow/pkg/schema"
+	"github.com/zigflow/schema"
 	"go.yaml.in/yaml/v2"
 )
 

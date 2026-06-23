@@ -106,8 +106,8 @@ Each extension consists of five pieces:
    which performs both the SDK-side and Zigflow-side registrations.
 3. **Claim logic** that decides whether the user's YAML uses the
    extension form or the spec form.
-4. **Schema updates** in `pkg/schema/definitions.go` so the new
-   user-facing YAML form passes validation.
+4. **Schema updates** in [github.com/zigflow/schema](https://github.com/zigflow/schema)
+   so the new user-facing YAML form passes validation.
 5. **A task builder** in `pkg/zigflow/tasks/` that converts the parsed
    task into a Temporal workflow function and calls the relevant
    Temporal SDK feature.
@@ -118,7 +118,8 @@ in doubt:
 - `pkg/zigflow/models/wait_ext.go` (type, registration, claim)
 - `pkg/zigflow/tasks/task_builder_wait_ext.go` (builder)
 - `pkg/zigflow/tasks/task_builder.go` (factory wiring)
-- `pkg/schema/definitions.go` (`waitTaskDefinition`)
+- [`github.com/zigflow/schema/definitions.go`](https://github.com/zigflow/schema/blob/main/definitions.go)
+  (`waitTaskDefinition`)
 - `pkg/zigflow/extensions/extension.go` (registry interface)
 
 ---
@@ -221,7 +222,7 @@ the JSON. The SDK then constructs your `*MyExtTask` directly.
 
 ## Step 4: extend the schema
 
-Update the relevant task definition in `pkg/schema/definitions.go`
+Update the relevant task definition in [`schema/definitions.go`](https://github.com/zigflow/schema/blob/main/definitions.go)
 so the user-facing YAML form validates. The user always writes the
 Serverless Workflow task type (`mytask:` in this example); the
 internal `__zigflow_ext_*` key never appears in user-facing input.
@@ -230,7 +231,7 @@ The wait task uses a `OneOf` between the existing duration form and
 a new until form:
 
 ```go
-// pkg/schema/definitions.go (inside waitTaskDefinition's AllOf[1].Properties)
+// https://github.com/zigflow/schema/blob/main/definitions.go (inside waitTaskDefinition's AllOf[1].Properties)
 "wait": {
     Title: "WaitTaskConfiguration",
     OneOf: []*jsonschema.Schema{
@@ -327,10 +328,10 @@ For Zigflow's wider testing approach, see
 Follow the wait extension's test layout. There are five layers worth
 covering:
 
-1. **Schema** (`pkg/schema/mytask_test.go`): positive and negative
-   cases for the new YAML forms, plus a structural test that asserts
-   the definition shape (see `TestWaitTaskDefinitionShape` for the
-   wait extension's equivalent).
+1. **Schema** ([schema](https://github.com/zigflow/schema)):
+   positive and negative cases for the new YAML forms, plus a structural
+   test that asserts the definition shape (see `TestWaitTaskDefinitionShape`
+   for the wait extension's equivalent).
 2. **Normalise** (`pkg/zigflow/normalise_test.go`): the claim logic
    correctly rewrites the task body key for extension forms and leaves
    vanilla forms alone.
@@ -374,8 +375,8 @@ retry intervals, schedule). Extend the local task schema instead.
 
 :::warning
 **Forgetting to regenerate `docs/static/schema.json`.** The published
-schema must stay aligned with `pkg/schema/definitions.go`. The
-pre-commit hook regenerates it automatically; if you skip pre-commit,
+schema must be derived from [zigflow/schema](https://github.com/zigflow/schema).
+The pre-commit hook regenerates it automatically; if you skip pre-commit,
 run `go run . schema --output json > docs/static/schema.json`.
 :::
 
