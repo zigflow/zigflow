@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zigflow/zigflow/pkg/schema"
+	"github.com/zigflow/schema"
 )
 
 // llmsTxtPath is resolved relative to the repository root, which is the working
