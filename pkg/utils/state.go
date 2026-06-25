@@ -18,6 +18,7 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"maps"
 
 	swUtils "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
@@ -51,6 +52,24 @@ func (s *State) AddData(data map[string]any) *State {
 	return s
 }
 
+// jsonNormalize converts a metadata map to JSON-native types (string, number,
+// bool, []any, map[string]any) so it is safe to evaluate with gojq, which
+// panics on any other Go type. The map is round-tripped through JSON, so each
+// value is rendered the way gojq will see it. The transform is pure and
+// deterministic, so it is replay-safe; on marshal/unmarshal error the original
+// map is returned unchanged.
+func jsonNormalize(m map[string]any) map[string]any {
+	b, err := json.Marshal(m)
+	if err != nil {
+		return m
+	}
+	var out map[string]any
+	if err := json.Unmarshal(b, &out); err != nil {
+		return m
+	}
+	return out
+}
+
 func (s *State) AddActivityInfo(ctx context.Context) *State {
 	info := activity.GetInfo(ctx)
 
@@ -78,7 +97,7 @@ func (s *State) AddActivityInfo(ctx context.Context) *State {
 	}
 
 	s.AddData(map[string]any{
-		"activity": activityData,
+		"activity": jsonNormalize(activityData),
 	})
 
 	return s
@@ -116,7 +135,7 @@ func (s *State) AddWorkflowInfo(ctx workflow.Context) *State {
 	}
 
 	s.AddData(map[string]any{
-		"workflow": workflowData,
+		"workflow": jsonNormalize(workflowData),
 	})
 
 	return s
