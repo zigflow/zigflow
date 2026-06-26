@@ -31,6 +31,7 @@ import (
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
+	"github.com/zigflow/zigflow/pkg/zigflow/models"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/temporal"
 )
@@ -203,7 +204,7 @@ func (r *Run) runDockerCommand(ctx context.Context, task *model.RunTask, state *
 	cmd := []string{
 		"docker",
 		"run",
-		"--pull=always",
+		fmt.Sprintf("--pull=%s", r.pullPolicyToDocker(task.Run.Container.PullPolicy)),
 		fmt.Sprintf("--label=workflowId=%s", info.WorkflowExecution.ID),
 		fmt.Sprintf("--label=runId=%s", info.WorkflowExecution.RunID),
 		fmt.Sprintf("--label=activityId=%s", info.ActivityID),
@@ -348,4 +349,12 @@ func (r *Run) runExecCommand(
 
 func (r *Run) stdToString(std bytes.Buffer) string {
 	return strings.TrimSpace(std.String())
+}
+
+func (r *Run) pullPolicyToDocker(p string) string {
+	if p == models.PullIfNotPresent || p == "" {
+		return "missing"
+	}
+
+	return p
 }

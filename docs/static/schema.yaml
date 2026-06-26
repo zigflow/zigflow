@@ -772,12 +772,21 @@ $defs:
                       name to the container.
                     title: ContainerName
                     type: string
+                  pullPolicy:
+                    description: Pull policy for the container image
+                    enum:
+                    - always
+                    - never
+                    - ifNotPresent
+                    title: PullPolicy
+                    type: string
                   volumes:
                     description: The container's volume mappings, if any.
                     title: ContainerVolumes
                     type: object
                 required:
                 - image
+                - pullPolicy
                 title: Container
                 type: object
                 unevaluatedProperties: false

@@ -23,6 +23,7 @@ do:
       run:
         container:
           image: alpine
+          pullPolicy: ifNotPresent
           arguments:
             - env
           environment:

@@ -57,12 +57,25 @@ ServiceAccount the workload pods run under.
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
 | image | `string` | `yes` | The name of the container image to run |
+| pullPolicy | `string` | `yes` | The pull policy to use.<br />*Supported values are: [`ifNotPresent`, `always` and `never`](#pull-policy).* |
 | name | `string` | `no` | A [runtime expression](/docs/dsl/tasks/intro#runtime-expressions), if any, used to give specific name to the container. Uses a UUID if not set. |
 | command | `string` | `no` | The command, if any, to execute on the container |
 | volumes | `map` | `no` | The container's volume mappings, if any |
 | environment | `map` | `no` | A key/value mapping of the environment variables, if any, to use when running the configured process |
 | arguments | `string[]` | `no` | A list of the arguments, if any, passed as argv to the command or default container CMD |
 | lifetime | [`containerLifetime`](#container-lifetime) | `no` | An object used to configure the container's lifetime |
+
+#### Pull Policy
+
+:::tip
+If in doubt, use `ifNotPresent`.
+:::
+
+| Policy | Description |
+| --- | --- |
+| `ifNotPresent` | The image is pulled only if it is not already present locally. |
+| `always` | The image is pulled every time a container is launched. |
+| `never` | The image is not pulled and relies upon the image already being present. |
 
 ### Example {/*#container-example*/}
 
@@ -77,6 +90,7 @@ do:
       run:
         container:
           image: alpine
+          pullPolicy: ifNotPresent
           arguments:
             - env
           environment:

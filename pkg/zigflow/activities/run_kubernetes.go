@@ -29,6 +29,7 @@ import (
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
+	"github.com/zigflow/zigflow/pkg/zigflow/models"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/temporal"
 	batchv1 "k8s.io/api/batch/v1"
@@ -311,7 +312,7 @@ func (r *Run) buildJobSpec(
 	container := corev1.Container{
 		Name:            r.sanitiseContainerName(task.Run.Container.Name),
 		Image:           task.Run.Container.Image,
-		ImagePullPolicy: corev1.PullAlways, // Keep consistent with Docker.
+		ImagePullPolicy: r.pullPolicyToK8s(task.Run.Container.PullPolicy),
 		Args:            args,
 		Env:             envvars,
 	}
@@ -638,4 +639,17 @@ func (r *Run) waitForKubernetesJobCompletion(
 			return false, nil
 		},
 	)
+}
+
+func (r *Run) pullPolicyToK8s(p string) corev1.PullPolicy {
+	switch p {
+	case models.PullAlways:
+		return corev1.PullAlways
+	case models.PullNever:
+		return corev1.PullNever
+	case models.PullIfNotPresent:
+		return corev1.PullIfNotPresent
+	default:
+		return corev1.PullIfNotPresent
+	}
 }

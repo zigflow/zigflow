@@ -1182,6 +1182,16 @@
                           "title": "ContainerName",
                           "description": "A runtime expression, if any, used to give specific name to the container."
                         },
+                        "pullPolicy": {
+                          "type": "string",
+                          "title": "PullPolicy",
+                          "description": "Pull policy for the container image",
+                          "enum": [
+                            "always",
+                            "never",
+                            "ifNotPresent"
+                          ]
+                        },
                         "volumes": {
                           "type": "object",
                           "title": "ContainerVolumes",
@@ -1191,7 +1201,8 @@
                       "title": "Container",
                       "description": "The configuration of the container to run.",
                       "required": [
-                        "image"
+                        "image",
+                        "pullPolicy"
                       ],
                       "unevaluatedProperties": false
                     }
