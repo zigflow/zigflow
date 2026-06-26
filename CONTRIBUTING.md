@@ -11,6 +11,26 @@ discuss it before submitting a pull request.
 
 ---
 
+## Project philosophy
+
+Zigflow is intentionally opinionated. Its goal is not to expose every capability
+of the underlying Temporal SDK, but to make Temporal more accessible and easier
+to get started with by providing a clear, declarative DSL for workflow orchestration.
+
+One of the core design principles is to _make it easy to do the right thing_.
+Where there are multiple ways to achieve the same outcome, Zigflow will generally
+favour the approach recommended by Temporal. Features that encourage workarounds,
+obscure workflow behaviour or make workflows harder to reason about are unlikely
+to be included, even if they are technically possible.
+
+This means that new features are evaluated not only on whether they can be
+implemented, but also on whether they align with Zigflow's philosophy and fit
+naturally within the DSL. The aim is to build a language that is consistent,
+maintainable and production-ready, rather than exposing every feature of the
+underlying SDK.
+
+---
+
 ## Naming
 
 The project name is **Zigflow**.
@@ -94,6 +114,25 @@ Pull requests that introduce new features should explain:
 
 Large architectural changes without prior discussion may not be
 accepted.
+
+---
+
+### Issue assignment policy
+
+To keep issues moving, Zigflow generally does **not** assign issues to contributors.
+
+If you're interested in working on an issue:
+
+- For straightforward fixes, feel free to open a pull request without asking to
+  be assigned.
+- For larger changes, especially those affecting the DSL or public API, please
+  discuss the proposed approach first.
+
+Comments such as "assign me" don't reserve an issue. This helps avoid situations
+where work is unintentionally blocked if someone's plans change.
+
+Contributions are always welcome. The goal is simply to encourage discussion
+first where it matters and keep the project open to everyone.
 
 ---
 
