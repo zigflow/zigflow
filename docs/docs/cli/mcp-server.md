@@ -49,13 +49,7 @@ MCP server in a specific client, see the official
 
 ## Available tools
 
-The server exposes five read-only tools.
-
-### list_examples
-
-Lists the bundled workflow examples with their name, title, description and tags.
-Takes no parameters. Use this before calling `get_example` to discover the
-patterns that are available.
+The server exposes six read-only tools.
 
 ### get_example
 
@@ -97,6 +91,37 @@ Use this to learn how a specific task type works before authoring YAML. The
 schema and reference page are served from the same sources as the
 [DSL reference](/docs/dsl/tasks/intro), so they stay in step with the engine.
 
+### list_examples
+
+Lists the bundled workflow examples with their name, title, description and tags.
+Takes no parameters. Use this before calling `get_example` to discover the
+patterns that are available.
+
+### suggest_pattern
+
+Suggests relevant task types and example workflows for a plain-language
+`description` of what you want to build, with a short rationale. Use this for
+discovery, when you know the goal but not the Zigflow task types or terminology.
+
+The response contains:
+
+| Field | Description |
+| --- | --- |
+| `suggestedTaskTypes` | The most relevant task types, most relevant first |
+| `examples` | Validated, bundled example workflows that demonstrate the pattern |
+| `rationale` | Plain-language lines explaining why the matches were selected |
+
+Matching is deterministic. It combines curated keyword rules with the metadata of
+the validated example catalogue, so the results are explainable and never
+include invented examples or task types. A description that matches nothing
+returns empty suggestions and a rationale saying so, rather than guessing.
+
+:::tip
+`suggest_pattern` is for discovery; `get_task_docs` is for detail. A typical flow
+is to call `suggest_pattern` to find the right task types, then `get_task_docs`
+on each suggested type for its schema, reference page and examples.
+:::
+
 ### validate_workflow
 
 Validates a workflow YAML string and returns structured errors. The `yaml` field
@@ -121,14 +146,15 @@ rule. A successful response includes `"valid": true` and no errors.
 
 A typical AI-assisted authoring session:
 
-1. Call `list_examples` to browse available patterns
-2. Call `get_example` to inspect a relevant example
-3. Call `get_schema` to understand the DSL structure
-4. Call `get_task_docs` to learn a specific task type in depth
-5. Generate or modify a workflow YAML
-6. Call `validate_workflow` to check it
-7. Correct errors based on the `stage` and `message` fields
-8. Repeat from step 6 until valid
+1. Call `suggest_pattern` to discover relevant task types and examples from a goal
+2. Call `list_examples` to browse available patterns
+3. Call `get_example` to inspect a relevant example
+4. Call `get_schema` to understand the DSL structure
+5. Call `get_task_docs` to learn a specific task type in depth
+6. Generate or modify a workflow YAML
+7. Call `validate_workflow` to check it
+8. Correct errors based on the `stage` and `message` fields
+9. Repeat from step 7 until valid
 
 Starting from a known example produces more accurate results than generating from
 scratch. Zigflow's DSL is a deliberate subset of the Serverless Workflow

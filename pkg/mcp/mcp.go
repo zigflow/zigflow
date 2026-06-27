@@ -222,5 +222,14 @@ func New(server *mcp.Server, version string) *MCP {
 		Annotations: idempotentAnnotations,
 	}, m.GetTaskDocs)
 
+	mcp.AddTool(server, &mcp.Tool{
+		Name:  "suggest_pattern",
+		Title: "Suggest Pattern",
+		Description: "Suggests relevant Zigflow task types and example workflows for a plain-language " +
+			"description of what you want to build, with a short rationale. Use this for discovery before " +
+			"authoring YAML; follow up with get_task_docs for detailed task-specific guidance.",
+		Annotations: idempotentAnnotations,
+	}, m.SuggestPattern)
+
 	return m
 }

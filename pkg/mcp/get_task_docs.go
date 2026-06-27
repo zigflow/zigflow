@@ -42,15 +42,15 @@ const taskDocsBaseURL = "https://zigflow.dev/docs/dsl/tasks/"
 // tests so a renamed or removed tag is caught rather than silently returning no
 // examples.
 var taskExampleTags = map[string][]string{
-	"call":   {"activity", "grpc", "http"},
-	"for":    {"for-loop"},
-	"fork":   {"fork"},
-	"listen": {"signal", "query", "update"},
-	"raise":  {"error"},
-	"run":    {"run"},
-	"switch": {"switch"},
-	"try":    {"try-catch"},
-	"wait":   {"timeout"},
+	taskCall:   {subActivity, subGRPC, subHTTP},
+	taskFor:    {"for-loop"},
+	taskFork:   {taskFork},
+	taskListen: {subSignal, subQuery, subUpdate},
+	taskRaise:  {"error"},
+	taskRun:    {taskRun},
+	taskSwitch: {taskSwitch},
+	taskTry:    {"try-catch"},
+	taskWait:   {"timeout"},
 }
 
 type GetTaskDocsInput struct {
