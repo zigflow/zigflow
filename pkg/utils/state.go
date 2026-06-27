@@ -19,6 +19,7 @@ package utils
 import (
 	"context"
 	"maps"
+	"time"
 
 	swUtils "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
 	"go.temporal.io/sdk/activity"
@@ -58,14 +59,14 @@ func (s *State) AddActivityInfo(ctx context.Context) *State {
 		"activity_id":               info.ActivityID,
 		"activity_type_name":        info.ActivityType.Name,
 		"attempt":                   info.Attempt,
-		"deadline":                  info.Deadline,
-		"heartbeat_token":           info.HeartbeatTimeout,
+		"deadline":                  info.Deadline.UTC().Format(time.RFC3339),
+		"heartbeat_token":           info.HeartbeatTimeout.Seconds(),
 		"is_local_activity":         info.IsLocalActivity,
 		"priority_key":              info.Priority.PriorityKey,
-		"schedule_to_close_timeout": info.ScheduleToCloseTimeout,
-		"scheduled_time":            info.ScheduledTime,
-		"start_to_close_timeout":    info.StartToCloseTimeout,
-		"started_time":              info.StartedTime,
+		"schedule_to_close_timeout": info.ScheduleToCloseTimeout.Seconds(),
+		"scheduled_time":            info.ScheduledTime.UTC().Format(time.RFC3339),
+		"start_to_close_timeout":    info.StartToCloseTimeout.Seconds(),
+		"started_time":              info.StartedTime.UTC().Format(time.RFC3339),
 		"task_queue":                info.TaskQueue,
 		"task_token":                string(info.TaskToken),
 		"workflow_namespace":        info.Namespace,
@@ -100,8 +101,8 @@ func (s *State) AddWorkflowInfo(ctx workflow.Context) *State {
 		"task_queue_name":            info.TaskQueueName,
 		"workflow_execution_id":      info.WorkflowExecution.ID,
 		"workflow_execution_run_id":  info.WorkflowExecution.RunID,
-		"workflow_execution_timeout": info.WorkflowExecutionTimeout,
-		"workflow_start_time":        info.WorkflowStartTime,
+		"workflow_execution_timeout": info.WorkflowExecutionTimeout.Seconds(),
+		"workflow_start_time":        info.WorkflowStartTime.UTC().Format(time.RFC3339),
 		"workflow_type_name":         info.WorkflowType.Name,
 	}
 
