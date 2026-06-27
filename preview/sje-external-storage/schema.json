@@ -1182,6 +1182,16 @@
                           "title": "ContainerName",
                           "description": "A runtime expression, if any, used to give specific name to the container."
                         },
+                        "pullPolicy": {
+                          "type": "string",
+                          "title": "PullPolicy",
+                          "description": "Pull policy for the container image",
+                          "enum": [
+                            "always",
+                            "never",
+                            "ifNotPresent"
+                          ]
+                        },
                         "volumes": {
                           "type": "object",
                           "title": "ContainerVolumes",
@@ -1191,7 +1201,8 @@
                       "title": "Container",
                       "description": "The configuration of the container to run.",
                       "required": [
-                        "image"
+                        "image",
+                        "pullPolicy"
                       ],
                       "unevaluatedProperties": false
                     }
@@ -1653,10 +1664,17 @@
             "catch": {
               "type": "object",
               "properties": {
+                "as": {
+                  "type": "string",
+                  "title": "CatchAs",
+                  "description": "The name of the runtime expression variable to save the error as. Defaults to 'error'",
+                  "default": "error"
+                },
                 "do": {
                   "$ref": "#/$defs/taskList",
                   "title": "TryTaskCatchDo",
-                  "description": "The definition of the task(s) to run when catching an error."
+                  "description": "The definition of the task(s) to run when catching an error.",
+                  "minItems": 1
                 }
               },
               "title": "TryTaskCatch",
@@ -1669,7 +1687,8 @@
             "try": {
               "$ref": "#/$defs/taskList",
               "title": "TryTaskConfiguration",
-              "description": "The task(s) to perform."
+              "description": "The task(s) to perform.",
+              "minItems": 1
             }
           }
         }
@@ -1707,9 +1726,103 @@
         {
           "properties": {
             "wait": {
-              "$ref": "#/$defs/duration",
               "title": "WaitTaskConfiguration",
-              "description": "The amount of time to wait."
+              "description": "The amount of time to wait or an absolute moment in time to wait until.",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "days": {
+                      "title": "DurationDays",
+                      "description": "Number of days, if any.",
+                      "oneOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "$ref": "#/$defs/runtimeExpression"
+                        }
+                      ]
+                    },
+                    "hours": {
+                      "title": "DurationHours",
+                      "description": "Number of hours, if any.",
+                      "oneOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "$ref": "#/$defs/runtimeExpression"
+                        }
+                      ]
+                    },
+                    "milliseconds": {
+                      "title": "DurationMilliseconds",
+                      "description": "Number of milliseconds, if any.",
+                      "oneOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "$ref": "#/$defs/runtimeExpression"
+                        }
+                      ]
+                    },
+                    "minutes": {
+                      "title": "DurationMinutes",
+                      "description": "Number of minutes, if any.",
+                      "oneOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "$ref": "#/$defs/runtimeExpression"
+                        }
+                      ]
+                    },
+                    "seconds": {
+                      "title": "DurationSeconds",
+                      "description": "Number of seconds, if any.",
+                      "oneOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "$ref": "#/$defs/runtimeExpression"
+                        }
+                      ]
+                    }
+                  },
+                  "title": "WaitDuration",
+                  "description": "Duration to wait. Each numeric field may be a literal integer or a runtime expression that resolves to a number.",
+                  "minProperties": 1,
+                  "unevaluatedProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "until": {
+                      "title": "WaitUntilTimestamp",
+                      "description": "An RFC 3339 literal timestamp, or a runtime expression that resolves to one.",
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}:\\d{2})$"
+                        },
+                        {
+                          "$ref": "#/$defs/runtimeExpression"
+                        }
+                      ]
+                    }
+                  },
+                  "title": "WaitUntil",
+                  "description": "An absolute moment in time to wait until.",
+                  "required": [
+                    "until"
+                  ],
+                  "unevaluatedProperties": false
+                }
+              ]
             }
           }
         }

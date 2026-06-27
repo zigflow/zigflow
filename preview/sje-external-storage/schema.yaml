@@ -772,12 +772,21 @@ $defs:
                       name to the container.
                     title: ContainerName
                     type: string
+                  pullPolicy:
+                    description: Pull policy for the container image
+                    enum:
+                    - always
+                    - never
+                    - ifNotPresent
+                    title: PullPolicy
+                    type: string
                   volumes:
                     description: The container's volume mappings, if any.
                     title: ContainerVolumes
                     type: object
                 required:
                 - image
+                - pullPolicy
                 title: Container
                 type: object
                 unevaluatedProperties: false
@@ -1125,9 +1134,16 @@ $defs:
         catch:
           description: The object used to define the errors to catch.
           properties:
+            as:
+              default: error
+              description: The name of the runtime expression variable to save the
+                error as. Defaults to 'error'
+              title: CatchAs
+              type: string
             do:
               $ref: '#/$defs/taskList'
               description: The definition of the task(s) to run when catching an error.
+              minItems: 1
               title: TryTaskCatchDo
           required:
           - do
@@ -1137,6 +1153,7 @@ $defs:
         try:
           $ref: '#/$defs/taskList'
           description: The task(s) to perform.
+          minItems: 1
           title: TryTaskConfiguration
     description: Serves as a mechanism within workflows to handle errors gracefully,
       potentially retrying failed tasks before proceeding with alternate ones.
@@ -1162,8 +1179,61 @@ $defs:
     - $ref: '#/$defs/taskBase'
     - properties:
         wait:
-          $ref: '#/$defs/duration'
-          description: The amount of time to wait.
+          description: The amount of time to wait or an absolute moment in time to
+            wait until.
+          oneOf:
+          - description: Duration to wait. Each numeric field may be a literal integer
+              or a runtime expression that resolves to a number.
+            minProperties: 1
+            properties:
+              days:
+                description: Number of days, if any.
+                oneOf:
+                - type: integer
+                - $ref: '#/$defs/runtimeExpression'
+                title: DurationDays
+              hours:
+                description: Number of hours, if any.
+                oneOf:
+                - type: integer
+                - $ref: '#/$defs/runtimeExpression'
+                title: DurationHours
+              milliseconds:
+                description: Number of milliseconds, if any.
+                oneOf:
+                - type: integer
+                - $ref: '#/$defs/runtimeExpression'
+                title: DurationMilliseconds
+              minutes:
+                description: Number of minutes, if any.
+                oneOf:
+                - type: integer
+                - $ref: '#/$defs/runtimeExpression'
+                title: DurationMinutes
+              seconds:
+                description: Number of seconds, if any.
+                oneOf:
+                - type: integer
+                - $ref: '#/$defs/runtimeExpression'
+                title: DurationSeconds
+            title: WaitDuration
+            type: object
+            unevaluatedProperties: false
+          - description: An absolute moment in time to wait until.
+            properties:
+              until:
+                description: An RFC 3339 literal timestamp, or a runtime expression
+                  that resolves to one.
+                oneOf:
+                - pattern: ^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$
+                  type: string
+                - $ref: '#/$defs/runtimeExpression'
+                title: WaitUntilTimestamp
+            required:
+            - until
+            title: WaitUntil
+            type: object
+            unevaluatedProperties: false
           title: WaitTaskConfiguration
     description: Allows workflows to pause or delay their execution for a specified
       period of time.
