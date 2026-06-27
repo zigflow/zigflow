@@ -113,9 +113,36 @@ pipeline the failure occurred:
 | `load` | The workflow cannot be loaded into the model |
 | `struct` | The workflow fails structural validation |
 
-Errors also include a `message`. Errors from the `struct` stage additionally
-include `path`, `rule` and `param` fields that pinpoint the failing field and
-rule. A successful response includes `"valid": true` and no errors.
+Errors also include a `message`. Errors from the `schema` and `struct` stages
+additionally include a `path` that pinpoints the failing field. `struct` stage
+errors also include `rule` and `param` fields describing the failing rule. A
+successful response includes `"valid": true` and no errors.
+
+Recognised validation errors carry two further fields:
+
+| Field | Meaning |
+| --- | --- |
+| `code` | A stable identifier for the class of error, such as `ERR_INVALID_TASK_QUEUE` |
+| `documentation` | The documentation URL derived from `code` |
+
+The `code` is additive metadata. The `message` is never rewritten to embed it.
+The `documentation` URL is derived from the `code`, so the two always agree. The
+URL is built by lowercasing the code, dropping the `ERR_` prefix and replacing
+underscores with hyphens, so `ERR_INVALID_TASK_QUEUE` becomes
+`https://zigflow.dev/errors/invalid-task-queue`.
+
+Errors without a recognised `code` omit both the `code` and `documentation`
+fields. For example, an invalid `taskQueue` returns:
+
+```json
+{
+  "stage": "schema",
+  "path": "$.document.taskQueue",
+  "code": "ERR_INVALID_TASK_QUEUE",
+  "message": "pattern: \"Not A Valid Queue\" does not match regular expression \"^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$\"",
+  "documentation": "https://zigflow.dev/errors/invalid-task-queue"
+}
+```
 
 ## Typical workflow
 
