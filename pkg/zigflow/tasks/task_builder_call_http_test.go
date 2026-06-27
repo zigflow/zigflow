@@ -38,13 +38,13 @@ func TestParseHTTPArguments(t *testing.T) {
 		With: model.HTTPArguments{
 			Method:   "GET",
 			Endpoint: model.NewEndpoint("https://example.com"),
-			Headers: map[string]string{
+			Headers: model.NewObjectOrRuntimeExpr(map[string]any{
 				// #nosec G101 -- DSL expression, not a hardcoded credential. Value is a JQ expression resolved at runtime from environment variables.
 				"X-Token": "${ $env.token }",
-			},
-			Query: map[string]any{
+			}),
+			Query: model.NewObjectOrRuntimeExpr(map[string]any{
 				"debug": testConstDataFlag,
-			},
+			}),
 		},
 	}
 
@@ -52,8 +52,14 @@ func TestParseHTTPArguments(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "GET", got.Method)
 	assert.Equal(t, "https://example.com", got.Endpoint.String())
-	assert.Equal(t, "abc-123", got.Headers["X-Token"])
-	assert.Equal(t, true, got.Query["debug"])
+
+	headers, ok := got.Headers.AsStringOrMap().(map[string]any)
+	assert.True(t, ok)
+	assert.Equal(t, "abc-123", headers["X-Token"])
+
+	query, ok := got.Query.AsStringOrMap().(map[string]any)
+	assert.True(t, ok)
+	assert.Equal(t, true, query["debug"])
 }
 
 func TestParseOutput(t *testing.T) {

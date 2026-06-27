@@ -19,7 +19,6 @@ package tasks
 import (
 	"fmt"
 
-	swUtils "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/utils"
@@ -55,11 +54,9 @@ func (t *SetTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
 		logger := workflow.GetLogger(ctx)
 
-		setObject := swUtils.DeepClone(t.task.Set)
-
 		logger.Debug("Traversing set data")
 		result, err := utils.TraverseAndEvaluateObj(
-			model.NewObjectOrRuntimeExpr(setObject),
+			t.task.Set,
 			nil,
 			state,
 			func(fn func() (any, error)) (any, error) {
@@ -71,9 +68,16 @@ func (t *SetTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 			return nil, fmt.Errorf("error parsing set object :%w", err)
 		}
 
+		// A whole-field runtime expression can evaluate to a non-object, so
+		// guard against a panic and return a clear workflow error instead.
+		data, ok := result.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("set must evaluate to an object, got %T", result)
+		}
+
 		// Add the result to the state's data
 		logger.Debug("Setting data to the state")
-		state.AddData(result.(map[string]any))
+		state.AddData(data)
 
 		return result, nil
 	}, nil

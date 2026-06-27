@@ -22,8 +22,71 @@ import (
 	"testing"
 	"time"
 
+	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestObjectOrRuntimeExprToMap(t *testing.T) {
+	const (
+		fieldHeaders = "headers"
+		fieldQuery   = "query"
+	)
+
+	tests := []struct {
+		name    string
+		field   string
+		input   *model.ObjectOrRuntimeExpr
+		want    map[string]any
+		wantErr bool
+	}{
+		{
+			name:  "nil pointer returns nil map",
+			field: fieldHeaders,
+			input: nil,
+			want:  nil,
+		},
+		{
+			name:  "nil value returns nil map",
+			field: fieldQuery,
+			input: model.NewObjectOrRuntimeExpr(nil),
+			want:  nil,
+		},
+		{
+			name:  "valid static object is returned",
+			field: fieldHeaders,
+			input: model.NewObjectOrRuntimeExpr(map[string]any{"Authorization": "Bearer token"}),
+			want:  map[string]any{"Authorization": "Bearer token"},
+		},
+		{
+			name:    "non-object headers returns error",
+			field:   fieldHeaders,
+			input:   model.NewObjectOrRuntimeExpr("not-object"),
+			wantErr: true,
+		},
+		{
+			name:    "non-object query returns error",
+			field:   fieldQuery,
+			input:   model.NewObjectOrRuntimeExpr("not-object"),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := objectOrRuntimeExprToMap(tt.field, tt.input)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.field)
+				assert.Nil(t, got)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
 
 func TestCallHTTPParseRetryAfter(t *testing.T) {
 	c := &CallHTTP{}

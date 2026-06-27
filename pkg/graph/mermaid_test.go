@@ -50,7 +50,7 @@ func taskItem(key string, task model.Task) *model.TaskItem {
 }
 
 func setTask(fields map[string]interface{}) *model.SetTask {
-	return &model.SetTask{Set: fields}
+	return &model.SetTask{Set: model.NewObjectOrRuntimeExpr(fields)}
 }
 
 func waitTaskSeconds(seconds int32) *model.WaitTask {
@@ -350,7 +350,7 @@ func TestMermaid_ConditionalTask(t *testing.T) {
 		"mywf",
 		taskItem("maybe", &model.SetTask{
 			TaskBase: model.TaskBase{If: ifExpr},
-			Set:      map[string]interface{}{"x": 1},
+			Set:      model.NewObjectOrRuntimeExpr(map[string]interface{}{"x": 1}),
 		}),
 	)
 	out, err := gen.Generate(wf)
