@@ -128,6 +128,63 @@ do:
 	assert.NotEmpty(t, out.Errors[0].Message)
 }
 
+// invalidTaskQueueYAML fails JSON schema validation because taskQueue does not
+// match the required pattern. This is a recognised validation error.
+const invalidTaskQueueYAML = `document:
+  dsl: 1.0.0
+  taskQueue: "Not A Valid Queue"
+  workflowType: test
+  version: 0.0.1
+do:
+  - step:
+      set:
+        hello: world
+`
+
+func TestValidateWorkflow_RecognisedSchemaError_ExposesCodeAndDocumentation(t *testing.T) {
+	m := newTestMCP()
+	_, out, err := m.ValidateWorkflow(context.Background(), nil, ValidateWorkflowInput{
+		YAML: invalidTaskQueueYAML,
+	})
+	require.NoError(t, err)
+	assert.False(t, out.Valid)
+	require.Len(t, out.Errors, 1)
+
+	got := out.Errors[0]
+	assert.Equal(t, "schema", got.Stage)
+	assert.Equal(t, "$.document.taskQueue", got.Path)
+	assert.Equal(t, "ERR_INVALID_TASK_QUEUE", got.Code)
+	assert.Equal(t, "https://zigflow.dev/errors/invalid-task-queue", got.Documentation)
+	// The underlying validation message must remain unchanged: it is the raw
+	// schema failure, not a rewritten or enriched string.
+	assert.Contains(t, got.Message, "does not match")
+	assert.NotContains(t, got.Message, "ERR_INVALID_TASK_QUEUE")
+	assert.NotContains(t, got.Message, "zigflow.dev/errors")
+}
+
+func TestValidateWorkflow_UnrecognisedSchemaError_OmitsDocumentation(t *testing.T) {
+	m := newTestMCP()
+	// Missing required fields fail at the parent ($.document) location, which is
+	// not a recognised field-level error, so no code or documentation applies.
+	const badYAML = `document:
+  dsl: 1.0.0
+  version: 0.0.1
+do:
+  - step:
+      set:
+        hello: world
+`
+	_, out, err := m.ValidateWorkflow(context.Background(), nil, ValidateWorkflowInput{YAML: badYAML})
+	require.NoError(t, err)
+	require.Len(t, out.Errors, 1)
+
+	got := out.Errors[0]
+	assert.Equal(t, "schema", got.Stage)
+	assert.Empty(t, got.Code)
+	assert.Empty(t, got.Documentation)
+	assert.NotEmpty(t, got.Message)
+}
+
 // --- expression stage ---
 
 // nonDeterministicYAML passes schema validation but uses a non-deterministic

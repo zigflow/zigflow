@@ -39,6 +39,7 @@ A collection of examples
 | [Hello World](./hello-world) | Hello world with Zigflow |
 | [Hello World AES Encrypted](./hello-world-encrypted-aes) | Hello world with Zigflow, but [encrypted](https://github.com/mrsimonemms/temporal-codec-server) |
 | [Hello World Encrypted Remote](./hello-world-encrypted-remote) | Hello world with Zigflow, but remotely encrypted |
+| [Invalid Workflow (validation demo)](./invalid) | Deliberately fails validation to demonstrate validation error codes |
 | [Money Transfer Demo](./money-transfer) | Temporal's world-famous Money Transfer Demo, in Zigflow form |
 | [Multiple Workflow Files](./multiple-workflow-files) | Run multiple workflow definitions from separate YAML files in a single Zigflow worker |
 | [Multiple Workflows](./multiple-workflows) | Define and run multiple workflows within a single YAML file |

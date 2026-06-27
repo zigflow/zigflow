@@ -38,11 +38,13 @@ type ValidationResult struct {
 }
 
 type ValidationErrors struct {
-	Key     string               `json:"key"`
-	Message string               `json:"message"`
-	Path    string               `json:"path"`
-	Param   string               `json:"param,omitempty"`
-	Error   validator.FieldError `json:"-"`
+	Key           string               `json:"key"`
+	Code          string               `json:"code,omitempty"`
+	Message       string               `json:"message"`
+	Path          string               `json:"path"`
+	Param         string               `json:"param,omitempty"`
+	Documentation string               `json:"documentation,omitempty"`
+	Error         validator.FieldError `json:"-"`
 }
 
 type Validator struct {
@@ -60,12 +62,16 @@ func (v *Validator) ValidateStruct(data any) ([]ValidationErrors, error) {
 			return nil, fmt.Errorf("%s: %w", ErrUnknownValidationError, err)
 		} else {
 			for _, e := range validationError {
+				namespace := e.StructNamespace()
+				code := CodeForPath(namespace)
 				vErrs = append(vErrs, ValidationErrors{
-					Key:     e.Tag(),
-					Message: e.Translate(v.trans),
-					Path:    e.StructNamespace(),
-					Param:   e.Param(),
-					Error:   e,
+					Key:           e.Tag(),
+					Code:          code,
+					Message:       e.Translate(v.trans),
+					Path:          namespace,
+					Param:         e.Param(),
+					Documentation: DocumentationURL(code),
+					Error:         e,
 				})
 			}
 		}

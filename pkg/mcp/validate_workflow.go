@@ -32,11 +32,13 @@ type ValidateWorkflowInput struct {
 }
 
 type ValidateWorkflowError struct {
-	Stage   string `json:"stage"`
-	Path    string `json:"path,omitempty"`
-	Rule    string `json:"rule,omitempty"`
-	Param   string `json:"param,omitempty"`
-	Message string `json:"message"`
+	Stage         string `json:"stage"`
+	Path          string `json:"path,omitempty"`
+	Rule          string `json:"rule,omitempty"`
+	Param         string `json:"param,omitempty"`
+	Code          string `json:"code,omitempty"`
+	Message       string `json:"message"`
+	Documentation string `json:"documentation,omitempty"`
 }
 
 type ValidateWorkflowOutput struct {
@@ -60,6 +62,31 @@ func validateBytesStage(err error) string {
 	}
 }
 
+// validateBytesErrors converts an error from zigflow.ValidateBytes into one or
+// more structured MCP errors. Schema failures are expanded into per-field
+// errors so each carries its own path and, where the field is recognised, a
+// stable code and derived documentation URL. All other failures keep their
+// single-error form, classified by stage.
+func validateBytesErrors(err error) []ValidateWorkflowError {
+	var schemaErr *zigflow.SchemaValidationError
+	if errors.As(err, &schemaErr) && len(schemaErr.Errors) > 0 {
+		out := make([]ValidateWorkflowError, 0, len(schemaErr.Errors))
+		for _, se := range schemaErr.Errors {
+			code := utils.CodeForPath(se.Location)
+			out = append(out, ValidateWorkflowError{
+				Stage:         "schema",
+				Path:          se.Location,
+				Code:          code,
+				Message:       se.Message,
+				Documentation: utils.DocumentationURL(code),
+			})
+		}
+		return out
+	}
+
+	return []ValidateWorkflowError{{Stage: validateBytesStage(err), Message: err.Error()}}
+}
+
 func (m *MCP) ValidateWorkflow(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
@@ -79,9 +106,7 @@ func (m *MCP) ValidateWorkflow(
 	// ValidateBytes can fail for several distinct reasons; classify them so the
 	// reported stage is accurate rather than always "parse".
 	if err := zigflow.ValidateBytes(data); err != nil {
-		return nil, ValidateWorkflowOutput{
-			Errors: []ValidateWorkflowError{{Stage: validateBytesStage(err), Message: err.Error()}},
-		}, nil
+		return nil, ValidateWorkflowOutput{Errors: validateBytesErrors(err)}, nil
 	}
 
 	// Load into model.
@@ -107,11 +132,13 @@ func (m *MCP) ValidateWorkflow(
 		errs := make([]ValidateWorkflowError, len(res))
 		for i, ve := range res {
 			errs[i] = ValidateWorkflowError{
-				Stage:   "struct",
-				Rule:    ve.Key,
-				Path:    ve.Path,
-				Param:   ve.Param,
-				Message: ve.Message,
+				Stage:         "struct",
+				Rule:          ve.Key,
+				Path:          ve.Path,
+				Param:         ve.Param,
+				Code:          ve.Code,
+				Message:       ve.Message,
+				Documentation: utils.DocumentationURL(ve.Code),
 			}
 		}
 

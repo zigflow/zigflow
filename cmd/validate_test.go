@@ -272,6 +272,19 @@ do:
       set:
         hello: world`
 
+// workflowSchemaInvalidTaskQueue fails JSON Schema validation on a recognised
+// field: the taskQueue is not an RFC 1123 DNS label, which maps to the stable
+// ERR_INVALID_TASK_QUEUE code.
+const workflowSchemaInvalidTaskQueue = `document:
+  dsl: 1.0.0
+  taskQueue: Not A Valid Queue
+  workflowType: test
+  version: 0.0.1
+do:
+  - step:
+      set:
+        hello: world`
+
 // TestValidateCmdSchemaOutput verifies that schema validation failures are
 // rendered for humans by default (location + message under an "is invalid"
 // heading) rather than as JSON/log-style output.
@@ -294,6 +307,39 @@ func TestValidateCmdSchemaOutput(t *testing.T) {
 		require.Error(t, err)
 
 		assert.Contains(t, out, "$.document")
+	})
+
+	t.Run("recognised error shows code and documentation", func(t *testing.T) {
+		out, err := runValidate(t, workflowSchemaInvalidTaskQueue)
+		require.Error(t, err)
+
+		assert.Contains(t, out, "Code:")
+		assert.Contains(t, out, "ERR_INVALID_TASK_QUEUE")
+		assert.Contains(t, out, "Documentation:")
+		assert.Contains(t, out, "https://zigflow.dev/errors/invalid-task-queue")
+	})
+
+	t.Run("unrecognised error omits code and documentation", func(t *testing.T) {
+		out, err := runValidate(t, workflowSchemaMissingDo)
+		require.Error(t, err)
+
+		// The location for a missing-required failure is not a recognised
+		// field, so no metadata is shown.
+		assert.NotContains(t, out, "Code:")
+		assert.NotContains(t, out, "Documentation:")
+	})
+
+	t.Run("recognised error JSON output is unchanged", func(t *testing.T) {
+		result := runValidateJSON(t, workflowSchemaInvalidTaskQueue)
+		require.Len(t, result.Errors, 1)
+		assert.Equal(t, "schema_validation", result.Errors[0].Key)
+		assert.Equal(t, "ERR_INVALID_TASK_QUEUE", result.Errors[0].Code)
+		assert.Equal(t, "$.document.taskQueue", result.Errors[0].Path)
+		assert.Equal(
+			t,
+			"https://zigflow.dev/errors/invalid-task-queue",
+			result.Errors[0].Documentation,
+		)
 	})
 
 	t.Run("JSON output stays machine-readable", func(t *testing.T) {

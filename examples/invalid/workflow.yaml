@@ -1,0 +1,17 @@
+document:
+  dsl: 1.0.0
+  # Intentionally invalid: a task queue must be an RFC 1123 DNS label
+  # (letters, digits and hyphens only). The spaces below are rejected, so this
+  # workflow fails validation with the ERR_INVALID_TASK_QUEUE error code.
+  taskQueue: Not A Valid Queue
+  workflowType: invalid-example
+  version: 0.0.1
+  title: Invalid Workflow (validation demo)
+  summary: Deliberately fails validation to demonstrate validation error codes
+  metadata:
+    # Excluded from the rendered examples gallery: the document never validates.
+    display: false
+do:
+  - step:
+      set:
+        message: this document never validates

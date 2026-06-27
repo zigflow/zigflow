@@ -56,6 +56,22 @@ const plugins = [
   }),
 ];
 
+// Stable /errors/<slug> redirects for the documentation URLs emitted by the
+// validator (see pkg/utils/validation_codes.go). The mapping is the single
+// source of truth shared with the validation-code drift test. Targets may
+// evolve over time without changing the public /errors/... URLs.
+const errorRedirects = require('./src/data/errorRedirects.json');
+
+plugins.push([
+  '@docusaurus/plugin-client-redirects',
+  {
+    redirects: Object.entries(errorRedirects).map(([slug, to]) => ({
+      from: `/errors/${slug}`,
+      to,
+    })),
+  },
+]);
+
 if (process.env.GA_TRACKING_ID) {
   plugins.push([
     '@docusaurus/plugin-google-gtag',

@@ -1,0 +1,6 @@
+{
+  "invalid-task-queue": "/docs/concepts/common-mistakes#invalid-names-and-versions",
+  "invalid-workflow-type": "/docs/concepts/common-mistakes#invalid-names-and-versions",
+  "invalid-dsl-version": "/docs/concepts/common-mistakes#invalid-names-and-versions",
+  "invalid-version": "/docs/concepts/common-mistakes#invalid-names-and-versions"
+}

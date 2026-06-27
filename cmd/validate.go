@@ -171,8 +171,11 @@ func runValidateCmd(cmd *cobra.Command, filePath string, outputJSON bool) error 
 
 // Field labels shared by the human-readable validation renderers.
 const (
-	labelLocation   = "Location"
-	labelExpression = "Expression"
+	labelLocation      = "Location"
+	labelExpression    = "Expression"
+	labelCode          = "Code"
+	labelMessage       = "Message"
+	labelDocumentation = "Documentation"
 )
 
 // validationField is one labelled line of a validation problem (e.g.
@@ -218,10 +221,23 @@ func renderValidationFailure(w io.Writer, file, singular, plural string, entries
 func renderSchemaFailure(w io.Writer, file string, errs []zigflow.SchemaError) {
 	entries := make([][]validationField, len(errs))
 	for i, e := range errs {
-		entries[i] = []validationField{
+		// Derive the stable code and documentation URL from the same registry
+		// used for JSON output, so recognised errors display consistently. Both
+		// are omitted when the error is not recognised.
+		code := utils.CodeForPath(e.Location)
+
+		fields := []validationField{
 			{label: labelLocation, value: e.Location},
-			{label: "Message", value: e.Message},
 		}
+		if code != "" {
+			fields = append(fields, validationField{label: labelCode, value: code})
+		}
+		fields = append(fields, validationField{label: labelMessage, value: e.Message})
+		if doc := utils.DocumentationURL(code); doc != "" {
+			fields = append(fields, validationField{label: labelDocumentation, value: doc})
+		}
+
+		entries[i] = fields
 	}
 
 	renderValidationFailure(
@@ -238,10 +254,13 @@ func renderSchemaFailure(w io.Writer, file string, errs []zigflow.SchemaError) {
 func schemaValidationErrors(errs []zigflow.SchemaError) []utils.ValidationErrors {
 	out := make([]utils.ValidationErrors, 0, len(errs))
 	for _, e := range errs {
+		code := utils.CodeForPath(e.Location)
 		out = append(out, utils.ValidationErrors{
-			Key:     "schema_validation",
-			Message: e.Message,
-			Path:    e.Location,
+			Key:           "schema_validation",
+			Code:          code,
+			Message:       e.Message,
+			Path:          e.Location,
+			Documentation: utils.DocumentationURL(code),
 		})
 	}
 	return out
