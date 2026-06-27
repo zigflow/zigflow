@@ -332,6 +332,11 @@ Tools:
 - `get_example` retrieves a bundled example workflow by name.
 - `validate_workflow` validates a workflow YAML string and returns structured,
   per-stage errors.
+- `get_task_docs` returns authoritative documentation for a single task type,
+  including its schema, reference page, related links and examples.
+- `explain_error` explains a validation error message using a curated,
+  deterministic rule table, returning an explanation, a suggested fix and
+  documentation links.
 
 ## Further documentation
 

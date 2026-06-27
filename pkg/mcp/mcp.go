@@ -222,5 +222,15 @@ func New(server *mcp.Server, version string) *MCP {
 		Annotations: idempotentAnnotations,
 	}, m.GetTaskDocs)
 
+	mcp.AddTool(server, &mcp.Tool{
+		Name:  "explain_error",
+		Title: "Explain Error",
+		Description: "Explains a Zigflow validation error message using a curated, deterministic rule table. " +
+			"Returns a concise explanation, a suggested fix, documentation links and, where relevant, related task " +
+			"types and example workflows. Use this after validate_workflow to understand why a workflow failed and " +
+			"how to fix it. Unknown errors return a graceful fallback rather than an invented explanation.",
+		Annotations: idempotentAnnotations,
+	}, m.ExplainError)
+
 	return m
 }

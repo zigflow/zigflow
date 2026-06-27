@@ -49,13 +49,39 @@ MCP server in a specific client, see the official
 
 ## Available tools
 
-The server exposes five read-only tools.
+The server exposes six read-only tools.
 
-### list_examples
+### explain_error
 
-Lists the bundled workflow examples with their name, title, description and tags.
-Takes no parameters. Use this before calling `get_example` to discover the
-patterns that are available.
+Explains a validation error message. Pass the `error_message` returned by
+`validate_workflow` and the tool matches it against a curated, deterministic rule
+table. Use this after `validate_workflow` when a `message` is not self
+explanatory, so you can fix the workflow without searching the documentation by
+hand.
+
+The tool does not use an AI model and does not guess. It matches known
+validation failures only, so its output is stable for the same input.
+
+| Field | Description |
+| --- | --- |
+| `error` | The error message that was explained, echoed back |
+| `matched` | Whether a curated explanation was found |
+| `explanation` | A concise, implementation-backed reason for the failure |
+| `suggestedFix` | A concrete action to resolve the error |
+| `documentation` | Canonical documentation URLs for the error |
+| `relatedTaskTypes` | The task types most relevant to the error, where applicable |
+| `examples` | Bundled, validated example workflows that demonstrate the fix |
+
+The table covers the most common failures, including RFC 1123 names, invalid task
+types and call shapes, runtime expression and variable mistakes, durations,
+determinism rules and unsupported document fields. Several distinct task mistakes
+share one JSON Schema message, so a generic task shape explanation lists the
+common causes for those.
+
+When no rule matches, `matched` is `false` and the response says no curated
+explanation is available rather than inventing one. Fall back to the
+`validate_workflow` `stage` and `message` and the
+[common mistakes](/docs/concepts/common-mistakes) page.
 
 ### get_example
 
@@ -97,6 +123,12 @@ Use this to learn how a specific task type works before authoring YAML. The
 schema and reference page are served from the same sources as the
 [DSL reference](/docs/dsl/tasks/intro), so they stay in step with the engine.
 
+### list_examples
+
+Lists the bundled workflow examples with their name, title, description and tags.
+Takes no parameters. Use this before calling `get_example` to discover the
+patterns that are available.
+
 ### validate_workflow
 
 Validates a workflow YAML string and returns structured errors. The `yaml` field
@@ -127,7 +159,8 @@ A typical AI-assisted authoring session:
 4. Call `get_task_docs` to learn a specific task type in depth
 5. Generate or modify a workflow YAML
 6. Call `validate_workflow` to check it
-7. Correct errors based on the `stage` and `message` fields
+7. Correct errors based on the `stage` and `message` fields, calling
+   `explain_error` for any message that is not self explanatory
 8. Repeat from step 6 until valid
 
 Starting from a known example produces more accurate results than generating from
