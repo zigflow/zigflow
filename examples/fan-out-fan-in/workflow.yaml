@@ -1,0 +1,60 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: fan-out-fan-in
+  version: 0.0.1
+  title: Fan-out / Fan-in
+  summary: Run branches concurrently then aggregate their results (scatter/gather)
+  metadata:
+    tags:
+      - fork
+      - fan-out
+      - fan-in
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
+do:
+  # Fan out: every branch runs concurrently. With compete:false (the default)
+  # all branches run to completion and their results are collected, keyed by
+  # branch name, into a single object.
+  - gather:
+      export:
+        as: '${ { counts: . } }'
+      fork:
+        compete: false
+        branches:
+          - posts:
+              call: http
+              # Each branch reduces its response to a count so the collected
+              # result stays small.
+              output:
+                as:
+                  count: ${ . | length }
+              with:
+                method: get
+                endpoint: https://jsonplaceholder.typicode.com/posts
+          - comments:
+              call: http
+              output:
+                as:
+                  count: ${ . | length }
+              with:
+                method: get
+                endpoint: https://jsonplaceholder.typicode.com/comments
+          - albums:
+              call: http
+              output:
+                as:
+                  count: ${ . | length }
+              with:
+                method: get
+                endpoint: https://jsonplaceholder.typicode.com/albums
+  # Fan in: combine every branch's result into a single summary. Iterating
+  # $context.counts[] works for any number of branches.
+  - summarise:
+      output:
+        as:
+          total: ${ [$context.counts[].count] | add }
+          datasets: ${ $context.counts | keys }
+      set:
+        done: true

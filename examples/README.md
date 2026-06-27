@@ -21,14 +21,19 @@ A collection of examples
 | --- | --- |
 | [Activity Call](./activity-call) | Invoke an external Temporal activity from Zigflow |
 | [Agentic Workflow](./agentic-workflow) | A bounded plan/act/observe loop driven by an AI planner and a tool-backed lookup activity. |
+| [Approval with Timeout](./approval-timeout) | Wait for a human approval signal, failing fast if it does not arrive in time |
 | [Authorise Change Request](./authorise-change-request) | Authorise and implement or reject a change request |
 | [Basic](./basic) | An example of how to use Serverless Workflow to define Temporal Workflows |
+| [Batch Processing](./batch-processing) | Iterate over a collection, call a service per item, and collect the results |
 | [Catch Error](./catch-error) | Catch an error |
 | [Child Workflows](./child-workflows) | Define multiple workflows and call a child workflow from a parent |
 | [Debugging](./cloudevents) | An example of how to use CloudEvents for debugging workflows |
 | [Competing Concurrent Tasks](./competing-concurrent-tasks) | Have two tasks competing and the first to finish wins |
 | [Conditional Tasks](./conditionally-execute) | Execute tasks conditionally |
+| [Data Flow](./data-flow) | Demonstrate the difference between output and export ($output vs $context) |
+| [Error Fallback](./error-fallback) | Retry a failing call, then recover with a fallback so the workflow succeeds |
 | [External Calls](./external-calls) | An example of how to use Zigflow to make external gRPC and HTTP calls |
+| [Fan-out / Fan-in](./fan-out-fan-in) | Run branches concurrently then aggregate their results (scatter/gather) |
 | [For](./for-loop) | How to use the for loop task |
 | [Heartbeat](./heartbeat) | Set [activity heartbeat](https://docs.temporal.io/encyclopedia/detecting-activity-failures#activity-heartbeat). Useful on long-running activities. |
 | [Hello World](./hello-world) | Hello world with Zigflow |
