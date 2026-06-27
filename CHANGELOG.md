@@ -2,6 +2,30 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.14.0](https://github.com/zigflow/zigflow/releases/tag/v0.14.0) - 2026-06-27
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/477
+* docs: update brew install to include trust step by @mrsimonemms in https://github.com/zigflow/zigflow/pull/478
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/479
+* Fix devcontainer issues by @mrsimonemms in https://github.com/zigflow/zigflow/pull/480
+* feat: run examples as e2e tests by @mrsimonemms in https://github.com/zigflow/zigflow/pull/482
+* ci: add examples to the update dependencies job by @mrsimonemms in https://github.com/zigflow/zigflow/pull/485
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/487
+* chore: add healthcheck to money transfer server by @mrsimonemms in https://github.com/zigflow/zigflow/pull/488
+* chore(e2e): add tests to ensure that continue-as-new works by @mrsimonemms in https://github.com/zigflow/zigflow/pull/490
+* deps(deps): bump the go-dependencies group with 3 updates by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/494
+* ci(deps): bump actions/checkout from 6 to 7 in the github-actions group by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/495
+* feat: move schema to external repo by @mrsimonemms in https://github.com/zigflow/zigflow/pull/496
+* feat(run): add pull policy to run.container tasks by @mrsimonemms in https://github.com/zigflow/zigflow/pull/500
+* chore: update the contribution policy by @mrsimonemms in https://github.com/zigflow/zigflow/pull/502
+* fix: normalise times and durations for workflow and activity info by @mrsimonemms in https://github.com/zigflow/zigflow/pull/503
+* fix: update to serverless-workflow/sdk-go v3.4.0 by @mrsimonemms in https://github.com/zigflow/zigflow/pull/504
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/505
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.13.0...v0.14.0
+
 ## [v0.13.0](https://github.com/zigflow/zigflow/releases/tag/v0.13.0) - 2026-06-13
 
 ## What's Changed
