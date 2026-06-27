@@ -49,7 +49,7 @@ MCP server in a specific client, see the official
 
 ## Available tools
 
-The server exposes four read-only tools.
+The server exposes five read-only tools.
 
 ### list_examples
 
@@ -73,6 +73,29 @@ structure before generating or validating a definition.
 Set the optional `def` field to return a single schema definition from `$defs`,
 for example `{ "def": "taskList" }`. The name must match a `$defs` key exactly.
 Unknown definitions return a tool error.
+
+### get_task_docs
+
+Returns authoritative documentation for a single task type. The `task_type`
+field must be one of the supported task types: `call`, `do`, `for`, `fork`,
+`listen`, `raise`, `run`, `set`, `switch`, `try` or `wait`. An unknown task type
+returns a tool error that lists the supported types.
+
+The response aggregates several sources so a client does not need to scrape the
+documentation site:
+
+| Field | Description |
+| --- | --- |
+| `description` | The task summary from the JSON Schema definition |
+| `subTypes` | The task variants where the schema defines them, for example `call` returns `activity`, `grpc` and `http` |
+| `schema` | The task's JSON Schema definition, the authoritative source for its properties and required fields |
+| `documentation` | The full Markdown reference page for the task |
+| `relatedLinks` | Canonical documentation URLs for the task |
+| `examples` | Bundled, validated example workflows that use the task |
+
+Use this to learn how a specific task type works before authoring YAML. The
+schema and reference page are served from the same sources as the
+[DSL reference](/docs/dsl/tasks/intro), so they stay in step with the engine.
 
 ### validate_workflow
 
@@ -101,10 +124,11 @@ A typical AI-assisted authoring session:
 1. Call `list_examples` to browse available patterns
 2. Call `get_example` to inspect a relevant example
 3. Call `get_schema` to understand the DSL structure
-4. Generate or modify a workflow YAML
-5. Call `validate_workflow` to check it
-6. Correct errors based on the `stage` and `message` fields
-7. Repeat from step 5 until valid
+4. Call `get_task_docs` to learn a specific task type in depth
+5. Generate or modify a workflow YAML
+6. Call `validate_workflow` to check it
+7. Correct errors based on the `stage` and `message` fields
+8. Repeat from step 6 until valid
 
 Starting from a known example produces more accurate results than generating from
 scratch. Zigflow's DSL is a deliberate subset of the Serverless Workflow

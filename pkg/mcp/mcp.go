@@ -213,5 +213,14 @@ func New(server *mcp.Server, version string) *MCP {
 		Annotations: idempotentAnnotations,
 	}, m.ValidateWorkflow)
 
+	mcp.AddTool(server, &mcp.Tool{
+		Name:  "get_task_docs",
+		Title: "Get Task Documentation",
+		Description: "Returns authoritative documentation for a single Zigflow task type, including its JSON " +
+			"schema (properties and required fields), the full reference page, related links and example " +
+			"workflows that use it. Use this to learn how a specific task type works before authoring YAML.",
+		Annotations: idempotentAnnotations,
+	}, m.GetTaskDocs)
+
 	return m
 }
