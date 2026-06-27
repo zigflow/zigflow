@@ -17,7 +17,9 @@
 package tasks
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -168,8 +170,19 @@ func (d *builder[T]) executeActivity(ctx workflow.Context, activity, input any, 
 	logger := workflow.GetLogger(ctx)
 	logger.Debug("Calling activity", "name", d.name)
 
+	// Resolve workflow-side expressions in the task's `with` payload before
+	// scheduling, so the Temporal activity input records concrete values rather
+	// than raw ${ ... } strings. Expressions that reference activity-runtime
+	// state (for example ${ $data.activity.attempt }) are preserved and
+	// evaluated inside the activity against activity-enriched state.
+	task, err := d.resolveActivityWith(state)
+	if err != nil {
+		logger.Error("Error resolving activity input", "name", d.name, "error", err)
+		return nil, fmt.Errorf("error resolving activity input: %w", err)
+	}
+
 	var res any
-	if err := workflow.ExecuteActivity(ctx, activity, d.task, input, state).Get(ctx, &res); err != nil {
+	if err := workflow.ExecuteActivity(ctx, activity, task, input, state).Get(ctx, &res); err != nil {
 		if temporal.IsCanceledError(err) {
 			return nil, nil
 		}
@@ -185,6 +198,72 @@ func (d *builder[T]) executeActivity(ctx workflow.Context, activity, input any, 
 	})
 
 	return res, nil
+}
+
+// resolveActivityWith returns a copy of the task whose `with` payload has had
+// its workflow-side runtime expressions evaluated against state. Expressions
+// that reference activity-runtime state (for example $data.activity.*) are
+// preserved verbatim so the activity can evaluate them later against
+// activity-enriched state.
+//
+// The `with` payload is round-tripped through JSON, which is how the activity
+// implementations already consume it (ParseHTTPArguments, the gRPC argument
+// map), so the resolved value decodes back into the typed `with` struct
+// unchanged apart from the evaluated expressions. The original task is shared
+// across workflow executions and is never mutated: a shallow struct copy is
+// taken and only its `with` field is replaced.
+//
+// A task with no `with` field (none currently reach this shared path, but the
+// guard keeps the helper total) is returned unchanged.
+func (d *builder[T]) resolveActivityWith(state *utils.State) (T, error) {
+	taskValue := reflect.ValueOf(d.task)
+	if taskValue.Kind() != reflect.Pointer || taskValue.IsNil() || taskValue.Elem().Kind() != reflect.Struct {
+		return d.task, nil
+	}
+
+	elem := taskValue.Elem()
+	withField := elem.FieldByName("With")
+	if !withField.IsValid() {
+		return d.task, nil
+	}
+
+	raw, err := json.Marshal(withField.Interface())
+	if err != nil {
+		return d.task, fmt.Errorf("error marshalling activity with payload: %w", err)
+	}
+
+	var decoded any
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return d.task, fmt.Errorf("error unmarshalling activity with payload: %w", err)
+	}
+
+	resolved, err := utils.ResolveActivityInput(decoded, state)
+	if err != nil {
+		return d.task, fmt.Errorf("error evaluating activity with payload: %w", err)
+	}
+
+	resolvedRaw, err := json.Marshal(resolved)
+	if err != nil {
+		return d.task, fmt.Errorf("error marshalling resolved activity with payload: %w", err)
+	}
+
+	newWith := reflect.New(withField.Type())
+	if err := json.Unmarshal(resolvedRaw, newWith.Interface()); err != nil {
+		return d.task, fmt.Errorf("error decoding resolved activity with payload: %w", err)
+	}
+
+	// Shallow-copy the task struct and replace only the `with` field, leaving
+	// the shared original untouched.
+	newTask := reflect.New(elem.Type())
+	newTask.Elem().Set(elem)
+	newTask.Elem().FieldByName("With").Set(newWith.Elem())
+
+	resolvedTask, ok := newTask.Interface().(T)
+	if !ok {
+		// Unreachable: newTask has the same concrete type as d.task.
+		return d.task, fmt.Errorf("resolved task has unexpected type %T", newTask.Interface())
+	}
+	return resolvedTask, nil
 }
 
 func (d *builder[T]) GetTask() model.Task {

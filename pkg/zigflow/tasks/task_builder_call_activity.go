@@ -76,6 +76,11 @@ func (t *CallActivityTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		return nil, err
 	}
 
+	// Unlike the shared CallHTTP/CallGRPC path (see builder.resolveActivityWith),
+	// a `call: activity` task already resolves its `with.arguments` workflow-side:
+	// parseArgs evaluates them against workflow state here, in the workflow, and
+	// the activity receives concrete argument values. It therefore needs no
+	// further central treatment for issue #462.
 	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
 		logger := workflow.GetLogger(ctx)
 
