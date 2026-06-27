@@ -28,11 +28,11 @@ import (
 
 func TestSetTaskBuilderBuild(t *testing.T) {
 	task := &model.SetTask{
-		Set: map[string]any{
+		Set: model.NewObjectOrRuntimeExpr(map[string]any{
 			testConstResult: map[string]any{
 				testConstValue: "${ $env.VALUE }",
 			},
-		},
+		}),
 	}
 
 	builder, err := NewSetTaskBuilder(nil, task, "set-task", nil, testEvents, nil)
@@ -65,4 +65,31 @@ func TestSetTaskBuilderBuild(t *testing.T) {
 
 	assert.Equal(t, expected, result)
 	assert.Equal(t, expected[testConstResult], state.Data[testConstResult])
+}
+
+func TestSetTaskBuilderBuildNonObject(t *testing.T) {
+	task := &model.SetTask{
+		Set: model.NewObjectOrRuntimeExpr("${ \"not-object\" }"),
+	}
+
+	builder, err := NewSetTaskBuilder(nil, task, "set-task", nil, testEvents, nil)
+	assert.NoError(t, err)
+
+	fn, err := builder.Build()
+	assert.NoError(t, err)
+
+	state := utils.NewState()
+
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+		return fn(ctx, nil, state)
+	}, workflow.RegisterOptions{Name: "set-task"})
+
+	env.ExecuteWorkflow("set-task")
+
+	err = env.GetWorkflowError()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "set must evaluate to an object")
 }

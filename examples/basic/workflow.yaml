@@ -62,6 +62,10 @@ do:
             maximumAttempts: 5
       with:
         method: get
+        headers:
+          x-token: ${ $data.uuid }
+        query:
+          id: ${ $data.uuid }
         endpoint: ${ "https://jsonplaceholder.typicode.com/users/" + ($input.userId | tostring) }
   - raiseAlarm:
       # A fork is a series of child workflows running in parallel

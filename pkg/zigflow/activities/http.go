@@ -190,15 +190,24 @@ func (c *CallHTTP) callHTTPAction(ctx context.Context, task *model.CallHTTP, tim
 	}
 
 	// Add in headers
+	headers, err := objectOrRuntimeExprToMap("headers", args.Headers)
+	if err != nil {
+		return resp, method, url, reqHeaders, err
+	}
 	reqHeaders = map[string]string{}
-	for k, v := range args.Headers {
-		req.Header.Add(k, v)
-		reqHeaders[k] = v
+	for k, v := range headers {
+		val := fmt.Sprint(v)
+		req.Header.Add(k, val)
+		reqHeaders[k] = val
 	}
 
 	// Add in query strings
+	query, err := objectOrRuntimeExprToMap("query", args.Query)
+	if err != nil {
+		return resp, method, url, reqHeaders, err
+	}
 	q := req.URL.Query()
-	for k, v := range args.Query {
+	for k, v := range query {
 		q.Add(k, fmt.Sprint(v))
 	}
 	req.URL.RawQuery = q.Encode()
@@ -239,6 +248,23 @@ func (c *CallHTTP) classifyHTTPStatus(code int) httpRetryability {
 	default:
 		return httpSuccess
 	}
+}
+
+// objectOrRuntimeExprToMap extracts the string-keyed object held by an
+// *model.ObjectOrRuntimeExpr. By the time HTTPArguments are parsed, any runtime
+// expressions have already been evaluated by ParseHTTPArguments, so the value
+// is expected to be a concrete object. It returns a nil map when the field is
+// unset, and an error when the value evaluates to a non-object so that callers
+// fail fast rather than silently dropping invalid headers or query values.
+func objectOrRuntimeExprToMap(name string, o *model.ObjectOrRuntimeExpr) (map[string]any, error) {
+	if o == nil || o.AsStringOrMap() == nil {
+		return nil, nil
+	}
+	m, ok := o.AsStringOrMap().(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("%s must evaluate to an object, got %T", name, o.AsStringOrMap())
+	}
+	return m, nil
 }
 
 // ParseHTTPArguments note that I looked at the github.com/go-viper/mapstructure/v2.Decode

@@ -494,7 +494,7 @@ func TestDoTaskBuilderBuildSkipsNestedDoAfterNonDoTask(t *testing.T) {
 			{
 				Key: "step1",
 				Task: &model.SetTask{
-					Set: map[string]any{"a": "Homer"},
+					Set: model.NewObjectOrRuntimeExpr(map[string]any{"a": "Homer"}),
 				},
 			},
 			{
@@ -504,7 +504,7 @@ func TestDoTaskBuilderBuildSkipsNestedDoAfterNonDoTask(t *testing.T) {
 						{
 							Key: "step2",
 							Task: &model.SetTask{
-								Set: map[string]any{"b": "Marge"},
+								Set: model.NewObjectOrRuntimeExpr(map[string]any{"b": "Marge"}),
 							},
 						},
 					},
