@@ -1,0 +1,40 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: approval-timeout
+  version: 0.0.1
+  title: Approval with Timeout
+  summary: Wait for a human approval signal, failing fast if it does not arrive in time
+  metadata:
+    tags:
+      - signal
+      - approval
+      - timeout
+do:
+  # Block on a human decision delivered as a Temporal signal. metadata.timeout
+  # bounds the wait: if no `approve` signal arrives in time the listen task
+  # fails with an explicit timeout error instead of blocking forever.
+  #
+  # IMPORTANT: a signal `listen` only receives signals when it runs at the top
+  # level of the workflow. Wrapping it in a `try` or `fork` moves it into a
+  # child workflow execution, which the parent's signals do not reach.
+  - waitForApproval:
+      metadata:
+        # The window to wait for the signal. Defaults to 60s if omitted.
+        timeout: 30s
+      listen:
+        to:
+          one:
+            with:
+              # Signal name in Temporal
+              id: approve
+              type: signal
+  # Reached only once the approval signal has been received.
+  - recordDecision:
+      output:
+        as:
+          decision: approved
+          # Signal payloads are read from $data.<taskName>, not $output.
+          approver: ${ $data.waitForApproval.approver }
+      set:
+        decision: approved

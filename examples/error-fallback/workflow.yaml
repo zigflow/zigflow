@@ -1,0 +1,59 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: error-fallback
+  version: 0.0.1
+  title: Error Fallback
+  summary: Retry a failing call, then recover with a fallback so the workflow succeeds
+  metadata:
+    tags:
+      - error
+      - try-catch
+      - fallback
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
+do:
+  # Try the primary service. On any error the `catch` block runs - but only
+  # AFTER the retry policy below has been exhausted, not on the first failure.
+  - fetchUser:
+      try:
+        - callPrimary:
+            metadata:
+              # Retry the primary a few times before giving up. The catch block
+              # runs only once all attempts have failed.
+              activityOptions:
+                retryPolicy:
+                  maximumAttempts: 3
+            call: http
+            output:
+              as:
+                name: ${ .name }
+                source: primary
+            with:
+              method: get
+              # Always returns HTTP 500, so every attempt fails.
+              endpoint: https://httpbin.org/status/500
+      catch:
+        # Capture the error under $data.error for inspection if needed.
+        as: error
+        do:
+          # The primary failed every attempt. Recover by calling a backup
+          # service so the workflow can still complete successfully.
+          - callFallback:
+              call: http
+              output:
+                as:
+                  name: ${ .name }
+                  source: fallback
+              with:
+                method: get
+                endpoint: https://jsonplaceholder.typicode.com/users/1
+
+  # Execution continues past the recovered error. The previous task's result
+  # (from the primary or the fallback) is still in $output.
+  - confirm:
+      set:
+        name: ${ $output.name }
+        source: ${ $output.source }
+        complete: true

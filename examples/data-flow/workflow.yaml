@@ -1,0 +1,68 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: data-flow
+  version: 0.0.1
+  title: Data Flow
+  summary: Demonstrate the difference between output and export ($output vs $context)
+  metadata:
+    tags:
+      - data-flow
+      - export
+      - output
+input:
+  schema:
+    format: json
+    document:
+      type: object
+      required:
+        - orderId
+        - quantity
+        - unitPrice
+      properties:
+        orderId:
+          type: string
+        quantity:
+          type: number
+        unitPrice:
+          type: number
+do:
+  # `export.as` writes to $context, the shared channel that persists for the
+  # whole workflow. `set` produces the raw result, available as `.`. Here we
+  # persist the order details so later, non-adjacent tasks can still read them.
+  - captureOrder:
+      export:
+        as: ${ . }
+      set:
+        orderId: ${ $input.orderId }
+        quantity: ${ $input.quantity }
+        unitPrice: ${ $input.unitPrice }
+
+  # `output.as` shapes THIS task's result (the $output channel). `export`
+  # REPLACES $context wholesale, so to keep the previous values we merge with
+  # the `${ $context + { ... } }` idiom rather than overwriting it.
+  - priceOrder:
+      output:
+        as:
+          stage: priced
+          total: ${ .total }
+      export:
+        as: '${ $context + { total: .total } }'
+      set:
+        total: ${ $context.quantity * $context.unitPrice }
+
+  # An intervening task overwrites $output. After this runs, priceOrder's
+  # $output (stage/total) is gone - only $context still holds the total.
+  - audit:
+      set:
+        note: $output now belongs to this task, not priceOrder
+
+  # Build the final result from $context, which still has everything we
+  # exported, merged with this task's own result. Reading $output instead of
+  # $context here would only see the audit task's result. The workflow returns
+  # the final task's $output.
+  - summarise:
+      output:
+        as: '${ $context + . }'
+      set:
+        complete: true

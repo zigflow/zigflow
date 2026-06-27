@@ -1,0 +1,51 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: batch-processing
+  version: 0.0.1
+  title: Batch Processing
+  summary: Iterate over a collection, call a service per item, and collect the results
+  metadata:
+    tags:
+      - for-loop
+      - batch
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
+input:
+  schema:
+    format: json
+    document:
+      type: object
+      required:
+        - userIds
+      properties:
+        userIds:
+          type: array
+          items:
+            type: number
+do:
+  # Process each item in turn. A `for` task over an array returns an array of
+  # each iteration's result, so collecting the batch is just reading `.` from
+  # the loop with `output.as` - no manual accumulation needed.
+  - processBatch:
+      output:
+        as:
+          count: ${ . | length }
+          results: ${ . }
+      for:
+        # The current item is $data.user; its position is $data.index.
+        each: user
+        in: ${ $input.userIds }
+        at: index
+      do:
+        - fetchUser:
+            call: http
+            # This iteration's result. The loop aggregates these into an array.
+            output:
+              as:
+                userId: ${ $data.user }
+                name: ${ .name }
+            with:
+              method: get
+              endpoint: ${ "https://jsonplaceholder.typicode.com/users/" + ($data.user | tostring) }
