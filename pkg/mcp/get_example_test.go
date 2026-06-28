@@ -98,6 +98,23 @@ func TestGetExample_UnknownNameListsAvailable(t *testing.T) {
 	assert.Contains(t, out.Errors[0].Message, "beta")
 }
 
+func TestGetExample_MCPFalseBehavesAsNotFound(t *testing.T) {
+	fsys := exampleFS(map[string]string{
+		signalWorkflowYAML: "document:\n  title: Signal\n  summary: Signal example\ndo: []\n",
+		"hidden/workflow.yaml": "document:\n  title: Hidden\n  summary: Opted out\n" +
+			"  metadata:\n    mcp: false\n",
+	})
+
+	out, err := getExampleFromFS(fsys, "hidden")
+	require.NoError(t, err)
+	require.Len(t, out.Errors, 1)
+	assert.Equal(t, "input", out.Errors[0].Stage)
+	// Reported as not found, with only the visible example offered as available.
+	assert.Contains(t, out.Errors[0].Message, `"hidden" not found`)
+	assert.Contains(t, out.Errors[0].Message, "available: signal")
+	assert.Empty(t, out.Content)
+}
+
 func TestGetExample_ReadFailureSurfacedAsGoError(t *testing.T) {
 	_, err := getExampleFromFS(&alwaysErrFS{}, "anything")
 	assert.Error(t, err)

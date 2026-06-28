@@ -159,3 +159,48 @@ func TestLoadCatalog_EmbeddedFS(t *testing.T) {
 		assert.NotEmpty(t, ex.Title)
 	}
 }
+
+func TestLoadCatalog_MCPFlag(t *testing.T) {
+	const mcpFalse = `document:
+  title: Excluded
+  summary: Opted out of the MCP catalogue
+  metadata:
+    mcp: false
+`
+	const mcpTrue = `document:
+  title: Included
+  summary: Explicitly opted in to the MCP catalogue
+  metadata:
+    mcp: true
+`
+
+	fsys := fstest.MapFS{
+		"excluded/workflow.yaml": {Data: []byte(mcpFalse)},
+		"explicit/workflow.yaml": {Data: []byte(mcpTrue)},
+		// Omitted mcp must default to true (included).
+		"default/workflow.yaml": {Data: workflowYAML("Default", "No mcp flag set")},
+	}
+
+	catalog, err := examples.LoadCatalog(fsys, ".")
+	require.NoError(t, err)
+
+	names := make(map[string]bool)
+	for _, ex := range catalog {
+		names[ex.Name] = true
+	}
+
+	assert.False(t, names["excluded"], "mcp: false must exclude the example")
+	assert.True(t, names["explicit"], "mcp: true must include the example")
+	assert.True(t, names["default"], "omitted mcp must default to included")
+	require.Len(t, catalog, 2)
+}
+
+func TestLoadCatalog_EmbeddedExcludesInvalidExample(t *testing.T) {
+	catalog, err := examples.LoadCatalog(examples.EmbeddedFS, ".")
+	require.NoError(t, err)
+
+	for _, ex := range catalog {
+		assert.NotEqual(t, "invalid", ex.Name,
+			"examples/invalid opts out of the MCP catalogue via metadata.mcp: false")
+	}
+}

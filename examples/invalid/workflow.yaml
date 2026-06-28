@@ -11,6 +11,7 @@ document:
   metadata:
     # Excluded from the rendered examples gallery: the document never validates.
     display: false
+    mcp: false
 do:
   - step:
       set:

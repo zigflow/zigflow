@@ -46,8 +46,21 @@ type exampleMeta struct {
 		Summary  string `json:"summary"`
 		Metadata struct {
 			Tags []string `json:"tags,omitempty"`
+			// MCP controls whether the example is exposed through the MCP
+			// example catalogue. It is a pointer so an omitted value can be
+			// distinguished from an explicit false: omitted defaults to true.
+			// This is deliberately independent of document.metadata.display,
+			// which only governs the documentation site.
+			MCP *bool `json:"mcp,omitempty"`
 		} `json:"metadata"`
 	} `json:"document"`
+}
+
+// includeInCatalog reports whether an example should appear in the MCP
+// catalogue. Examples are included by default and only excluded when they set
+// document.metadata.mcp to false explicitly.
+func (m exampleMeta) includeInCatalog() bool {
+	return m.Document.Metadata.MCP == nil || *m.Document.Metadata.MCP
 }
 
 // LoadCatalog reads all subdirectories of root within fsys and returns a sorted
@@ -76,6 +89,13 @@ func LoadCatalog(fsys fs.FS, root string) ([]Example, error) {
 		meta, err := readMeta(fsys, exDir)
 		if err != nil {
 			return nil, fmt.Errorf("example %q: %w", name, err)
+		}
+
+		// Examples can opt out of the MCP catalogue without affecting the
+		// documentation site. Skip those, but leave them embedded for tests
+		// and manual verification.
+		if !meta.includeInCatalog() {
+			continue
 		}
 
 		tags := make([]string, 0)
