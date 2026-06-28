@@ -31,3 +31,11 @@ do:
               with:
                   method: get
                   endpoint: https://jsonplaceholder.typicode.com/users/3
+          - mcp:
+              call: mcp
+              with:
+                method: tools/list
+                transport:
+                  http:
+                    endpoint:
+                      uri: https://mcp.zigflow.dev
