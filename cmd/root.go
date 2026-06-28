@@ -117,6 +117,7 @@ platform.`,
 		schema.NewSchemaCmd(Version),
 		newGraphCmd(),
 		newGenerateDocsCmd(rootCmd),
+		newGenerateLLMSCmd(),
 		newMCPCmd(),
 	)
 

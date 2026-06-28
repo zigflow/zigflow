@@ -22,11 +22,16 @@ import (
 	"testing"
 
 	"github.com/zigflow/schema"
+	"github.com/zigflow/zigflow/pkg/llmsdoc"
 )
 
-// llmsTxtPath is resolved relative to the repository root, which is the working
+// Paths are resolved relative to the repository root, which is the working
 // directory when `go test` runs the root package.
-const llmsTxtPath = "docs/static/llms.txt"
+const (
+	llmsTxtPath        = "docs/static/llms.txt"
+	llmsTemplatePath   = "docs/llms.txt.in"
+	regenerateLLMSHint = "run `go run . generate-llms` to regenerate it"
+)
 
 func readFile(t *testing.T, path string) string {
 	t.Helper()
@@ -72,5 +77,25 @@ func TestLLMSTxtDocumentsEveryTaskType(t *testing.T) {
 		if !strings.Contains(llms, "`"+key+"`") {
 			t.Errorf("llms.txt does not document task type %q (derived from %s)", key, ref.Ref)
 		}
+	}
+}
+
+// TestLLMSTxtIsUpToDate guards against the generated regions of llms.txt
+// drifting from their authoritative sources. It renders the committed template
+// and compares it byte-for-byte with the committed llms.txt, so any change to
+// the schema, the example catalogue, the validation error registry or the MCP
+// tool registration fails the test until the file is regenerated.
+func TestLLMSTxtIsUpToDate(t *testing.T) {
+	template := readFile(t, llmsTemplatePath)
+
+	rendered, err := llmsdoc.Render(template)
+	if err != nil {
+		t.Fatalf("rendering llms.txt: %v", err)
+	}
+
+	committed := readFile(t, llmsTxtPath)
+
+	if rendered != committed {
+		t.Errorf("%s is out of date; %s", llmsTxtPath, regenerateLLMSHint)
 	}
 }

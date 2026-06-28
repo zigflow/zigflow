@@ -170,57 +170,85 @@ func listenAndServeGracefully(cctx context.Context, srv *http.Server) error {
 	}
 }
 
-func New(server *mcp.Server, version string) *MCP {
-	m := &MCP{
-		version: version,
-	}
+// idempotentAnnotations describes the read-only, side-effect-free nature shared
+// by every Zigflow MCP tool.
+var idempotentAnnotations = &mcp.ToolAnnotations{
+	ReadOnlyHint:    true,
+	DestructiveHint: new(false),
+	IdempotentHint:  true,
+	OpenWorldHint:   new(false),
+}
 
-	idempotentAnnotations := &mcp.ToolAnnotations{
-		ReadOnlyHint:    true,
-		DestructiveHint: new(false),
-		IdempotentHint:  true,
-		OpenWorldHint:   new(false),
-	}
-
-	mcp.AddTool(server, &mcp.Tool{
+// Tool metadata is declared once at package scope so it is the single source of
+// truth for both server registration (New) and documentation generation
+// (ToolDefinitions). The published tool list therefore cannot drift from the
+// tools the server actually registers.
+var (
+	toolGetSchema = &mcp.Tool{
 		Name:  "get_schema",
 		Title: "Get Schema",
 		Description: "Returns the Zigflow workflow JSON schema for the current version. Use this to understand valid " +
 			"workflow structure before generating or validating YAML. If a schema definition name is provided, only " +
 			"that definition is returned.",
 		Annotations: idempotentAnnotations,
-	}, m.GetSchema)
+	}
 
-	mcp.AddTool(server, &mcp.Tool{
+	toolGetExample = &mcp.Tool{
 		Name:        "get_example",
 		Title:       "Get Example",
 		Description: "Returns a Zigflow example by name, including its YAML content and metadata.",
 		Annotations: idempotentAnnotations,
-	}, m.GetExample)
+	}
 
-	mcp.AddTool(server, &mcp.Tool{
+	toolListExamples = &mcp.Tool{
 		Name:  "list_examples",
 		Title: "List Examples",
 		Description: "Lists the bundled Zigflow workflow examples with short descriptions and tags. " +
 			"Use this to discover available examples before calling get_example.",
 		Annotations: idempotentAnnotations,
-	}, m.ListExamples)
+	}
 
-	mcp.AddTool(server, &mcp.Tool{
+	toolValidateWorkflow = &mcp.Tool{
 		Name:        "validate_workflow",
 		Title:       "Validate Workflow",
 		Description: "Validates a Zigflow workflow YAML string and returns structured errors by stage.",
 		Annotations: idempotentAnnotations,
-	}, m.ValidateWorkflow)
+	}
 
-	mcp.AddTool(server, &mcp.Tool{
+	toolGetTaskDocs = &mcp.Tool{
 		Name:  "get_task_docs",
 		Title: "Get Task Documentation",
 		Description: "Returns authoritative documentation for a single Zigflow task type, including its JSON " +
 			"schema (properties and required fields), the full reference page, related links and example " +
 			"workflows that use it. Use this to learn how a specific task type works before authoring YAML.",
 		Annotations: idempotentAnnotations,
-	}, m.GetTaskDocs)
+	}
+)
+
+// ToolDefinitions returns the metadata for the MCP tools the server registers,
+// in registration order. It is the authoritative source for tool names and
+// descriptions, exposed so documentation can be generated from the same data
+// the server uses to register the tools.
+func ToolDefinitions() []*mcp.Tool {
+	return []*mcp.Tool{
+		toolGetSchema,
+		toolGetExample,
+		toolListExamples,
+		toolValidateWorkflow,
+		toolGetTaskDocs,
+	}
+}
+
+func New(server *mcp.Server, version string) *MCP {
+	m := &MCP{
+		version: version,
+	}
+
+	mcp.AddTool(server, toolGetSchema, m.GetSchema)
+	mcp.AddTool(server, toolGetExample, m.GetExample)
+	mcp.AddTool(server, toolListExamples, m.ListExamples)
+	mcp.AddTool(server, toolValidateWorkflow, m.ValidateWorkflow)
+	mcp.AddTool(server, toolGetTaskDocs, m.GetTaskDocs)
 
 	return m
 }
