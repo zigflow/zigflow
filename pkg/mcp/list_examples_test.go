@@ -51,6 +51,20 @@ func TestListExamples_ReturnsExamples(t *testing.T) {
 	assert.Len(t, out.Examples, 2)
 }
 
+func TestListExamples_ExcludesMCPFalse(t *testing.T) {
+	fsys := exampleFS(map[string]string{
+		signalWorkflowYAML: workflowFile("Signal Listeners", "Listen for Temporal signal events"),
+		"hidden/workflow.yaml": "document:\n  title: Hidden\n  summary: Opted out\n" +
+			"  metadata:\n    mcp: false\n",
+	})
+
+	out, err := listExamplesFromFS(fsys)
+	require.NoError(t, err)
+	require.Len(t, out.Examples, 1)
+	assert.Equal(t, "signal", out.Examples[0].Name,
+		"examples with metadata.mcp: false must not be listed")
+}
+
 func TestListExamples_StableOrder(t *testing.T) {
 	fsys := exampleFS(map[string]string{
 		"zebra/workflow.yaml":  workflowFile("Zebra", "Last"),
