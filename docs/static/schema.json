@@ -370,19 +370,23 @@
                     "client": {
                       "type": "object",
                       "properties": {
-                        "description": {
-                          "type": "string",
-                          "title": "McpClientVersion",
-                          "description": "The version of the client used to connect to the MCP server."
-                        },
                         "name": {
                           "type": "string",
                           "title": "McpClientName",
                           "description": "The name of the client used to connect to the MCP server."
+                        },
+                        "version": {
+                          "type": "string",
+                          "title": "McpClientVersion",
+                          "description": "The version of the client used to connect to the MCP server."
                         }
                       },
                       "title": "McpClient",
-                      "description": "Describes the client used to perform the MCP call."
+                      "description": "Describes the client used to perform the MCP call.",
+                      "required": [
+                        "name",
+                        "version"
+                      ]
                     },
                     "method": {
                       "type": "string",
@@ -410,12 +414,6 @@
                           "type": "string"
                         }
                       ]
-                    },
-                    "protocolVersion": {
-                      "type": "string",
-                      "title": "McpProtocolVersion",
-                      "description": "The version of the MCP protocol to use.",
-                      "default": "2025-06-18"
                     },
                     "timeout": {
                       "$ref": "#/$defs/duration",

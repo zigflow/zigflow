@@ -173,16 +173,19 @@ $defs:
               client:
                 description: Describes the client used to perform the MCP call.
                 properties:
-                  description:
-                    description: The version of the client used to connect to the
-                      MCP server.
-                    title: McpClientVersion
-                    type: string
                   name:
                     description: The name of the client used to connect to the MCP
                       server.
                     title: McpClientName
                     type: string
+                  version:
+                    description: The version of the client used to connect to the
+                      MCP server.
+                    title: McpClientVersion
+                    type: string
+                required:
+                - name
+                - version
                 title: McpClient
                 type: object
               method:
@@ -204,11 +207,6 @@ $defs:
                   type: object
                 - type: string
                 title: McpMethodParameters
-              protocolVersion:
-                default: "2025-06-18"
-                description: The version of the MCP protocol to use.
-                title: McpProtocolVersion
-                type: string
               timeout:
                 $ref: '#/$defs/duration'
                 description: The duration after which the MCP call times out.

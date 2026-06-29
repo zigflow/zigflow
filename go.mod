@@ -27,7 +27,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/testcontainers/testcontainers-go v0.43.0
-	github.com/zigflow/schema v0.0.0-20260628212918-e9536276fac7
+	github.com/zigflow/schema v0.0.0-20260629094321-719f4c5f4bdc
 	go.temporal.io/sdk v1.45.0
 	go.temporal.io/sdk/contrib/sysinfo v0.1.1
 	go.yaml.in/yaml/v2 v2.4.4
