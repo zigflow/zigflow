@@ -53,6 +53,22 @@ flowchart TD
     end
     external_calls_fork --> external_calls_http__start
     external_calls_http__end --> external_calls_fork__join
+    subgraph fork_external_calls_mcp_http["mcp-http"]
+        direction TB
+        external_calls_mcp_http__start([ ])
+        external_calls_mcp_http__end([ ])
+        external_calls_mcp_http__start --> external_calls_mcp_http__end
+    end
+    external_calls_fork --> external_calls_mcp_http__start
+    external_calls_mcp_http__end --> external_calls_fork__join
+    subgraph fork_external_calls_mcp_stdio["mcp-stdio"]
+        direction TB
+        external_calls_mcp_stdio__start([ ])
+        external_calls_mcp_stdio__end([ ])
+        external_calls_mcp_stdio__start --> external_calls_mcp_stdio__end
+    end
+    external_calls_fork --> external_calls_mcp_stdio__start
+    external_calls_mcp_stdio__end --> external_calls_fork__join
     external_calls__start --> external_calls_fork
     external_calls_fork__join --> external_calls__end
 ```
