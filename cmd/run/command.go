@@ -25,6 +25,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/zigflow/zigflow/pkg/codec"
+	"github.com/zigflow/zigflow/pkg/externalstorage"
 	"github.com/zigflow/zigflow/pkg/telemetry"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
@@ -60,9 +61,15 @@ type runOptions struct {
 	DeploymentBuildID                      string
 	DeploymentName                         string
 	EnableVersioning                       bool
-	EnvPrefix                              string
 	DirectoryGlob                          string
 	DirectoryPath                          string
+	EnvPrefix                              string
+	ExternalStorage                        string
+	ExternalStoragePayloadSizeThreshold    int
+	ExternalStorageS3Bucket                string
+	ExternalStorageS3Region                string
+	ExternalStorageS3Endpoint              string
+	ExternalStorageS3UsePathStyle          bool
 	Files                                  []string
 	GracefulShutdownTimeout                time.Duration
 	MaxConcurrentActivityExecutionSize     int
@@ -104,7 +111,7 @@ func runRunCmd(ctx context.Context, opts *runOptions) error {
 		return err
 	}
 
-	temporalClient, err := initTemporalClient(opts)
+	temporalClient, err := initTemporalClient(ctx, opts)
 	if err != nil {
 		return err
 	}
@@ -197,6 +204,10 @@ Use this command to deploy and run your Zigflow workflows in any environment,
 from local development to production.`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if _, err := codec.ParseCodecType(opts.ConvertData); err != nil {
+				return err
+			}
+
+			if _, err := externalstorage.ParseType(opts.ExternalStorage); err != nil {
 				return err
 			}
 
