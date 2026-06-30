@@ -1,8 +1,9 @@
 # Zigflow Architecture
 
 Zigflow is an opinionated declarative layer on top of Temporal. It translates
-Serverless Workflow–style YAML definitions into executable Temporal workflows,
-while enforcing determinism, validation and structural constraints.
+Open Workflow Specification (formerly Serverless Workflow)–style YAML
+definitions into executable Temporal workflows, while enforcing
+determinism, validation and structural constraints.
 
 This document describes how Zigflow works internally and the architectural
 principles that guide its design.
@@ -60,7 +61,8 @@ Zigflow does not embed arbitrary executable code inside workflows.
 Validation occurs in multiple stages:
 
 1. **Schema validation** – ensures the document conforms to the DSL schema.
-2. **Specification validation** – checks alignment with Serverless Workflow constructs.
+2. **Specification validation** – checks alignment with Open Workflow
+   Specification constructs.
 3. **Zigflow-specific constraints** – enforces rules required for Temporal
    determinism and execution safety.
 
@@ -92,7 +94,7 @@ Temporal workflows must be deterministic. Zigflow enforces this by:
 - Ensuring state transitions are derived from declarative definitions
 - Avoiding hidden side effects
 
-Where the Serverless Workflow specification does not map cleanly to Temporal's
+Where the Open Workflow Specification does not map cleanly to Temporal's
 execution model, Zigflow may diverge to preserve correctness and determinism.
 
 Correctness and determinism take priority over strict spec compatibility.
@@ -102,7 +104,7 @@ Correctness and determinism take priority over strict spec compatibility.
 ## DSL extension mechanism
 
 Zigflow's contract is asymmetric: any workflow valid under the
-Serverless Workflow specification runs in Zigflow unchanged, and
+Open Workflow Specification runs in Zigflow unchanged, and
 Zigflow can do more than the spec where Temporal's execution model
 or Zigflow's own use cases require it.
 
@@ -187,7 +189,7 @@ Zigflow aims to:
 - Prefer explicit behaviour over implicit magic
 - Preserve determinism at all times
 - Maintain backwards compatibility within major versions
-- Remain broadly compatible with Serverless Workflow where practical
+- Remain broadly compatible with the Open Workflow Specification where practical
 - Optimise for clarity and predictability over feature volume
 
 Opinionation is a feature, not a limitation.
@@ -196,8 +198,8 @@ Opinionation is a feature, not a limitation.
 
 ## Future evolution
 
-Zigflow continues to evolve alongside Temporal and the Serverless Workflow
-specification.
+Zigflow continues to evolve alongside Temporal and the Open Workflow
+Specification.
 
 New features should:
 

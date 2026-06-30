@@ -1,7 +1,7 @@
 # Money Transfer Demo
 
 Temporal's world-famous [Money Transfer Demo](https://github.com/temporal-sa/money-transfer-demo),
-in Serverless Workflow form.
+in Open Workflow Specification (formerly Serverless Workflow) form.
 
 <!-- toc -->
 

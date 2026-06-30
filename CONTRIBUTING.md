@@ -77,18 +77,18 @@ Zigflow is influenced by and aims to remain broadly compatible with the
 [ServerlessWorkflow.io](https://serverlessworkflow.io) specification.
 
 Where possible, new features and behavioural changes **should** align
-with the Serverless Workflow specification to minimise conceptual
-friction and improve interoperability.
+with the Open Workflow Specification (formerly Serverless Workflow) to
+minimise conceptual friction and improve interoperability.
 
 However, Zigflow is designed specifically for Temporal. In cases where
-the Serverless Workflow specification does not map cleanly to Temporal's
+the Open Workflow Specification does not map cleanly to Temporal's
 execution model, determinism requirements or workflow semantics, Zigflow
 may diverge.
 
 When proposing changes that affect compatibility:
 
-- Clearly explain how the proposal relates to the Serverless Workflow
-  specification
+- Clearly explain how the proposal relates to the Open Workflow
+  Specification
 - Identify any areas of divergence
 - Justify deviations based on Temporal's design constraints
 

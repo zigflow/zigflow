@@ -1,7 +1,7 @@
 # Zigflow agent instructions
 
 This repository contains **Zigflow**, a workflow engine built on top of
-**Temporal** and the **CNCF Serverless Workflow specification**.
+**Temporal** and the **CNCF Open Workflow Specification (formerly Serverless Workflow)**.
 
 Zigflow prioritises:
 - Determinism
@@ -45,7 +45,7 @@ The system is designed to fail fast on invalid or unsupported constructs.
 
 - **Language:** Go
 - **Workflow engine:** Temporal
-- **Workflow spec:** CNCF Serverless Workflow
+- **Workflow spec:** CNCF Open Workflow Specification
 - **Configuration:** YAML / JSON
 - **CLI:** Cobra + Viper
 - **Logging:** zerolog
@@ -98,7 +98,7 @@ If a construct is not implemented:
 - Output and context mutation must be explicit
 
 Do not:
-- Add support for new Serverless Workflow task types without discussion
+- Add support for new Open Workflow Specification task types without discussion
 - Infer semantics not present in the spec or implementation
 - Relax validation to "make things work"
 

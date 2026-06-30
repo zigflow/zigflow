@@ -4,7 +4,7 @@ document:
   workflowType: basic
   version: 0.0.1
   title: Basic
-  summary: An example of how to use Serverless Workflow to define Temporal Workflows
+  summary: An example of how to use the Open Workflow Specification to define Temporal Workflows
   metadata:
     # Acts as override to test out continue-as-new
     # @link https://docs.temporal.io/develop/go/continue-as-new
@@ -75,13 +75,13 @@ do:
         # If not competing, all tasks will run to the finish - this is the default behaviour
         compete: false
         branches:
-          # A single step is passed in by the Serverless Workflow task
+          # A single step is passed in by the Open Workflow Specification task
           - callNurse:
               call: http
               with:
                 method: get
                 endpoint: https://jsonplaceholder.typicode.com/users/2
-          # Multiple steps can be passed in by the Serverless Workflow do task
+          # Multiple steps can be passed in by the Open Workflow Specification do task
           - multiStep:
               do:
                 - wait1:

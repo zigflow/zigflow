@@ -20,8 +20,9 @@ summarised here and explained in full on those pages.
 :::
 
 Most invalid workflows break the same handful of rules. The mistakes below
-come from habits carried over from other tools: the CNCF Serverless Workflow
-specification, GitHub Actions, Jinja templating or the `jq` command line.
+come from habits carried over from other tools: the CNCF Open Workflow
+Specification (formerly Serverless Workflow), GitHub Actions, Jinja
+templating or the `jq` command line.
 Zigflow implements a deliberately small, strict subset and rejects anything
 outside it, so a habit that works elsewhere often fails here.
 
@@ -71,7 +72,7 @@ Use this mapping when a task type from elsewhere does not exist in Zigflow:
 ### `url` instead of `endpoint`
 
 An HTTP call addresses its target with `endpoint`, not `url`. There is no
-`url` property. The name comes from the Serverless Workflow specification, but
+`url` property. The name comes from the Open Workflow Specification, but
 most HTTP tooling calls it a URL, so `url` is a frequent slip.
 
 ```yaml
@@ -186,7 +187,7 @@ A duration is an object with plural integer keys. The valid keys are `days`,
 recognised.
 
 **Why people get this wrong.** ISO 8601 durations appear throughout the
-Serverless Workflow specification and many standards, and singular keys read
+Open Workflow Specification and many standards, and singular keys read
 naturally in English.
 
 ### Incorrect: ISO 8601 and singular keys

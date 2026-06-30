@@ -58,7 +58,8 @@ At that point, you've lost most of the benefits of a declarative system.
 
 Zigflow does not define its own workflow language from scratch.
 
-Instead, it builds on the [CNCF Serverless Workflow specification](https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md).
+Instead, it builds on the
+[CNCF Open Workflow Specification (formerly Serverless Workflow)](https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md).
 
 This is a deliberate choice.
 

@@ -1,6 +1,7 @@
 # Run Script Workflow
 
-An example of how to use Serverless Workflow to run scripts and shell commands
+An example of how to use the Open Workflow Specification (formerly
+Serverless Workflow) to run scripts and shell commands
 
 <!-- toc -->
 
