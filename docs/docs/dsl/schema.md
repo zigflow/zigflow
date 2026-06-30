@@ -15,9 +15,10 @@ linters and code generators to validate workflow files before you run them.
 
 :::warning
 The Zigflow schema reflects only the features that Zigflow supports. It is a
-deliberate subset of the CNCF Serverless Workflow specification. Workflow
-constructs not supported by Zigflow are absent from the schema. If your workflow
-uses an unsupported construct, validation against this schema will fail.
+deliberate subset of the CNCF Open Workflow Specification (formerly
+Serverless Workflow). Workflow constructs not supported by Zigflow are
+absent from the schema. If your workflow uses an unsupported construct,
+validation against this schema will fail.
 :::
 
 ## Schema URLs

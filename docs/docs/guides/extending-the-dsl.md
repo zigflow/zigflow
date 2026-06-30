@@ -3,14 +3,15 @@ sidebar_position: 2
 ---
 # Extending the DSL
 
-Zigflow's DSL is based on the [Serverless Workflow specification](https://serverlessworkflow.io).
+Zigflow's DSL is based on the
+[Open Workflow Specification (formerly Serverless Workflow)](https://serverlessworkflow.io).
 The mechanism on this page is the **only** sanctioned way to add
 semantics that the specification does not cover, and it exists for a
-narrow purpose: bridging the gap between a Serverless Workflow task
+narrow purpose: bridging the gap between an Open Workflow Specification task
 and a Temporal SDK feature that the spec cannot describe. Anything
 broader belongs somewhere else.
 
-The canonical example is `wait.until`. The Serverless Workflow spec's
+The canonical example is `wait.until`. The Open Workflow Specification's
 wait task is duration-only, but Temporal exposes deterministic
 absolute-time sleep through `workflow.Sleep(until - workflow.Now())`.
 The extension exposes that Temporal capability without leaving the
@@ -25,8 +26,8 @@ spec for unrelated reasons.
 
 :::warning
 **This mechanism is not for custom activities, new keywords, or
-arbitrary business logic.** It is for extending existing Serverless
-Workflow task types with a small, surgical Temporal SDK capability the
+arbitrary business logic.** It is for extending existing Open Workflow
+Specification task types with a small, surgical Temporal SDK capability the
 spec cannot model. See [When NOT to use an extension](#when-not-to-use-an-extension)
 below for the precise gate. If you are unsure, open an issue before
 writing code.
@@ -38,7 +39,7 @@ writing code.
 
 Use the extension mechanism when **all three** of the following are true:
 
-1. **The Serverless Workflow SDK can't accept the YAML you need.**
+1. **The Open Workflow Specification SDK can't accept the YAML you need.**
    Either the task isn't in the SDK at all, or the SDK's schema is too
    strict for the use case (for example, rejecting a runtime expression
    where the value needs to come from workflow state at execution time).
@@ -59,7 +60,7 @@ expression-valued duration fields (rule 1), the implementation uses
 deterministic-timer behaviour cannot move into an activity without
 breaking determinism (rule 3).
 
-Attach the extension to an existing Serverless Workflow spec task name
+Attach the extension to an existing Open Workflow Specification task name
 (`wait`, `set`, `for`, `try`, ...) rather than inventing a new top-level
 keyword. The mechanism supports new names, but doing so adds DSL
 vocabulary outside the spec and has no project precedent yet. Raise an
@@ -74,7 +75,7 @@ following. Use the indicated alternative instead.
 | --- | --- |
 | Run a custom activity (`updateUser`, `sendEmail`, ...) | The `call: activity` task with `name:` and `taskQueue:`. Activities live in your Temporal workers and are invoked via the existing DSL; they are not part of the Zigflow DSL surface. See [activity call](/docs/dsl/tasks/call#activity). |
 | Add a top-level keyword for business logic (`zigflowMail`, `doMagic`) | A custom activity via `call: activity`. Adding a brand-new top-level task name is technically possible via the extension mechanism, but only justified when the new name also maps to a Temporal workflow primitive (see rule 2 above). Business-logic names belong in activities, not in the DSL. |
-| Add sidecar configuration to an existing task (retry options, heartbeat config, schedule details) | Task `metadata`. The Serverless Workflow specification endorses `metadata` as the open extension point. See [activity options](/docs/dsl/metadata/activity-options) for the established pattern. |
+| Add sidecar configuration to an existing task (retry options, heartbeat config, schedule details) | Task `metadata`. The Open Workflow Specification endorses `metadata` as the open extension point. See [activity options](/docs/dsl/metadata/activity-options) for the established pattern. |
 | Rename a YAML key the SDK already accepts to a friendlier user-facing form | The normalise step. It rewrites user-facing keys to spec keys before the SDK parses; no extension is needed. |
 | Embed arbitrary application logic in the workflow | Nothing inside the DSL. Move the logic to an activity. Zigflow's job is to declaratively drive Temporal, not to host business logic. |
 
@@ -82,7 +83,7 @@ following. Use the indicated alternative instead.
 
 ## Why a dedicated mechanism is needed
 
-The Serverless Workflow Go SDK is strict about the shapes it accepts.
+The Open Workflow Specification Go SDK is strict about the shapes it accepts.
 For example, the SDK's `Duration` type rejects unknown fields and
 requires numeric values to be integers. Writing `wait.until` or
 `wait.seconds: ${...}` directly fails JSON unmarshalling before
@@ -181,7 +182,7 @@ func init() {
 
 :::warning
 Registration must happen at `init()` time. Duplicate task types panic
-at init, matching the Serverless Workflow SDK's own behaviour for
+at init, matching the Open Workflow Specification SDK's own behaviour for
 task-type collisions.
 :::
 
@@ -189,7 +190,7 @@ task-type collisions.
 
 ## Step 3: claim the user's YAML when it uses the extension
 
-The extension type tells Zigflow which Serverless Workflow task type
+The extension type tells Zigflow which Open Workflow Specification task type
 it extends and when it should take ownership. The Zigflow internal
 key is derived automatically by prefixing the task type with
 `extensions.ZigflowExtKeyPrefix`, so the extension only declares its
@@ -224,7 +225,7 @@ the JSON. The SDK then constructs your `*MyExtTask` directly.
 
 Update the relevant task definition in [`schema/definitions.go`](https://github.com/zigflow/schema/blob/main/definitions.go)
 so the user-facing YAML form validates. The user always writes the
-Serverless Workflow task type (`mytask:` in this example); the
+Open Workflow Specification task type (`mytask:` in this example); the
 internal `__zigflow_ext_*` key never appears in user-facing input.
 
 The wait task uses a `OneOf` between the existing duration form and

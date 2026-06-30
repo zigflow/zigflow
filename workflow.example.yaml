@@ -6,7 +6,7 @@ document:
   workflowType: example # The Temporal workflow type name
   version: 0.0.1
   title: Example Workflow
-  summary: An example of how to use Serverless Workflow to define Temporal Workflows
+  summary: An example of how to use the Open Workflow Specification to define Temporal Workflows
   metadata:
     activityOptions:
       startToCloseTimeout:

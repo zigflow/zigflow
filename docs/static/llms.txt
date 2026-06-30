@@ -8,7 +8,7 @@ This document is a reference for AI assistants authoring Zigflow workflows. The
 authoritative source of truth is the Zigflow JSON Schema and Go implementation.
 Where this document and the prose documentation disagree, the schema wins. The
 constructs below reflect what Zigflow actually validates and runs, which is a
-deliberate subset of the CNCF Serverless Workflow specification.
+deliberate subset of the CNCF Open Workflow Specification (formerly Serverless Workflow).
 
 ## What Zigflow is
 

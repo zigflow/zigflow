@@ -12,10 +12,11 @@
 **Declarative YAML workflows on Temporal. No SDK boilerplate.**
 
 Zigflow lets you define and run [Temporal](https://temporal.io) workflows using
-YAML, built on the [CNCF Serverless Workflow](https://serverlessworkflow.io)
-specification. You write a workflow definition; Zigflow compiles it into a
-fully-featured Temporal workflow with retries, state management and
-deterministic execution. No Go, Java or TypeScript workflow code required.
+YAML, built on the [CNCF Open Workflow Specification](https://serverlessworkflow.io)
+(formerly Serverless Workflow). You write a workflow definition; Zigflow
+compiles it into a fully-featured Temporal workflow with retries, state
+management and deterministic execution. No Go, Java or TypeScript workflow
+code required.
 
 > If this looks useful, a ⭐ helps others find the project.
 
@@ -115,7 +116,7 @@ SDK-level flexibility for faster development and consistent workflow structure.
 | **Control and flexibility** | Maximum | Depends on implementation | Opinionated and constrained |
 | **Retries and durability** | ✅ Native Temporal | ⚠️ You build it | ✅ Native Temporal |
 | **Continue-as-new** | ✅ Supported (you implement and tune it) | ⚠️ You build it | ✅ Automatic (Zigflow continues as new for you) |
-| **CNCF spec alignment** | ❌ | ❌ Usually bespoke | ✅ Serverless Workflow v1.0+ |
+| **CNCF spec alignment** | ❌ | ❌ Usually bespoke | ✅ Open Workflow Specification v1.0+ |
 | **Validation before execution** | Manual or custom | Depends on implementation | ✅ Built-in validation |
 | **Boilerplate and worker setup** | Required | Depends on implementation | Minimal |
 | **Kubernetes deployment** | Manual | Manual | ✅ Helm chart included |
@@ -176,7 +177,7 @@ Temporal, not a replacement for its full SDK capabilities.
 
 ## How it works
 
-1. You define a workflow using YAML based on the Serverless Workflow spec.
+1. You define a workflow using YAML based on the Open Workflow Specification.
 2. Zigflow validates the definition before execution.
 3. Zigflow compiles the definition into a Temporal workflow implementation.
 4. A worker is started for the configured namespace and task queue.
@@ -309,7 +310,7 @@ schedules and more) are in [examples/](./examples).
 ## Features
 
 - **Temporal DSL**: declarative YAML definitions that compile to Temporal workflows
-- **CNCF standard**: aligned with Serverless Workflow v1.0+
+- **CNCF standard**: aligned with Open Workflow Specification v1.0+
 - **Validation first**: definitions are validated before execution; invalid or
   unsupported constructs are rejected with actionable errors
 - **Multi-language activities**: activity workers can use any Temporal SDK
@@ -402,7 +403,7 @@ Bug reports, feedback and contributions are welcome.
 ## Related projects
 
 - [Temporal](https://temporal.io)
-- [CNCF Serverless Workflow](https://serverlessworkflow.io)
+- [CNCF Open Workflow Specification](https://serverlessworkflow.io)
 - [Helm chart](./charts/zigflow)
 
 ---
