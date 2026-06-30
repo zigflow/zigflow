@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"github.com/mrsimonemms/golang-helpers/temporal"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	zlog "github.com/rs/zerolog/log"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
 	"go.temporal.io/sdk/client"
 )

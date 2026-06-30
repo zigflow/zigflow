@@ -13,10 +13,11 @@ survives worker restarts. Typical uses:
 - Waiting until a specific moment in time, for example a publication
   deadline or a scheduled action
 
-## Serverless Workflow form
+## Open Workflow Specification form
 
-The form defined by the Serverless Workflow specification. A workflow
-using only this form is portable across any Serverless Workflow runtime.
+The form defined by the Open Workflow Specification (formerly Serverless
+Workflow). A workflow using only this form is portable across any Open
+Workflow Specification runtime.
 
 ### Properties
 
@@ -51,7 +52,7 @@ do:
 ## Zigflow extensions
 
 Zigflow adds two forms to the wait task that are not in the
-Serverless Workflow specification. The keyword stays `wait:`, so the
+Open Workflow Specification. The keyword stays `wait:`, so the
 YAML still looks like a wait task, but a workflow that uses these
 forms will only run in Zigflow.
 

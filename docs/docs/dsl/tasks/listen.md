@@ -50,10 +50,10 @@ on predefined criteria, such as event type, source, or specific attributes.
 ### Event Properties
 
 An event object typically includes details such as the event type, source, timestamp,
- and unique identifier along with any relevant data payload. The
- [Cloud Events specification](https://cloudevents.io/), favoured by Serverless
-  Workflow, standardizes this structure to ensure interoperability across different
-  systems and services.
+and unique identifier along with any relevant data payload. The
+[Cloud Events specification](https://cloudevents.io/), favoured by Open Workflow
+Specification, standardizes this structure to ensure interoperability across different
+systems and services.
 
 #### Properties {/*#event-properties-properties*/}
 

@@ -105,11 +105,11 @@ Call an external resource via HTTP. To use this, the `call` property must equal
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
 | method | `string` | `yes` | The HTTP request method. |
-| endpoint | `string`\|[`endpoint`](https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md#endpoint) | `yes` | An URI or an object that describes the HTTP endpoint to call. |
+| endpoint | `string`\|[`endpoint`](https://github.com/open-workflow-specification/specification/blob/main/dsl-reference.md#endpoint) | `yes` | An URI or an object that describes the HTTP endpoint to call. |
 | headers | `map` | `no` | A name/value mapping of the HTTP headers to use, if any. |
 | body | `any` | `no` | The HTTP request body, if any. |
 | query | `map[string, any]` | `no` | A name/value mapping of the query parameters to use, if any. |
-| output | `string` | `no` | The http call's output format.<br />*Supported values are:*<br />*- `raw`, which output's the base-64 encoded [http response](https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md#http-response) content, if any.*<br />*- `content`, which outputs the content of [http response](https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md#http-response), possibly deserialized.*<br />*- `response`, which outputs the [http response](https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md#http-response).*<br />*Defaults to `content`.* |
+| output | `string` | `no` | The http call's output format.<br />*Supported values are:*<br />*- `raw`, which output's the base-64 encoded [http response](https://github.com/open-workflow-specification/specification/blob/main/dsl-reference.md#http-response) content, if any.*<br />*- `content`, which outputs the content of [http response](https://github.com/open-workflow-specification/specification/blob/main/dsl-reference.md#http-response), possibly deserialized.*<br />*- `response`, which outputs the [http response](https://github.com/open-workflow-specification/specification/blob/main/dsl-reference.md#http-response).*<br />*Defaults to `content`.* |
 | redirect | `boolean` | `no` | Specifies whether redirection status codes (`300–399`) should be treated as errors.<br />*If set to `false`, runtimes must raise an error for response status codes outside the `200–299` range.*<br />*If set to `true`, they must raise an error for status codes outside the `200–399` range.*<br />*Defaults to `false`.* |
 
 ### Example {/*#http-example*/}

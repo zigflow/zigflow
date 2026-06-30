@@ -158,8 +158,9 @@ A typical AI-assisted authoring session:
 8. Repeat from step 6 until valid
 
 Starting from a known example produces more accurate results than generating from
-scratch. Zigflow's DSL is a deliberate subset of the Serverless Workflow
-specification. The schema and bundled examples define what is actually supported.
+scratch. Zigflow's DSL is a deliberate subset of the Open Workflow Specification
+(formerly Serverless Workflow). The schema and bundled examples define
+what is actually supported.
 
 :::note
 AI-generated workflows are a starting point. `validate_workflow` confirms

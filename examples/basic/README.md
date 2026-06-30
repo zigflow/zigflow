@@ -1,6 +1,7 @@
 # Basic Workflow
 
-An example of how to use Serverless Workflow to define Temporal Workflows
+An example of how to use the Open Workflow Specification (formerly
+Serverless Workflow) to define Temporal Workflows
 
 <!-- toc -->
 

@@ -23,8 +23,8 @@ import (
 	"math"
 
 	ceSDK "github.com/cloudevents/sdk-go/v2"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/rs/zerolog/log"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"

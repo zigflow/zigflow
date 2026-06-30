@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/itchyny/gojq"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 )
 
 // DeterminismIssue describes one non-deterministic construct found in an

@@ -20,8 +20,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/rs/zerolog/log"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"
@@ -208,7 +208,7 @@ func (t *TryTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 			logger.Warn("Workflow failed, catching the error", "tryWorkflow", t.tryChildWorkflowName, "catchWorkflow", t.catchChildWorkflowName)
 
 			// Expose the caught error to the catch tasks so they can
-			// interrogate it. The Serverless Workflow spec names this
+			// interrogate it. The Open Workflow Specification names this
 			// variable via `catch.as`, defaulting to "error", and we expose
 			// it under $data so it reads as `$data.error` (or `$data.<as>`).
 			//

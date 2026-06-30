@@ -20,8 +20,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/serverlessworkflow/sdk-go/v3/impl/expr"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/open-workflow-specification/sdk-go/v4/impl/expr"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"go.temporal.io/sdk/temporal"
@@ -58,7 +58,7 @@ const (
 	temporaErrlNonRetryable = "https://temporal.io/errors/nonretryable"
 )
 
-// Serverless Workflow native errors
+// Open Workflow Specification native errors
 var raiseErrFuncMapping = map[string]func(error, string) *model.Error{
 	model.ErrorTypeAuthentication: model.NewErrAuthentication,
 	model.ErrorTypeValidation:     model.NewErrValidation,

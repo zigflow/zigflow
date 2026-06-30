@@ -20,8 +20,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/rs/zerolog/log"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
 	"go.temporal.io/sdk/client"
@@ -55,7 +55,7 @@ func UpdateSchedules(ctx context.Context, temporalClient client.Client, workflow
 		return fmt.Errorf("error converting schedule to temporal: %w", err)
 	}
 
-	// Convert the Serverless Workflow schedule to a Temporal schedule
+	// Convert the Open Workflow Specification schedule to a Temporal schedule
 	opts := client.ScheduleOptions{
 		ID:   info.ID,
 		Spec: *scheduleSpec,
@@ -74,7 +74,7 @@ func UpdateSchedules(ctx context.Context, temporalClient client.Client, workflow
 	return nil
 }
 
-// Converts the Serverless Workflow schedule to Temporal schedule spec
+// Converts the Open Workflow Specification schedule to Temporal schedule spec
 func buildTemporalScheduleSpec(schedule model.Schedule) (*client.ScheduleSpec, error) {
 	calendars := make([]client.ScheduleCalendarSpec, 0)
 	cronExpression := make([]string, 0)

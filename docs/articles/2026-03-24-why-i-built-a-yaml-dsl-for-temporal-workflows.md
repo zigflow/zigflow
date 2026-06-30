@@ -43,7 +43,8 @@ So the idea behind Zigflow was simple:
 Zigflow is a declarative DSL built on top of Temporal.
 
 Instead of writing workflows in Go, Java or TypeScript, you define them in YAML
-using a structure inspired by the [CNCF Serverless Workflow specification](https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md).
+using a structure inspired by the
+[CNCF Open Workflow Specification (formerly Serverless Workflow)](https://github.com/open-workflow-specification/specification/blob/main/dsl-reference.md).
 
 Zigflow then compiles that definition into a Temporal workflow implementation.
 

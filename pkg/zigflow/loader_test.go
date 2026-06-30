@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/zigflow"
@@ -193,7 +193,7 @@ do:
 }
 
 // TestValidateFile_RejectsLegacyFields verifies that ValidateFile rejects
-// the legacy Serverless Workflow field names with ErrSchemaValidation.
+// the legacy Open Workflow Specification field names with ErrSchemaValidation.
 func TestValidateFile_RejectsLegacyFields(t *testing.T) {
 	tests := []struct {
 		Name    string

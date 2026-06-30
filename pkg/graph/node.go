@@ -16,7 +16,7 @@
 
 package graph
 
-import "github.com/serverlessworkflow/sdk-go/v3/model"
+import "github.com/open-workflow-specification/sdk-go/v4/model"
 
 // Shape describes the visual shape of a task's entry node.
 type Shape int
