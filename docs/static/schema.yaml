@@ -161,6 +161,126 @@ $defs:
       title: CallHTTP
       type: object
       unevaluatedProperties: false
+    - allOf:
+      - $ref: '#/$defs/taskBase'
+      - properties:
+          call:
+            const: mcp
+            type: string
+          with:
+            description: The MCP call arguments.
+            properties:
+              client:
+                description: Describes the client used to perform the MCP call.
+                properties:
+                  name:
+                    description: The name of the client used to connect to the MCP
+                      server.
+                    title: McpClientName
+                    type: string
+                  version:
+                    description: The version of the client used to connect to the
+                      MCP server.
+                    title: McpClientVersion
+                    type: string
+                required:
+                - name
+                - version
+                title: McpClient
+                type: object
+              method:
+                description: The MCP method to call.
+                enum:
+                - tools/list
+                - tools/call
+                - prompts/list
+                - prompts/get
+                - resources/list
+                - resources/read
+                - resources/templates/list
+                title: McpMethod
+                type: string
+              parameters:
+                description: The MCP method parameters.
+                oneOf:
+                - additionalProperties: false
+                  type: object
+                - type: string
+                title: McpMethodParameters
+              timeout:
+                $ref: '#/$defs/duration'
+                description: The duration after which the MCP call times out.
+                title: McpCallTimeout
+              transport:
+                description: The transport to use to perform the MCP call.
+                oneOf:
+                - required:
+                  - http
+                - required:
+                  - stdio
+                properties:
+                  http:
+                    description: The definition of the HTTP transport to use.
+                    properties:
+                      endpoint:
+                        $ref: '#/$defs/endpoint'
+                        description: The MCP server endpoint to connect to.
+                        title: McpHttpTransportEndpoint
+                      headers:
+                        additionalProperties:
+                          type: string
+                        description: A key/value mapping of the HTTP headers to send
+                          with requests, if any.
+                        title: McpHttpTransportHeaders
+                        type: object
+                    required:
+                    - endpoint
+                    title: McpHttpTransport
+                    type: object
+                  options:
+                    additionalProperties:
+                      type: object
+                    type: object
+                  stdio:
+                    description: The definition of the STDIO transport to use.
+                    properties:
+                      arguments:
+                        description: An optional list of arguments to pass to the
+                          command.
+                        items:
+                          type: string
+                        title: McpStdioTransportArguments
+                        type: array
+                      command:
+                        description: The command used to run the MCP server.
+                        title: McpStdioTransportCommand
+                        type: string
+                      environment:
+                        additionalProperties:
+                          type: string
+                        description: A key/value mapping, if any, of environment variables
+                          used to configure the MCP server.
+                        title: McpStdioTransportEnvironment
+                        type: object
+                    required:
+                    - command
+                    title: McpStdioTransport
+                    type: object
+                title: McpCallTransport
+                type: object
+            required:
+            - method
+            - transport
+            title: MCPArguments
+            type: object
+            unevaluatedProperties: false
+      description: Defines the MCP call to perform.
+      required:
+      - call
+      - with
+      title: CallMCP
+      type: object
+      unevaluatedProperties: false
     title: CallTask
   commonMetadata:
     additionalProperties: true
