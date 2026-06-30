@@ -23,9 +23,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/itchyny/gojq"
+	swUtil "github.com/open-workflow-specification/sdk-go/v4/impl/utils"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/rs/zerolog/log"
-	swUtil "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"go.temporal.io/sdk/temporal"
 )
 

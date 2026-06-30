@@ -19,7 +19,7 @@ package tasks
 import (
 	"testing"
 
-	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"go.temporal.io/sdk/temporal"

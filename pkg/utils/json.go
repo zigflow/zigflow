@@ -22,7 +22,7 @@ import (
 )
 
 // ToType this works in a similar way to mapstructure.Decode, but with JSON. This
-// is because many of the Serverless Workflow types have custom marshal/unmarshal
+// is because many of the Open Workflow Specification types have custom marshal/unmarshal
 // JSON functions.
 func ToType[T any](m any, result T) error {
 	payload, err := json.Marshal(m)

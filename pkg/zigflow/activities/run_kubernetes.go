@@ -25,8 +25,8 @@ import (
 	"strings"
 	"time"
 
-	swUtil "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
+	swUtil "github.com/open-workflow-specification/sdk-go/v4/impl/utils"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
 	"github.com/zigflow/zigflow/pkg/zigflow/models"
@@ -53,8 +53,8 @@ const defaultKubernetesPollInterval = time.Second
 // shorter is treated as effectively unset.
 const defaultTTLThreshold = 2 * time.Second
 
-// lifetimeCleanup* mirror the cleanup values defined by the Serverless
-// Workflow ContainerLifetime schema.
+// lifetimeCleanup* mirror the cleanup values defined by the Open Workflow
+// Specification ContainerLifetime schema.
 const (
 	lifetimeCleanupAlways     = "always"
 	lifetimeCleanupEventually = "eventually"

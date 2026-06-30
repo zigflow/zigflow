@@ -2,11 +2,11 @@
 title: Understanding the DSL
 sidebar_position: 1
 sidebar_label: The DSL
-description: "Reference for the Zigflow DSL, based on the CNCF Serverless Workflow specification, covering workflow structure, metadata, timeouts and scheduling."
+description: "Reference for the Zigflow DSL, based on the CNCF Open Workflow Specification (formerly Serverless Workflow), covering workflow structure, metadata, timeouts and scheduling."
 ---
 ## What you will learn
 
-- How Zigflow's DSL relates to the CNCF Serverless Workflow specification
+- How Zigflow's DSL relates to the CNCF Open Workflow Specification
 - How a workflow definition is structured
 - Available task types and their properties
 - How runtime expressions, output shaping and metadata work
@@ -18,15 +18,15 @@ and the comparison with the
 [Temporal SDK](/docs/concepts/comparing-zigflow-and-temporal-sdks).
 :::
 
-Zigflow is built upon the [CNCF's Serverless Workflow](https://serverlessworkflow.io)
+Zigflow is built upon the [CNCF's Open Workflow Specification](https://serverlessworkflow.io)
 project. This provides a solid foundation of a comprehensive and vendor-neutral
-framework. The [specification](https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md)
+framework. The [specification](https://github.com/open-workflow-specification/specification/blob/main/dsl-reference.md)
 is well documented and acts as the inspiration behind this project.
 
-Zigflow supports Serverless Workflow `v1.0.0` and above.
+Zigflow supports the Open Workflow Specification `v1.0.0` and above.
 
 By design, some aspects of the specification will not be implemented, may diverge
-from the Serverless Workflow specification, or will implement additional aspects.
+from the Open Workflow Specification, or will implement additional aspects.
 These will be documented.
 
 ## Workflow

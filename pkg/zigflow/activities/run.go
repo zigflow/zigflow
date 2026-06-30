@@ -27,8 +27,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	swUtil "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
+	swUtil "github.com/open-workflow-specification/sdk-go/v4/impl/utils"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
 	"github.com/zigflow/zigflow/pkg/zigflow/models"

@@ -88,8 +88,9 @@ Zigflow is a worker and a compiler. It does not:
 - Act as an HTTP API for triggering workflows (use a Temporal SDK or the
   Temporal UI)
 - Store workflow results (Temporal handles persistence)
-- Support all constructs from the CNCF Serverless Workflow specification
-  (unsupported features are rejected with a clear error)
+- Support all constructs from the CNCF Open Workflow Specification
+  (formerly Serverless Workflow) (unsupported features are rejected with a
+  clear error)
 - Allow non-deterministic code inside workflow definitions
 
 ---

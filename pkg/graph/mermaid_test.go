@@ -19,7 +19,7 @@ package graph_test
 import (
 	"testing"
 
-	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/graph"

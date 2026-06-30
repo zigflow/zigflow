@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/zigflow/extensions"
@@ -162,7 +162,7 @@ func TestWaitExtension_DoesNotClaimVanillaForms(t *testing.T) {
 }
 
 // TestWaitExtension_TaskType verifies the extension reports the expected
-// Serverless Workflow task type.
+// Open Workflow Specification task type.
 func TestWaitExtension_TaskType(t *testing.T) {
 	assert.Equal(t, "wait", waitExtension{}.TaskType())
 }

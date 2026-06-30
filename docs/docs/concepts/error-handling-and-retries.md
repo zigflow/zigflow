@@ -194,7 +194,7 @@ Problem Details format.
         detail: Only admin users can perform this action
 ```
 
-Standard error types from the Serverless Workflow specification:
+Standard error types from the Open Workflow Specification (formerly Serverless Workflow):
 
 | Type | Status |
 | --- | --- |

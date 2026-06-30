@@ -20,8 +20,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/rs/zerolog/log"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"go.temporal.io/sdk/activity"
 )

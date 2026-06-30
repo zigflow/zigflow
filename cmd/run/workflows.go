@@ -21,9 +21,9 @@ import (
 
 	"github.com/matthewmueller/glob"
 	gh "github.com/mrsimonemms/golang-helpers"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow"

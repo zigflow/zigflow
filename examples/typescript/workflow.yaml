@@ -54,13 +54,13 @@ do:
         # If not competing, all tasks will run to the finish - this is the default behaviour
         compete: false
         branches:
-          # A single step is passed in by the Serverless Workflow task
+          # A single step is passed in by the Open Workflow Specification task
           - callNurse:
               call: http
               with:
                 method: get
                 endpoint: https://jsonplaceholder.typicode.com/users/2
-          # Multiple steps can be passed in by the Serverless Workflow do task
+          # Multiple steps can be passed in by the Open Workflow Specification do task
           - multiStep:
               do:
                 - wait1:

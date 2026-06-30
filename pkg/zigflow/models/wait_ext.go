@@ -17,7 +17,7 @@
 package models
 
 import (
-	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/zigflow/zigflow/pkg/zigflow/extensions"
 )
 
@@ -31,7 +31,7 @@ const (
 	keyMilliseconds = "milliseconds"
 )
 
-// WaitExtTask is the Zigflow extension of the Serverless Workflow wait
+// WaitExtTask is the Zigflow extension of the Open Workflow Specification wait
 // task. It is registered with the SDK under
 // extensions.ZigflowExtKeyPrefix + "wait" and constructed when the loader
 // has renamed a wait task to its internal key. Expression resolution

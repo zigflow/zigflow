@@ -19,8 +19,8 @@ package zigflow
 import (
 	"fmt"
 
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/rs/zerolog/log"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/telemetry"
 	"github.com/zigflow/zigflow/pkg/utils"

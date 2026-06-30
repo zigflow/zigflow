@@ -23,7 +23,7 @@ A collection of examples
 | [Agentic Workflow](./agentic-workflow) | A bounded plan/act/observe loop driven by an AI planner and a tool-backed lookup activity. |
 | [Approval with Timeout](./approval-timeout) | Wait for a human approval signal, failing fast if it does not arrive in time |
 | [Authorise Change Request](./authorise-change-request) | Authorise and implement or reject a change request |
-| [Basic](./basic) | An example of how to use Serverless Workflow to define Temporal Workflows |
+| [Basic](./basic) | An example of how to use the Open Workflow Specification to define Temporal Workflows |
 | [Batch Processing](./batch-processing) | Iterate over a collection, call a service per item, and collect the results |
 | [Catch Error](./catch-error) | Catch an error |
 | [Child Workflows](./child-workflows) | Define multiple workflows and call a child workflow from a parent |

@@ -21,7 +21,7 @@ import (
 	"maps"
 	"time"
 
-	swUtils "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
+	swUtils "github.com/open-workflow-specification/sdk-go/v4/impl/utils"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/workflow"
 )

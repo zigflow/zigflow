@@ -217,7 +217,7 @@ const config = {
         {
           name: 'keywords',
           content:
-            'Temporal, YAML workflows, durable execution, workflow engine, orchestration, serverless workflow, Zigflow',
+            'Temporal, YAML workflows, durable execution, workflow engine, orchestration, open workflow specification, Zigflow',
         },
       ],
       navbar: {
@@ -332,7 +332,7 @@ const config = {
                 href: 'https://temporal.io',
               },
               {
-                label: 'Serverless Workflow',
+                label: 'Open Workflow Specification',
                 href: 'https://serverlessworkflow.io',
               },
             ],

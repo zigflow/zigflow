@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-// Package extensions provides a generic pre-Serverless Workflow SDK
+// Package extensions provides a generic pre-Open Workflow Specification SDK
 // normalisation hook so that Zigflow can extend its semantics of tasks.
 // An Extension inspects a task body before the SDK parses it and
 // decides whether to claim ownership. A claimed task is renamed from its
-// Serverless Workflow task type (e.g. "wait") to a Zigflow-internal key
+// Open Workflow Specification task type (e.g. "wait") to a Zigflow-internal key
 // formed by prefixing the task type with ZigflowExtKeyPrefix (e.g.
 // "__zigflow_ext_wait"), so the SDK's task registry constructs the
 // Zigflow Go type rather than the SDK's native one. Tasks that no
@@ -28,10 +28,10 @@ package extensions
 import (
 	"fmt"
 
-	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 )
 
-// ZigflowExtKeyPrefix is the fixed prefix applied to a Serverless Workflow
+// ZigflowExtKeyPrefix is the fixed prefix applied to an Open Workflow Specification
 // task type to produce the Zigflow-internal task-type key for an
 // extension. Use this constant when registering the Zigflow Go type with
 // the SDK's task registry so the registered key matches the one the
@@ -60,7 +60,7 @@ var registry []Extension
 // Register adds an extension to the global registry. Registration is
 // intended to happen exactly once per extension, from a package init()
 // block. Registering a duplicate TaskType panics at init time, mirroring
-// the Serverless Workflow SDK's own behaviour for task-type collisions.
+// the Open Workflow Specification SDK's own behaviour for task-type collisions.
 //
 // Register only touches Zigflow's own registry. Real extensions usually
 // want their Go type constructed by the SDK as well; use RegisterExtension

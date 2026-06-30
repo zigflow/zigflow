@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Package flow models Serverless Workflow flow directive semantics
+// Package flow models Open Workflow Specification flow directive semantics
 // (continue, exit, end, and named redirects) for use by Zigflow's
 // workflow execution layer.
 //
@@ -37,7 +37,7 @@ package flow
 import (
 	"errors"
 
-	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"go.temporal.io/sdk/temporal"
 )
 
@@ -62,7 +62,7 @@ func (e RedirectError) Error() string {
 	return "flow directive: " + e.Target
 }
 
-// FromDirective maps a Serverless Workflow flow directive onto the
+// FromDirective maps an Open Workflow Specification flow directive onto the
 // matching sentinel error or RedirectError.
 func FromDirective(then *model.FlowDirective) error {
 	switch model.FlowDirectiveType(then.Value) {

@@ -23,8 +23,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/rs/zerolog/log"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 )
 
 // ExecuteEvery executes the given function on the duration until the context has stopped.
@@ -59,7 +59,7 @@ func ExecuteEvery(ctx context.Context, duration time.Duration, fn func(context.C
 	return cctx, cancel
 }
 
-// ToDuration converts a Serverless Workflow duration into a time.Duration
+// ToDuration converts an Open Workflow Specification duration into a time.Duration
 func ToDuration(v *model.Duration) time.Duration {
 	if v == nil {
 		return 0

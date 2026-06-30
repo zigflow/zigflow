@@ -25,7 +25,7 @@ input:
         body:
           type: string
 do:
-  # Hard-coded literal wait. This is the Serverless Workflow spec form
+  # Hard-coded literal wait. This is the Open Workflow Specification form
   # parsed by the upstream SDK as *model.WaitTask.
   - prewarmDelay:
       wait:

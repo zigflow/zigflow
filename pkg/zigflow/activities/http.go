@@ -30,8 +30,8 @@ import (
 	"strings"
 	"time"
 
-	swUtil "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
+	swUtil "github.com/open-workflow-specification/sdk-go/v4/impl/utils"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
 	"go.temporal.io/sdk/activity"
@@ -50,7 +50,7 @@ const (
 	httpNonRetryable
 )
 
-// @link: https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md#http-response
+// @link: https://github.com/open-workflow-specification/specification/blob/main/dsl-reference.md#http-response
 type HTTPResponse struct {
 	Request    HTTPRequest       `json:"request"`
 	StatusCode int               `json:"statusCode"`
@@ -58,7 +58,7 @@ type HTTPResponse struct {
 	Content    any               `json:"content,omitempty"`
 }
 
-// @link: https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md#http-request
+// @link: https://github.com/open-workflow-specification/specification/blob/main/dsl-reference.md#http-request
 type HTTPRequest struct {
 	Method  string            `json:"method"`
 	URI     string            `json:"uri"`
