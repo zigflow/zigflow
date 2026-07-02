@@ -2,6 +2,19 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.14.1](https://github.com/zigflow/zigflow/releases/tag/v0.14.1) - 2026-07-02
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/506
+* chore: add additional canonical examples by @mrsimonemms in https://github.com/zigflow/zigflow/pull/507
+* feat: add task-level docs for get_task by @mrsimonemms in https://github.com/zigflow/zigflow/pull/508
+* feat: add documentation links to validation errors by @mrsimonemms in https://github.com/zigflow/zigflow/pull/511
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/515
+* feat: add now to the activity and workflow info for logging by @mrsimonemms in https://github.com/zigflow/zigflow/pull/516
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.14.0...v0.14.1
+
 ## [v0.14.0](https://github.com/zigflow/zigflow/releases/tag/v0.14.0) - 2026-06-27
 
 ## What's Changed
