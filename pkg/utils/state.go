@@ -26,6 +26,11 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
+const (
+	stateNow      = "now"
+	stateWorkflow = "workflow"
+)
+
 type State struct {
 	CANStartFrom *string        `json:"canStartFrom,omitempty"` // Continue-as-new from here
 	Context      any            `json:"context"`                // Output data exported to later tasks output
@@ -62,6 +67,7 @@ func (s *State) AddActivityInfo(ctx context.Context) *State {
 		"deadline":                  info.Deadline.UTC().Format(time.RFC3339),
 		"heartbeat_token":           info.HeartbeatTimeout.Seconds(),
 		"is_local_activity":         info.IsLocalActivity,
+		stateNow:                    time.Now().UTC().Format(time.RFC3339),
 		"priority_key":              info.Priority.PriorityKey,
 		"schedule_to_close_timeout": info.ScheduleToCloseTimeout.Seconds(),
 		"scheduled_time":            info.ScheduledTime.UTC().Format(time.RFC3339),
@@ -117,8 +123,20 @@ func (s *State) AddWorkflowInfo(ctx workflow.Context) *State {
 	}
 
 	s.AddData(map[string]any{
-		"workflow": workflowData,
+		stateWorkflow: workflowData,
 	})
+
+	return s
+}
+
+func (s *State) AddWorkflowNow(ctx workflow.Context) *State {
+	e, ok := s.Data[stateWorkflow].(map[string]any)
+	if !ok {
+		s.AddWorkflowInfo(ctx)
+		e = s.Data[stateWorkflow].(map[string]any)
+	}
+
+	e[stateNow] = workflow.Now(ctx).UTC().Format(time.RFC3339)
 
 	return s
 }

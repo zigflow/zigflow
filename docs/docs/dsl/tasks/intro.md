@@ -91,21 +91,30 @@ The `$data` object also receives the workflow and activity info.
 
 This can be accessed from `${ $data.workflow }`.
 
-- attempt
-- binary_checksum
-- continued_execution_run_id
-- cron_schedule
-- first_run_id
-- namespace
-- original_run_id
-- parent_workflow_namespace
-- priority_key
-- task_queue_name
-- workflow_execution_id
-- workflow_execution_run_id
-- workflow_execution_timeout
-- workflow_start_time
-- workflow_type_name
+| Name | Type | Example |
+| ---- | ---- | ------- |
+| `attempt` | int32 | `1` |
+| `binary_checksum` | string | `a1b2c3d4e5f6` |
+| `continued_execution_run_id` | string | `""` (may be empty) |
+| `cron_schedule` | string | `"0 * * * *"` (may be empty) |
+| `first_run_id` | string | `9f8e7d6c-5b4a-3210-fedc-ba9876543210` |
+| `namespace` | string | `default` |
+| `now` | string (RFC3339) | `2026-07-02T14:30:00Z` |
+| `original_run_id` | string | `9f8e7d6c-5b4a-3210-fedc-ba9876543210` |
+| `parent_workflow_namespace` | string | `""` (may be empty) |
+| `priority_key` | int | `0` |
+| `task_queue_name` | string | `zigflow` |
+| `workflow_execution_id` | string | `order-12345` |
+| `workflow_execution_run_id` | string | `1a2b3c4d-5e6f-7890-abcd-ef1234567890` |
+| `workflow_execution_timeout` | number (seconds) | `3600` |
+| `workflow_start_time` | string (RFC3339) | `2026-07-02T14:00:00Z` |
+| `workflow_type_name` | string | `MyWorkflow` |
+
+:::info
+`continued_execution_run_id`, `cron_schedule` and `parent_workflow_namespace`
+are only set for continued, cron or child workflow executions. They are empty
+strings otherwise.
+:::
 
 #### Activity
 
@@ -116,22 +125,25 @@ an activity.
 
 This can be accessed from `${ $data.activity }`.
 
-- activity_id
-- activity_type_name
-- attempt
-- deadline
-- heartbeat_token
-- is_local_activity
-- priority_key
-- schedule_to_close_timeout
-- scheduled_time
-- start_to_close_timeout
-- started_time
-- task_queue
-- task_token
-- workflow_namespace
-- workflow_execution_id
-- workflow_execution_run_id
+| Name | Type | Example |
+| ---- | ---- | ------- |
+| `activity_id` | string | `5` |
+| `activity_type_name` | string | `CallActivity` |
+| `attempt` | int32 | `1` |
+| `deadline` | string (RFC3339) | `2026-07-02T14:35:00Z` |
+| `heartbeat_token` | number (seconds) | `10` |
+| `is_local_activity` | bool | `false` |
+| `now` | string (RFC3339) | `2026-07-02T14:30:00Z` |
+| `priority_key` | int | `0` |
+| `schedule_to_close_timeout` | number (seconds) | `60` |
+| `scheduled_time` | string (RFC3339) | `2026-07-02T14:30:00Z` |
+| `start_to_close_timeout` | number (seconds) | `30` |
+| `started_time` | string (RFC3339) | `2026-07-02T14:30:01Z` |
+| `task_queue` | string | `zigflow` |
+| `task_token` | string | `CiQx...` |
+| `workflow_namespace` | string | `default` |
+| `workflow_execution_id` | string | `order-12345` |
+| `workflow_execution_run_id` | string | `1a2b3c4d-5e6f-7890-abcd-ef1234567890` |
 
 ## Flow Directive
 

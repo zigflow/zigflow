@@ -291,6 +291,10 @@ func (t *DoTaskBuilder) iterateTasks(
 
 	for i, task := range tasks {
 		taskID := fmt.Sprintf("%s-%d", task.GetTaskName(), i)
+
+		logger.Debug("Set current workflow time", "taskID", taskID, "workflow", t.name)
+		state = state.AddWorkflowNow(ctx)
+
 		if t.shouldContinueAsNew(ctx) {
 			logger.Debug("Task continue-as-new", "taskID", taskID, "workflow", t.name)
 			return t.continueAsNew(ctx, t.name, taskID, input, state)
