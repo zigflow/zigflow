@@ -509,11 +509,6 @@ jobs:
           args: check
           distribution: goreleaser
 
-      - name: Refresh Go Report Card
-        if: needs.metadata.outputs.is_tag == 'true'
-        uses: creekorful/goreportcard-action@v1.0
-        continue-on-error: true
-
   # Build and publish Helm chart in parallel
   helm_chart:
     runs-on: ubuntu-latest

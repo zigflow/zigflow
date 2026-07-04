@@ -6,7 +6,6 @@
 [![GitHub Repo stars](https://img.shields.io/github/stars/zigflow/zigflow?style=flat&label=Stars)](https://github.com/zigflow/zigflow)
 [![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/zigflow/zigflow/total?label=Downloads)](https://github.com/zigflow/zigflow/releases)
 [![Licence](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/zigflow/zigflow/blob/main/LICENSE)
-[![Go Report Card](https://goreportcard.com/badge/github.com/zigflow/zigflow)](https://goreportcard.com/report/github.com/zigflow/zigflow)
 [![Docs](https://img.shields.io/badge/Docs-zigflow.dev-blue)](https://zigflow.dev)
 
 **Declarative YAML workflows on Temporal. No SDK boilerplate.**
