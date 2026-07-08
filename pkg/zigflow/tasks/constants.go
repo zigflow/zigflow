@@ -16,7 +16,10 @@
 
 package tasks
 
-const customCallFunctionActivity = "activity"
+const (
+	customCallFunctionActivity = "activity"
+	customCallMCPActivity      = "mcp"
+)
 
 const (
 	constKeyInput             = "input"
@@ -61,6 +64,7 @@ const activityNamingVersion = 1
 const (
 	legacyCallHTTPActivityName      = "CallHTTPActivity"
 	legacyCallGRPCActivityName      = "CallGRPCActivity"
+	legacyCallMCPActivityName       = "CallMCPActivity"
 	legacyCallContainerActivityName = "CallContainerActivity"
 	legacyCallScriptActivityName    = "CallScriptActivity"
 	legacyCallShellActivityName     = "CallShellActivity"

@@ -25,6 +25,12 @@ services:
       - run
       - .
 
+  zigflow-mcp:
+    image: ghcr.io/zigflow/zigflow
+    command:
+      - mcp
+      - --transport=http
+
   starter:
     build:
       context: ../../
@@ -68,6 +74,7 @@ services:
     links:
       - grpc
       - temporal
+      - zigflow-mcp
     depends_on:
       temporal:
         condition: service_healthy
