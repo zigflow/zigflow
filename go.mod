@@ -28,7 +28,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/testcontainers/testcontainers-go v0.43.0
 	github.com/zigflow/schema v0.0.0-20260626153433-e6df5b7f5dda
-	go.temporal.io/sdk v1.45.0
+	go.temporal.io/sdk v1.46.0
 	go.temporal.io/sdk/contrib/sysinfo v0.1.1
 	go.yaml.in/yaml/v2 v2.4.4
 	google.golang.org/grpc v1.82.0
@@ -43,7 +43,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.11.1
-	go.temporal.io/api v1.63.1
+	go.temporal.io/api v1.63.3
 	go.temporal.io/sdk/contrib/envconfig v1.0.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
