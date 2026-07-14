@@ -422,8 +422,6 @@ guidelines on naming conventions, dev setup and commit style.
 
 Made with [contrib.rocks](https://contrib.rocks/preview?repo=zigflow%2Fzigflow).
 
-[![Star History Chart](https://api.star-history.com/svg?repos=zigflow/zigflow&type=date&legend=top-left)](https://www.star-history.com/#zigflow/zigflow&type=date&legend=top-left)
-
 ---
 
 ## For AI assistants
