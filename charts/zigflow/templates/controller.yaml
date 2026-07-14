@@ -8,7 +8,7 @@
 {{- end }}
 
 apiVersion: temporal.io/v1alpha1
-kind: TemporalConnection
+kind: Connection
 metadata:
   name: {{ include "zigflow.fullname" . }}
   labels:
@@ -26,7 +26,7 @@ spec:
   {{- end }}
 ---
 apiVersion: temporal.io/v1alpha1
-kind: TemporalWorkerDeployment
+kind: WorkerDeployment
 metadata:
   name: {{ include "zigflow.fullname" . }}
   labels:

@@ -151,7 +151,7 @@ tasks:
       - |
         minikube profile list | grep minikube | grep OK || minikube start
       - kubectl apply -f ./dev/k8s/
-      # Install Temporal Worker Controler - https://github.com/temporalio/temporal-worker-controller
+      # Install Temporal Worker Controller - https://github.com/temporalio/temporal-worker-controller
       - helm upgrade
           --cleanup-on-fail
           --create-namespace
@@ -168,7 +168,7 @@ tasks:
           --install
           --namespace zigflow
           --rollback-on-failure
-          --version ^0.24.0
+          --version ^0.26.0
           --wait
           temporal-worker-controller-crds oci://docker.io/temporalio/temporal-worker-controller-crds
       - helm upgrade
@@ -178,7 +178,7 @@ tasks:
           --namespace zigflow
           --rollback-on-failure
           --set replicas=1
-          --version ^0.24.0
+          --version ^0.26.0
           --wait
           temporal-worker-controller oci://docker.io/temporalio/temporal-worker-controller
 

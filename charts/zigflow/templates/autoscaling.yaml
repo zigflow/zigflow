@@ -7,7 +7,7 @@ metadata:
   labels:
     {{- include "zigflow.labels" . | nindent 4 }}
 spec:
-  temporalWorkerDeploymentRef:
+  workerDeploymentRef:
     name: {{ include "zigflow.fullname" . }}
   template:
     apiVersion: autoscaling/v2

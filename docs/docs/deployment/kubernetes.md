@@ -315,8 +315,13 @@ For standard production deployments, the default `Deployment` mode is sufficient
 Zigflow does not install Temporal Worker Controller, its CRDs or cert-manager.
 You must install and manage these yourself before enabling TWC in the chart:
 
-- Temporal Worker Controller and its CRDs
+- Temporal Worker Controller and its CRDs, chart version `0.26.0` or newer
+  (controller `v1.7.0` or newer)
 - [cert-manager](https://cert-manager.io/) (required by TWC)
+
+Zigflow renders GA TWC resources (`Connection`, `WorkerDeployment` and
+`workerDeploymentRef`). Earlier TWC chart versions only support the deprecated
+pre-GA resource names and will fail to apply this chart's TWC mode.
 
 Zigflow only renders the CRDs that TWC consumes. It does not install or manage TWC.
 
@@ -335,14 +340,14 @@ controller:
 
 When enabled, the chart renders:
 
-- `TemporalConnection`: connection configuration consumed by TWC
-- `TemporalWorkerDeployment`: worker definition with rollout and sunset settings
+- `Connection`: connection configuration consumed by TWC
+- `WorkerDeployment`: worker definition with rollout and sunset settings
 
 No standard Kubernetes `Deployment` is created.
 
 ### Connection and authentication
 
-The `TemporalConnection` resource configures how TWC connects to Temporal.
+The `Connection` resource configures how TWC connects to Temporal.
 This is separate from the `config` map used for Zigflow's own connection settings.
 
 **No authentication (cluster-local Temporal):**
