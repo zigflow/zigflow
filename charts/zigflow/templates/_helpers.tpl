@@ -90,7 +90,7 @@ workload pods do not inherit the worker's control-plane RBAC.
 {{- end }}
 
 {{/*
-Render the shared Pod template used by both Deployment and TemporalWorkerDeployment.
+Render the shared Pod template used by both Deployment and WorkerDeployment.
 */}}
 {{- define "zigflow.podTemplate" -}}
 template:

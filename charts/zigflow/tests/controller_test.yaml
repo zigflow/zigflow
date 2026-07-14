@@ -1,0 +1,55 @@
+suite: controller (TWC) rendering
+
+release:
+  name: zigflow
+
+tests:
+  - it: does not render TWC resources when the controller is disabled
+    set:
+      controller.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+    template: templates/controller.yaml
+
+  - it: renders the GA TWC kinds (Connection and WorkerDeployment, not the pre-v1.7.0 deprecated kinds)
+    set:
+      controller.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - documentIndex: 0
+        equal:
+          path: apiVersion
+          value: temporal.io/v1alpha1
+      - documentIndex: 0
+        isKind:
+          of: Connection
+      - documentIndex: 1
+        equal:
+          path: apiVersion
+          value: temporal.io/v1alpha1
+      - documentIndex: 1
+        isKind:
+          of: WorkerDeployment
+      - documentIndex: 1
+        equal:
+          path: spec.workerOptions.connectionRef.name
+          value: zigflow
+    template: templates/controller.yaml
+
+  - it: references the WorkerDeployment via workerDeploymentRef in autoscaling mode
+    set:
+      controller.enabled: true
+      autoscaling.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: WorkerResourceTemplate
+      - equal:
+          path: spec.workerDeploymentRef.name
+          value: zigflow
+      - notExists:
+          path: spec.temporalWorkerDeploymentRef
+    template: templates/autoscaling.yaml
