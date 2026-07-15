@@ -46,7 +46,7 @@ creates friction.</p>
 <p>Zigflow is a declarative DSL built on top of Temporal.</p>
 <p>Instead of writing workflows in Go, Java or TypeScript, you define them in YAML
 using a structure inspired by the
-<a href="https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md" target="_blank" rel="noopener noreferrer" class="">CNCF Open Workflow Specification (formerly Serverless Workflow)</a>.</p>
+<a href="https://github.com/open-workflow-specification/specification/blob/main/dsl-reference.md" target="_blank" rel="noopener noreferrer" class="">CNCF Open Workflow Specification (formerly Serverless Workflow)</a>.</p>
 <p>Zigflow then compiles that definition into a Temporal workflow implementation.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="the-hard-part-determinism">The hard part: determinism<a href="https://zigflow.dev/preview/sje-rebranding-serverless-workflow/articles/why-i-built-a-yaml-dsl-for-temporal-workflows#the-hard-part-determinism" class="hash-link" aria-label="Direct link to The hard part: determinism" title="Direct link to The hard part: determinism" translate="no">​</a></h2>
 <p>Temporal requires workflows to be deterministic.</p>
@@ -325,7 +325,7 @@ developer-centric model:</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="why-use-an-existing-specification">Why use an existing specification<a href="https://zigflow.dev/preview/sje-rebranding-serverless-workflow/articles/why-zigflow-doesnt-generate-code#why-use-an-existing-specification" class="hash-link" aria-label="Direct link to Why use an existing specification" title="Direct link to Why use an existing specification" translate="no">​</a></h2>
 <p>Zigflow does not define its own workflow language from scratch.</p>
 <p>Instead, it builds on the
-<a href="https://github.com/serverlessworkflow/specification/blob/main/dsl-reference.md" target="_blank" rel="noopener noreferrer" class="">CNCF Open Workflow Specification (formerly Serverless Workflow)</a>.</p>
+<a href="https://github.com/open-workflow-specification/specification/blob/main/dsl-reference.md" target="_blank" rel="noopener noreferrer" class="">CNCF Open Workflow Specification (formerly Serverless Workflow)</a>.</p>
 <p>This is a deliberate choice.</p>
 <p>Designing a workflow DSL involves a large number of subtle decisions:</p>
 <ul>
