@@ -2,6 +2,21 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.14.2](https://github.com/zigflow/zigflow/releases/tag/v0.14.2) - 2026-07-15
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/517
+* chore: remove goreportcard refs by @mrsimonemms in https://github.com/zigflow/zigflow/pull/518
+* deps(deps): bump github.com/posthog/posthog-go from 1.17.2 to 1.17.5 in the go-dependencies group across 1 directory by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/519
+* deps(deps): bump the go-dependencies group with 2 updates by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/521
+* fix(chart): emit GA TWC CRD kinds (Connection, WorkerDeployment) by @404prefrontalcortexnotfound in https://github.com/zigflow/zigflow/pull/520
+* docs: remove star history by @mrsimonemms in https://github.com/zigflow/zigflow/pull/522
+
+## New Contributors
+* @404prefrontalcortexnotfound made their first contribution in https://github.com/zigflow/zigflow/pull/520
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.14.1...v0.14.2
+
 ## [v0.14.1](https://github.com/zigflow/zigflow/releases/tag/v0.14.1) - 2026-07-02
 
 ## What's Changed
