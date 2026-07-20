@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkzigflow=self.webpackChunkzigflow||[]).push([["3220"],{1912(e){e.exports=JSON.parse('{"blogBasePath":"/preview/dependabot-github-actions-github-actions-4c2bda7e8b/articles","blogTitle":"Blog","authorsListPath":"/preview/dependabot-github-actions-github-actions-4c2bda7e8b/articles/authors"}')}}]);
