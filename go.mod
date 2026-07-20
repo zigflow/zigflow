@@ -15,12 +15,12 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/jsonschema-go v0.4.3
 	github.com/itchyny/gojq v0.12.19
-	github.com/matthewmueller/glob v0.1.1
+	github.com/matthewmueller/glob v0.2.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/mrsimonemms/golang-helpers v0.7.5
 	github.com/mrsimonemms/temporal-codec-server/packages/golang v0.0.0-20260216220812-efae704c32dc
 	github.com/nexus-rpc/sdk-go v0.6.0
-	github.com/posthog/posthog-go v1.17.5
+	github.com/posthog/posthog-go v1.19.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.35.1
 	github.com/serverlessworkflow/sdk-go/v3 v3.4.0
@@ -31,7 +31,7 @@ require (
 	go.temporal.io/sdk v1.46.0
 	go.temporal.io/sdk/contrib/sysinfo v0.1.1
 	go.yaml.in/yaml/v2 v2.4.4
-	google.golang.org/grpc v1.82.0
+	google.golang.org/grpc v1.82.1
 	k8s.io/api v0.36.2
 	k8s.io/apimachinery v0.36.2
 	k8s.io/client-go v0.36.2
