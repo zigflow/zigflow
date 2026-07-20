@@ -1,0 +1,343 @@
+# Zigflow
+
+Zigflow is a declarative workflow orchestration layer for Temporal.
+
+> Zigflow lets you define Temporal workflows declaratively using YAML or JSON, then compiles them into production-grade workflows with built-in reliability, retries and state management.
+
+This document is a reference for AI assistants authoring Zigflow workflows. The
+authoritative source of truth is the Zigflow JSON Schema and Go implementation.
+Where this document and the prose documentation disagree, the schema wins. The
+constructs below reflect what Zigflow actually validates and runs, which is a
+deliberate subset of the CNCF Serverless Workflow specification.
+
+## What Zigflow is
+
+- A declarative DSL for defining Temporal workflows
+- A compilation layer that produces native Temporal workflows
+- A foundation for visual workflow editors and orchestration tooling
+
+## What Zigflow is not
+
+- Not a replacement for Temporal
+- Not a standalone workflow engine
+- Not a general-purpose programming language
+
+## Authoring quick rules
+
+These are the non-negotiable rules. Most invalid workflows break one of them:
+
+- A workflow has exactly two required top-level keys: `document` and `do`.
+- `do` is an array of single-key maps, written `do: [ { stepName: { task } } ]`.
+  A step may itself be a `do` task, allowing nested task sequences. If every top-level
+  task is a `do`, Zigflow treats those top-level names as workflow types and does
+  not register `document.workflowType`, although the field is still required by
+  the schema.
+- Each step's task type is identified by which task key it contains (one of the
+  11 task types below).
+- Runtime expressions are jq (gojq) wrapped in `${ ... }`. A string without
+  `${ }` is a literal value, not an expression.
+- Durations are objects with plural integer keys such as
+  `{ minutes: 1, seconds: 30 }`, never ISO 8601 strings like `PT1M`.
+- `document.dsl` and `document.version` must be semantic versions like `1.0.0`.
+- `document.taskQueue` and `document.workflowType` must be RFC 1123 DNS labels
+  (a Zigflow validation rule, not a Temporal one): letters, digits and hyphens,
+  starting and ending with a letter or digit, with no dots, underscores or
+  spaces.
+- The `document` object is closed, so unknown fields are rejected.
+
+## Minimal valid workflow
+
+This is a complete, minimal valid workflow:
+
+```yaml
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: hello-world
+  version: 0.0.1
+  title: Hello World
+  summary: Hello world with Zigflow
+do:
+  - hello:
+      output:
+        as:
+          data: ${ . }
+      set:
+        message: Hello from Ziggy
+```
+
+## Workflow document structure
+
+Top-level properties:
+
+| Key        | Required | Description                                              |
+|------------|----------|----------------------------------------------------------|
+| `document` | yes      | Workflow metadata (see below).                           |
+| `do`       | yes      | The task list, an array of single-key step maps.         |
+| `input`    | no       | Input configuration, including an input `schema`.        |
+| `output`   | no       | Output configuration (`schema` and `as` shaping).        |
+| `schedule` | no       | Schedules the workflow with a `cron` string or `every` duration. If present, `document.metadata.scheduleWorkflowName` is required. |
+| `timeout`  | no       | Deprecated. Use `metadata.activityOptions` timeouts instead. |
+
+`document` fields:
+
+| Field          | Required | Constraint and notes                                     |
+|----------------|----------|----------------------------------------------------------|
+| `dsl`          | yes      | Semantic version of the DSL, such as `1.0.0`.            |
+| `taskQueue`    | yes      | Temporal task queue name. Zigflow requires an RFC 1123 DNS label. |
+| `workflowType` | yes      | Temporal workflow type name. Zigflow requires an RFC 1123 DNS label. |
+| `version`      | yes      | Workflow semantic version, such as `0.0.1`.              |
+| `title`        | no       | Human-readable title.                                    |
+| `summary`      | no       | Markdown summary.                                        |
+| `tags`         | no       | Key/value string map.                                    |
+| `metadata`     | no       | Additional config such as `activityOptions`. Open object.|
+
+No other top-level `document` fields are allowed. There is no `name`,
+`description` or `author`. Put extra information under `metadata` or `tags`.
+
+## Task types
+
+A workflow `do` list contains steps. Each step is `{ name: { task } }` where the
+task body contains exactly one of these task keys. These are the only 11 task
+types Zigflow supports:
+
+| Task key  | Purpose                                                            |
+|-----------|-------------------------------------------------------------------|
+| `call`    | Invoke an activity, gRPC service or HTTP endpoint.                |
+| `do`      | Run a nested sequence of sub-tasks.                              |
+| `for`     | Iterate over a collection, running sub-tasks per item.           |
+| `fork`    | Run multiple branches concurrently.                              |
+| `listen`  | Wait for and react to an event such as a signal.                |
+| `raise`   | Raise a workflow error.                                          |
+| `run`     | Run a script, shell command, container or child workflow.        |
+| `set`     | Set data on the workflow state.                                  |
+| `switch`  | Branch based on data conditions.                                |
+| `try`     | Run sub-tasks with a `catch` block for error handling.           |
+| `wait`    | Pause for a duration or until a timestamp.                       |
+
+To avoid inventing task keys, map the intent to a task: an HTTP, gRPC or
+activity call is `call`, parallel branches are `fork`, a loop is `for`, a delay
+is `wait`, a conditional is `switch`, throwing an error is `raise`, assigning
+data is `set`, and a script, command or child workflow is `run`. There is no
+`http`, `function`, `parallel`, `delay` or `emit` task.
+
+### `call` sub-types
+
+The `call` value selects the sub-type. Zigflow supports exactly three:
+`activity`, `grpc` or `http`. There is no `openapi` or `asyncapi` call.
+
+An HTTP call uses `with.method` and `with.endpoint`. The field is `endpoint`,
+not `url`:
+
+```yaml
+do:
+  - getUser:
+      call: http
+      with:
+        method: get
+        endpoint: https://jsonplaceholder.typicode.com/users/3
+```
+
+The optional HTTP `output` format is one of `raw`, `content` or `response`,
+defaulting to `content`.
+
+### Common task properties
+
+Every task may also set these shared properties alongside its task key: `if` (a
+condition), `input`, `output`, `export`, `then` and `metadata`. There is no
+task-level `timeout` field.
+
+## Runtime variables
+
+Inside `${ ... }`, exactly five workflow-state variables are available. No
+others exist, and referencing any other `$`-variable fails to compile:
+
+| Variable   | Contents                                                                                                                                                     |
+|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `$context` | Data exported by earlier tasks via `export`.                                                                                                                 |
+| `$data`    | Internal workflow and execution state maintained by Zigflow, including workflow and activity metadata. Use `$context` for values exported by workflow tasks. |
+| `$env`     | Environment variables (see below).                                                                                                                           |
+| `$input`   | The input given by the caller. This value does not change as tasks execute.                                                                                  |
+| `$output`  | The current output value.                                                                                                                                    |
+
+Variables such as `$workflow`, `$task`, `$secret`, `$secrets`, `$vars`, `$self`,
+`$now` or `$steps` do not exist.
+
+`$env` exposes only environment variables that start with a configured prefix,
+which is `ZIGGY_` by default, with the prefix stripped. For example,
+`ZIGGY_API_URL` becomes `$env.API_URL`. The prefix is configurable with
+`--env-prefix`.
+
+## Data flow
+
+Data moves on two separate channels. Confusing them is the most common
+authoring error.
+
+- `$output` holds the result of the most recent task only. It is overwritten by
+  every task and is what the workflow returns. Shape it with a task's
+  `output.as`.
+- `$context` is shared data that persists across tasks. Write to it with a
+  task's `export.as` and read it later with `$context`.
+
+Per-task order of operations: the task produces a raw result, then `output.as`
+is evaluated against that raw result and stored as `$output`, then `export.as`
+is evaluated against the same raw result and its value replaces `$context`. Both
+`output.as` and `export.as` see the raw task result as `.`.
+
+Key rules:
+
+- `export` replaces `$context` entirely. To accumulate, merge explicitly, for
+  example `export: { as: '${ $context + { key: . } }' }`. An expression
+  containing `: ` must be quoted in YAML.
+- A workflow returns the output of its final task. To shape the returned value,
+  set `output.as` on the final task. `output.schema` describes the expected
+  workflow output shape.
+- To pass a value to a task that is not the immediate next one, use `export`
+  into `$context`, not `output`. By then `$output` has been overwritten.
+
+Choosing between them:
+
+- Use `output.as` to shape the result that flows forward or that the workflow
+  returns.
+- Use `export.as` to keep a value available to later tasks via `$context`.
+
+## Expression syntax
+
+- Expressions are jq (the gojq dialect) wrapped in `${ ... }`, for example
+  `${ $input.userId }`.
+- A value not wrapped in `${ }` is a literal. `message: $input.name` is the
+  literal string `$input.name`, not an expression.
+- The current input is `.`. Building a string requires jq concatenation and
+  explicit conversions, for example
+  `${ "https://api.example.com/users/" + ($input.id | tostring) }`.
+- Template syntaxes from other tools such as `{{ }}`, `${{ }}` or `$.foo` are
+  not valid.
+
+### Custom functions
+
+Zigflow registers exactly three custom jq functions. All take no arguments, so
+call them with no parentheses:
+
+- `uuid` returns a new UUID string.
+- `timestamp` returns the current Unix time as integer seconds.
+- `timestamp_iso8601` returns the current time as an RFC 3339 string.
+
+### Determinism rule
+
+`uuid`, `timestamp`, `timestamp_iso8601` and jq's own `now` are
+non-deterministic. They must only be produced inside a `set` task, which
+evaluates them inside a Temporal side effect so the result survives replay.
+Using them in a `call` body, an argument or any other task position is rejected
+as a non-deterministic expression. Generate the value in a `set` task first,
+then reference it from later tasks.
+
+### Conditions (`if`)
+
+A condition expression is true when it evaluates to boolean `true`, the string
+`"TRUE"` (case-insensitive) or the string `"1"`.
+
+## Validation constraints
+
+These are enforced by the schema and validator:
+
+- `document.dsl` and `document.version` must be a semantic version
+  (`MAJOR.MINOR.PATCH`, such as `1.0.0`). `1.0` is invalid.
+- `document.taskQueue` and `document.workflowType` must match the Zigflow schema
+  pattern `^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$` (an RFC 1123 DNS
+  label). This is a Zigflow validation rule, not a Temporal one. `My Workflow`
+  and `order_processing` are invalid, while `order-processing` is valid.
+- A runtime expression must match `${ ... }`.
+- The `document` object rejects unknown properties.
+
+## Durations
+
+A duration is an object with one or more of these integer keys:
+
+| Key            | Unit         |
+|----------------|--------------|
+| `days`         | days         |
+| `hours`        | hours        |
+| `minutes`      | minutes      |
+| `seconds`      | seconds      |
+| `milliseconds` | milliseconds |
+
+For example, `{ minutes: 1, seconds: 30 }`. At least one key is required.
+Durations are never ISO 8601 strings such as `PT1M`, and the keys are plural, so
+there is no `minute` or `second` singular form. Activity timeouts and retry
+policy live under `metadata.activityOptions`. See the metadata documentation for
+the full set of options.
+
+## Flow control: `then`
+
+A task's `then` controls what happens next. Its value is either one of the
+directives `continue` (the default), `exit` or `end`, or the name of another
+task in the same scope to jump to. Other tokens such as `goto`, `next`, `stop`,
+`fail` or `return` are not valid.
+
+## Key unsupported constructs
+
+These commonly assumed constructs are not supported and will fail validation:
+
+- Task types other than the 11 listed above. In particular there is no `emit`.
+- `call` sub-types other than `activity`, `grpc` or `http`.
+- `url` for HTTP calls. Use `endpoint`.
+- ISO 8601 duration strings or singular duration keys. Use the plural-key
+  duration object.
+- Task-level `timeout`. Configure timeouts under `metadata.activityOptions`.
+- Runtime variables beyond the five listed above, or Zigflow custom functions
+  beyond `uuid`, `timestamp` and `timestamp_iso8601`.
+
+## Validation guidance
+
+Validate every workflow before relying on it, and iterate by generating,
+validating and fixing until it passes:
+
+1. When in doubt, consult the schema first. Fetch the JSON Schema (see below) or,
+   via the MCP server, call `get_schema`.
+2. Generate the workflow YAML.
+3. Validate it:
+   - Offline with the CLI: `zigflow validate <workflow-file>` (add
+     `--output-json` for machine-readable output). This checks DSL syntax,
+     schema and structure, runtime-expression validity and determinism. It does
+     not connect to Temporal or execute the workflow, and exits non-zero on
+     failure.
+   - Over MCP: call `validate_workflow` with `{ "yaml": "<workflow YAML>" }`.
+4. Fix iteratively. `validate_workflow` returns
+   `{ "valid": <bool>, "errors": [ { "stage", "path", "rule", "param", "message" } ] }`.
+   Each error's `stage` is one of `input`, `parse`, `schema`, `expression`,
+   `load` or `struct`. Read the `path` and `message`, correct the workflow, then
+   re-validate until `valid` is `true`.
+
+The CLI and the MCP `validate_workflow` tool use the same validation engine, so
+their results agree.
+
+### Schema sources
+
+- Latest: `https://zigflow.dev/schema.json` and `https://zigflow.dev/schema.yaml`
+- Pinned: `https://zigflow.dev/schemas/<version>/schema.json` (and `.yaml`)
+
+## AI integration (MCP server)
+
+Zigflow provides a public, read-only Model Context Protocol (MCP) server for AI
+assistants and agents.
+
+- Documentation: https://zigflow.dev/docs/cli/mcp-server
+- Endpoint: https://mcp.zigflow.dev
+
+Tools:
+
+- `get_schema` retrieves the Zigflow workflow JSON or YAML schema. Pass `def`
+  to retrieve one `$defs` entry, for example `{ "def": "taskList" }`.
+- `list_examples` lists the bundled example workflows.
+- `get_example` retrieves a bundled example workflow by name.
+- `validate_workflow` validates a workflow YAML string and returns structured,
+  per-stage errors.
+
+## Further documentation
+
+- DSL overview: https://zigflow.dev/docs/dsl/intro
+- Tasks: https://zigflow.dev/docs/dsl/tasks/intro
+- Data and expressions: https://zigflow.dev/docs/concepts/data-and-expressions
+- Data flow: https://zigflow.dev/docs/concepts/data-flow
+- Metadata: https://zigflow.dev/docs/dsl/metadata/intro
+- Getting started: https://zigflow.dev/docs/intro
