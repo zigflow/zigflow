@@ -71,8 +71,7 @@ helm install zigflow oci://ghcr.io/zigflow/charts/zigflow@${ZIGFLOW_VERSION} \
 
 The chart supports three ways to provide the workflow file:
 
-:::tip
-Recommended production approach
+:::tip[Recommended production approach]
 
 For production deployments, build a
 [dedicated image](/docs/deployment/dedicated-image) containing your workflow
@@ -529,10 +528,6 @@ namespace.
 **ImagePullBackOff for the chart image.**
 Verify the version tag exists in
 [ghcr.io/zigflow/charts/zigflow](https://github.com/zigflow/zigflow/pkgs/container/charts%2Fzigflow).
-
-**Workflow not updating after a values change.**
-The chart renders the inline workflow into a Secret. After a `helm
-upgrade`, the pod must be restarted to pick up the new workflow.
 
 **TWC resources not applied because prerequisites are missing.**
 If Temporal Worker Controller and its CRDs are not installed in the cluster,

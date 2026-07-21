@@ -68,7 +68,9 @@ implicit fallback or silent skip.
 
 ---
 
-## Dockerfile
+## Build the image
+
+### Single workflow definition
 
 ```dockerfile title="Dockerfile"
 FROM ghcr.io/zigflow/zigflow
@@ -83,6 +85,41 @@ docker build -t your-registry/your-image:your-tag .
 
 Nothing else is required in the Dockerfile. The base image already defines the
 entrypoint and the `WORKFLOW_FILE` path.
+
+### Multiple workflow definitions
+
+To package multiple workflow definitions in one image, copy them into a
+directory and configure `WORKFLOW_DIRECTORY`. Clear the default
+`WORKFLOW_FILE` value so Zigflow does not also try to load
+`/app/workflow.yaml`.
+
+```dockerfile title="Dockerfile"
+FROM ghcr.io/zigflow/zigflow
+
+ENV WORKFLOW_FILE=
+ENV WORKFLOW_DIRECTORY=/app/workflows
+
+COPY ./workflows /app/workflows
+```
+
+Example project structure:
+
+```text
+.
+├── Dockerfile
+└── workflows
+    ├── fetch-user.yaml
+    └── hello-world.yaml
+```
+
+Build it:
+
+```sh
+docker build -t your-registry/your-image:your-tag .
+```
+
+Zigflow loads all workflow definitions from `/app/workflows` when the
+container starts.
 
 ---
 
