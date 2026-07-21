@@ -109,7 +109,8 @@ func discoverWorkflowFiles(opts *runOptions) ([]string, error) {
 	}
 
 	if opts.DirectoryPath != "" {
-		globbed, err := glob.Glob(opts.DirectoryPath, opts.DirectoryGlob)
+		pattern := filepath.Join(opts.DirectoryPath, opts.DirectoryGlob)
+		globbed, err := glob.Glob(pattern)
 		if err != nil {
 			return nil, gh.FatalError{
 				Cause: err,

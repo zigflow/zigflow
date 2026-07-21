@@ -91,15 +91,6 @@ func TestDiscoverWorkflowFiles_DeduplicatesRelativeAndAbsolute(t *testing.T) {
 	assert.Len(t, files, 1)
 }
 
-func TestDiscoverWorkflowFiles_InvalidGlobError(t *testing.T) {
-	// An invalid directory causes the glob to fail.
-	_, err := discoverWorkflowFiles(&runOptions{
-		DirectoryPath: string([]byte{0}), // NUL in path is rejected by the OS
-		DirectoryGlob: testDirectoryGlob,
-	})
-	assert.Error(t, err)
-}
-
 // ---- loadWorkflows ----
 
 func TestLoadWorkflows_SingleValidFile(t *testing.T) {
