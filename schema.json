@@ -114,7 +114,7 @@
       ]
     }
   },
-  "$id": "https://zigflow.dev/schemas/0.14.2/schema.json",
+  "$id": "https://zigflow.dev/schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "callTask": {
