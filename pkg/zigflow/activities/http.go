@@ -83,7 +83,7 @@ func (c *CallHTTP) CallHTTPActivity(ctx context.Context, task *model.CallHTTP, i
 	stopHeartbeat := metadata.StartActivityHeartbeat(ctx, task.GetBase())
 	defer stopHeartbeat()
 
-	state = state.AddActivityInfo(ctx)
+	state = state.Clone().AddActivityInfo(ctx)
 
 	info := activity.GetInfo(ctx)
 
