@@ -67,5 +67,6 @@ func TestTryCatchE2E(t *testing.T) {
 	require.NoError(t, we.Get(runCtx, &got), "get workflow result")
 	t.Logf("workflow output: %v", got)
 
-	assert.Equal(t, "some error", got["err"], "catch block should set err")
+	assert.Equal(t, "Get User error", got["title"], "catch block should set title")
+	assert.NotEmpty(t, got["error"], "catch block error should not be empty")
 }
