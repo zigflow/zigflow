@@ -9,8 +9,8 @@ The same steps are executed, in the same order, with the same
 input and output data
 :::
 
-The Do task is used by many other tasks, such as in a [child workflow](https://docs.temporal.io/child-workflows).
-These will be discussed in detail in those tasks.
+The Do task is used by many other tasks, such as the bodies of `for`, `try` and
+`fork`. These will be discussed in detail in those tasks.
 
 ## When to use this
 

@@ -28,8 +28,22 @@ to `true` wins. If no case matches, the default case (where `when` is absent)
 is used.
 
 When a case matches, its `then` flow directive determines what happens next:
-execution may continue to the next task, jump to a named task, exit the current
-scope or end the workflow.
+execution may continue to the next task, redirect to a named target, exit the
+current scope or end the workflow.
+
+### Named redirects
+
+A named `then` on a `switch` **invokes** the named target. The target is
+resolved from the workflow's document-wide redirect namespace, so a `switch`
+nested inside a `for`, `try` or `fork` can redirect to a target declared in
+another scope of the same document. The target runs inline within the current
+workflow (it is not a Temporal child workflow), returns its result to the
+`switch`, and the `switch` task's own `output` and `export` directives are then
+applied to that result.
+
+This is distinct from a task-level `then: <name>` on an ordinary task, which is
+same-scope forward navigation: it skips ahead to a named sibling in the current
+task list. See [flow directives](/docs/dsl/tasks/intro#flow-directive).
 
 ## Example
 
@@ -113,9 +127,10 @@ before broader ones to avoid unintended matches.
 is no default, execution falls through to the next task in the `do` list.
 This is rarely intentional. Include a default case to make intent explicit.
 
-**Named `then` directives target a task by name.** The named task must exist
-within the current workflow scope. Referencing a non-existent task fails at
-validation.
+**Named `then` directives redirect to a named target.** The target is resolved
+from the document-wide redirect namespace when the redirect runs. Referencing a
+target that does not exist fails at runtime with `redirect target not found`,
+not at validation time.
 
 **`end` terminates the workflow.** Use `exit` when you only want to leave the
 current scope, such as a nested `do` or loop.

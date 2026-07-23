@@ -48,7 +48,7 @@ do:
         method: get
         endpoint: ${ "https://jsonplaceholder.typicode.com/users/" + ($input.userId | tostring) }
   - raiseAlarm:
-      # A fork is a series of child workflows running in parallel
+      # A fork is a series of branches running in parallel
       output:
         as: '${ $context + del(.multiStep) }'
       fork:
@@ -70,7 +70,7 @@ do:
                 - wait2:
                     wait:
                       seconds: 2
-          # Another single step child workflow
+          # Another single step branch
           - callDoctor:
               call: http
               with:

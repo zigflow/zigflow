@@ -70,12 +70,12 @@ Set `maximumAttempts: 1` to disable retries entirely for a task.
 
 Use the `try` task to catch failures and handle them gracefully.
 
-The `try` block runs as a child workflow. If any task inside it fails, the
-`catch` block runs instead.
+The `try` block runs inline within the current workflow. If any task inside it
+fails, the `catch` block runs instead.
 
-When a task in the `try` block fails, Zigflow executes the `catch` workflow. The
-caught error is injected into the catch workflow's `$data` state. By default it
-is available as `$data.error`, or under a custom key when `catch.as` is
+When a task in the `try` block fails, Zigflow runs the `catch` body. The caught
+error is injected into a cloned `$data` state the `catch` body sees. By default
+it is available as `$data.error`, or under a custom key when `catch.as` is
 specified.
 
 The output of the `try` task is whatever the `catch` block returns.
