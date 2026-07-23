@@ -43,7 +43,7 @@ do:
 
 | Part | Purpose |
 | --- | --- |
-| `try` | Runs inner tasks as a child workflow |
+| `try` | Runs inner tasks inline in the parent workflow |
 | `catch.do` | Runs if any task inside `try` fails |
 | `setError` | Sets a fallback value when an error is caught |
 
@@ -51,9 +51,18 @@ do:
 filtering by error type. To handle different errors differently,
 inspect the error object inside the `catch` block.
 
-**The `try` block runs as a child workflow.** Inner tasks are
-retried according to their configured retry policy before the
-`catch` block is entered.
+**The `try` and `catch` blocks run inline in the parent workflow.** They do not
+create child workflows. Inner activities are retried according to their own
+configured retry policies before the `catch` block is entered.
+
+Both blocks use isolated state. The `catch` block starts from the parent state
+with the caught error added as `$data.error`. It does not see partial state
+changes from the failed `try` block. Use output or export values from `catch`
+when later tasks need them.
+
+If you inspect the caught error, `childWorkflow` metadata is present only when
+an explicit child workflow failed. A normal failure from an inline task does
+not include it.
 
 ## Raising errors explicitly
 
@@ -109,7 +118,7 @@ Use the `raise` task to fail a workflow with a structured error:
 
 ## Common mistakes
 
-**Not all retries are exhausted before `catch` runs.**
+**Expecting `catch` to run before retries are exhausted.**
 The default retry policy applies inside `try`. The `catch` block
 only runs after all retries are exhausted.
 
