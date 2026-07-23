@@ -134,6 +134,15 @@ const (
 	testConstCount = "count"
 	// testConstForRefDataCount is the jq expression used to reference a numeric iteration count via $data.count.
 	testConstForRefDataCount = "${ $data.count }"
+	// testConstEncodedEndOutput is the payload output carried by an encoded
+	// flow.ErrEnd in the try/for/fork inline end-compatibility tests.
+	testConstEncodedEndOutput = "encoded-end-output"
+	// testConstSeed is the map key used to seed parent state in inline-body
+	// isolation tests.
+	testConstSeed = "seed"
+	// testConstOriginal is the sentinel value used to prove parent state is
+	// left unchanged when an inline body (for/fork) fails.
+	testConstOriginal = "original"
 )
 
 var (

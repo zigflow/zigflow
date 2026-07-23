@@ -732,8 +732,8 @@ func TestForExecErrorLeavesParentStateUnchanged(t *testing.T) {
 	}
 
 	state := utils.NewState()
-	state.Context = map[string]any{"original": true}
-	state.Output = "original-output"
+	state.Context = map[string]any{testConstOriginal: true}
+	state.Output = testConstOriginal + "-output"
 	state.AddData(map[string]any{testConstItems: []any{"a", "b"}})
 
 	execFn, err := b.exec(bodyFn)
@@ -747,9 +747,9 @@ func TestForExecErrorLeavesParentStateUnchanged(t *testing.T) {
 	assert.Equal(t, 1, callCount)
 
 	// Context, Output and Data must all be unchanged.
-	assert.Equal(t, map[string]any{"original": true}, state.Context,
+	assert.Equal(t, map[string]any{testConstOriginal: true}, state.Context,
 		"exec() must not modify state.Context when an iteration fails")
-	assert.Equal(t, "original-output", state.Output,
+	assert.Equal(t, testConstOriginal+"-output", state.Output,
 		"exec() must not modify state.Output when an iteration fails")
 	assert.Equal(t, []any{"a", "b"}, state.Data[testConstItems],
 		"pre-loop Data must be unchanged when an iteration fails")
@@ -805,7 +805,7 @@ func TestForExecPropagatesEncodedErrEnd(t *testing.T) {
 		In:   testConstForRefDataItems,
 	}, "")
 
-	encodedOutput := map[string]any{testConstValue: "encoded-end-output"}
+	encodedOutput := map[string]any{testConstValue: testConstEncodedEndOutput}
 	callCount := 0
 	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
 		callCount++

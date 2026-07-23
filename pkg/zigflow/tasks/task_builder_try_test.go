@@ -222,7 +222,7 @@ func TestTryTaskBuilderExecPropagatesEndFromCatchBody(t *testing.T) {
 func TestTryTaskBuilderExecPropagatesEncodedEndCompat(t *testing.T) {
 	builder := newInlineTryBuilder("")
 
-	encodedOutput := map[string]any{testConstValue: "encoded-end-output"}
+	encodedOutput := map[string]any{testConstValue: testConstEncodedEndOutput}
 	catchRan := false
 
 	tryFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
@@ -257,7 +257,7 @@ func runCatchAndCaptureState(t *testing.T, catchAs string, tryErr error) (
 	builder := newInlineTryBuilder(catchAs)
 
 	parentState = utils.NewState()
-	parentState.Input = map[string]any{"seed": "input"}
+	parentState.Input = map[string]any{testConstSeed: "input"}
 
 	tryFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
 		return nil, tryErr
@@ -295,7 +295,7 @@ func TestTryTaskBuilderExecExposesErrorUnderDefaultKey(t *testing.T) {
 		"inline execution must not attach childWorkflow metadata")
 
 	// The catch body must receive the cloned catch state's input.
-	assert.Equal(t, map[string]any{"seed": "input"}, caughtInput)
+	assert.Equal(t, map[string]any{testConstSeed: "input"}, caughtInput)
 }
 
 // TestTryTaskBuilderExecExposesErrorUnderCustomKey proves the catch body sees
