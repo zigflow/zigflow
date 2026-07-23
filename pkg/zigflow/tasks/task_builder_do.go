@@ -36,11 +36,20 @@ import (
 )
 
 type DoTaskOpts struct {
+	// DisableRegisterWorkflow stops DoTaskBuilder registering the generated
+	// function with Temporal via RegisterWorkflowWithOptions. It says nothing
+	// about how the function is invoked or how it handles control-flow
+	// directives.
 	DisableRegisterWorkflow bool
-	Envvars                 map[string]any
-	MaxHistoryLength        int
-	Telemetry               *telemetry.Telemetry
-	Validator               *utils.Validator
+	// InlineExecution marks that the generated function is called inline inside
+	// another workflow function rather than across a real Temporal workflow
+	// boundary, so it should surface control-flow directives such as
+	// flow.ErrEnd directly to its caller.
+	InlineExecution  bool
+	Envvars          map[string]any
+	MaxHistoryLength int
+	Telemetry        *telemetry.Telemetry
+	Validator        *utils.Validator
 }
 
 func NewDoTaskBuilder(
@@ -248,6 +257,15 @@ func (t *DoTaskBuilder) workflowExecutor(tasks []workflowFunc) TemporalWorkflowF
 		if err := t.iterateTasks(ctx, tasks, input, state); err != nil {
 			if !errors.Is(err, flow.ErrEnd) {
 				return nil, err
+			}
+			// Inline task-list functions (try/for bodies) execute in the
+			// caller's workflow, so they return flow.ErrEnd directly — carrying
+			// the effective output — and let the enclosing try or for builder
+			// handle it. Real workflow entrypoints instead translate or consume
+			// the directive at the boundary via the isRootWorkflow encode /
+			// clean-exit logic below.
+			if t.opts.InlineExecution {
+				return state.Output, flow.ErrEnd
 			}
 			if !isRootWorkflow(ctx) {
 				return nil, flow.NewEndApplicationError(state.Output)

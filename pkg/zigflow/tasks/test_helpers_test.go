@@ -17,9 +17,42 @@
 package tasks
 
 import (
+	"testing"
+
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
+	"github.com/zigflow/zigflow/pkg/utils"
+	"go.temporal.io/sdk/testsuite"
+	"go.temporal.io/sdk/workflow"
 )
+
+// runInlineWorkflowFunc executes an inline TemporalWorkflowFunc inside Temporal's
+// workflow test environment (exec/iterator/try bodies need a real
+// workflow.Context) and returns the raw output and error captured before they
+// cross the test-environment boundary. Capturing pre-boundary keeps the error
+// chain intact for errors.Is and avoids the JSON round-trip that would otherwise
+// coerce concrete Go types.
+func runInlineWorkflowFunc(
+	t *testing.T, name string, fn TemporalWorkflowFunc, input any, state *utils.State,
+) (any, error) {
+	t.Helper()
+
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+
+	var (
+		gotOutput any
+		gotErr    error
+	)
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+		gotOutput, gotErr = fn(ctx, input, state)
+		return gotOutput, gotErr
+	}, workflow.RegisterOptions{Name: name})
+
+	env.ExecuteWorkflow(name)
+
+	return gotOutput, gotErr
+}
 
 const (
 	// testConstValue is a generic map key used in test payloads.

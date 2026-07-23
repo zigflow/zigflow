@@ -26,7 +26,6 @@ import (
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"go.temporal.io/sdk/temporal"
-	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -71,31 +70,6 @@ func newInlineTryBuilder(catchAs string) *TryTaskBuilder {
 	}
 }
 
-// runInlineTry executes fn inside Temporal's workflow test environment (exec
-// needs a real workflow.Context for its logger and state clone) and returns
-// the raw output and error the inline function produced, captured before they
-// cross the test-environment boundary. Capturing pre-boundary keeps the error
-// chain intact so callers can assert with errors.Is.
-func runInlineTry(t *testing.T, fn TemporalWorkflowFunc, input any, state *utils.State) (any, error) {
-	t.Helper()
-
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
-
-	var (
-		gotOutput any
-		gotErr    error
-	)
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		gotOutput, gotErr = fn(ctx, input, state)
-		return gotOutput, gotErr
-	}, workflow.RegisterOptions{Name: "try-exec"})
-
-	env.ExecuteWorkflow("try-exec")
-
-	return gotOutput, gotErr
-}
-
 // TestTryTaskBuilderExecRunsCatchOnError proves the catch body runs when the
 // try body returns a genuine failure, that the try body receives the original
 // input and state, and that the catch output becomes the result.
@@ -124,7 +98,7 @@ func TestTryTaskBuilderExecRunsCatchOnError(t *testing.T) {
 	fn, err := builder.exec(tryFn, catchFn)
 	require.NoError(t, err)
 
-	output, execErr := runInlineTry(t, fn, state.Input, state)
+	output, execErr := runInlineWorkflowFunc(t, "try-exec", fn, state.Input, state)
 	require.NoError(t, execErr)
 
 	// The try body must receive the original input and the exact parent state.
@@ -155,7 +129,7 @@ func TestTryTaskBuilderExecSuccessSkipsCatch(t *testing.T) {
 	fn, err := builder.exec(tryFn, catchFn)
 	require.NoError(t, err)
 
-	output, execErr := runInlineTry(t, fn, nil, state)
+	output, execErr := runInlineWorkflowFunc(t, "try-exec", fn, nil, state)
 	require.NoError(t, execErr)
 
 	assert.False(t, catchRan, "catch body must not run when the try body succeeds")
@@ -177,7 +151,7 @@ func TestTryTaskBuilderExecWrapsCatchFailure(t *testing.T) {
 	fn, err := builder.exec(tryFn, catchFn)
 	require.NoError(t, err)
 
-	output, execErr := runInlineTry(t, fn, nil, utils.NewState())
+	output, execErr := runInlineWorkflowFunc(t, "try-exec", fn, nil, utils.NewState())
 	require.Error(t, execErr)
 	assert.Nil(t, output)
 	assert.Contains(t, execErr.Error(), "error running catch tasks")
@@ -205,7 +179,7 @@ func TestTryTaskBuilderExecPropagatesEndFromTryBody(t *testing.T) {
 	fn, err := builder.exec(tryFn, catchFn)
 	require.NoError(t, err)
 
-	output, execErr := runInlineTry(t, fn, nil, utils.NewState())
+	output, execErr := runInlineWorkflowFunc(t, "try-exec", fn, nil, utils.NewState())
 
 	require.Error(t, execErr)
 	assert.True(t, errors.Is(execErr, flow.ErrEnd), "try body end must surface as flow.ErrEnd")
@@ -232,7 +206,7 @@ func TestTryTaskBuilderExecPropagatesEndFromCatchBody(t *testing.T) {
 	fn, err := builder.exec(tryFn, catchFn)
 	require.NoError(t, err)
 
-	output, execErr := runInlineTry(t, fn, nil, utils.NewState())
+	output, execErr := runInlineWorkflowFunc(t, "try-exec", fn, nil, utils.NewState())
 
 	require.Error(t, execErr)
 	assert.True(t, errors.Is(execErr, flow.ErrEnd), "catch body end must surface as flow.ErrEnd")
@@ -262,7 +236,7 @@ func TestTryTaskBuilderExecPropagatesEncodedEndCompat(t *testing.T) {
 	fn, err := builder.exec(tryFn, catchFn)
 	require.NoError(t, err)
 
-	output, execErr := runInlineTry(t, fn, nil, utils.NewState())
+	output, execErr := runInlineWorkflowFunc(t, "try-exec", fn, nil, utils.NewState())
 
 	require.Error(t, execErr)
 	assert.True(t, errors.Is(execErr, flow.ErrEnd), "encoded end must surface as flow.ErrEnd")
@@ -297,7 +271,7 @@ func runCatchAndCaptureState(t *testing.T, catchAs string, tryErr error) (
 	fn, err := builder.exec(tryFn, catchFn)
 	require.NoError(t, err)
 
-	_, execErr := runInlineTry(t, fn, parentState.Input, parentState)
+	_, execErr := runInlineWorkflowFunc(t, "try-exec", fn, parentState.Input, parentState)
 	require.NoError(t, execErr)
 
 	return caughtData, caughtInput, parentState

@@ -55,15 +55,15 @@ type TryTaskBuilder struct {
 }
 
 func (t *TryTaskBuilder) Build() (TemporalWorkflowFunc, error) {
-	tryFn, err := t.createTaskFn(t.task.Try)
+	tryFn, err := t.buildBody(tryBodyPathSegment, t.task.Try)
 	if err != nil {
-		log.Error().Str("task", t.GetTaskName()).Str("taskType", "try").Msg("Error building for workflow")
+		log.Error().Str("task", t.GetTaskName()).Str("taskType", tryBodyPathSegment).Msg("Error building try body")
 		return nil, err
 	}
 
-	catchFn, err := t.createTaskFn(t.task.Catch.Do)
+	catchFn, err := t.buildBody(catchBodyPathSegment, t.task.Catch.Do)
 	if err != nil {
-		log.Error().Str("task", t.GetTaskName()).Str("taskType", "catch").Msg("Error building for workflow")
+		log.Error().Str("task", t.GetTaskName()).Str("taskType", catchBodyPathSegment).Msg("Error building catch body")
 		return nil, err
 	}
 
@@ -72,13 +72,13 @@ func (t *TryTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 func (t *TryTaskBuilder) PostLoad() error {
 	for taskType, taskList := range t.getTasks() {
-		builder, err := t.createBuilder(taskList)
+		builder, err := t.bodyBuilder(taskType, taskList)
 		if err != nil {
 			return fmt.Errorf("error registering %s post load tasks for %s: %w", taskType, t.GetTaskName(), err)
 		}
 
 		if err = builder.PostLoad(); err != nil {
-			log.Error().Str("task", t.GetTaskName()).Str("taskType", taskType).Msg("Error building for workflow")
+			log.Error().Str("task", t.GetTaskName()).Str("taskType", taskType).Msg("Error post-loading try body")
 			return fmt.Errorf("error building for post load workflow: %w", err)
 		}
 	}
@@ -88,7 +88,7 @@ func (t *TryTaskBuilder) PostLoad() error {
 
 func (t *TryTaskBuilder) Validate() error {
 	for taskType, taskList := range t.getTasks() {
-		builder, err := t.createBuilder(taskList)
+		builder, err := t.bodyBuilder(taskType, taskList)
 		if err != nil {
 			return err
 		}
@@ -171,30 +171,17 @@ func (t *TryTaskBuilder) buildCatchError(err error) map[string]any {
 	return out
 }
 
-func (t *TryTaskBuilder) createBuilder(task *model.TaskList) (*DoTaskBuilder, error) {
-	// Create the task builder, but without registering it
-	builder, err := NewDoTaskBuilder(t.temporalWorker, &model.DoTask{Do: task}, "", t.doc, t.eventEmitter, t.taskOpts, DoTaskOpts{
-		DisableRegisterWorkflow: true,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error creating do task builder: %w", err)
-	}
-
-	return builder, nil
+// bodyBuilder constructs the inline DoTaskBuilder for the try or catch body,
+// threading the matching path segment ("try" / "catch") so nested tasks that
+// reuse a leaf name across the two bodies still register distinct per-task
+// activity names.
+func (t *TryTaskBuilder) bodyBuilder(taskType string, task *model.TaskList) (*DoTaskBuilder, error) {
+	return newInlineDoBuilder(t.temporalWorker, task, "", t.doc, t.eventEmitter, t.taskOpts, t.childTaskPath(taskType))
 }
 
-func (t *TryTaskBuilder) createTaskFn(task *model.TaskList) (TemporalWorkflowFunc, error) {
-	builder, err := t.createBuilder(task)
-	if err != nil {
-		return nil, err
-	}
-
-	fn, err := builder.Build()
-	if err != nil {
-		return nil, fmt.Errorf("error building task: %w", err)
-	}
-
-	return fn, nil
+// buildBody builds the try or catch body into an inline TemporalWorkflowFunc.
+func (t *TryTaskBuilder) buildBody(taskType string, task *model.TaskList) (TemporalWorkflowFunc, error) {
+	return buildInlineTaskList(t.temporalWorker, task, "", t.doc, t.eventEmitter, t.taskOpts, t.childTaskPath(taskType))
 }
 
 func (t *TryTaskBuilder) exec(tryFn, catchFn TemporalWorkflowFunc) (TemporalWorkflowFunc, error) {
