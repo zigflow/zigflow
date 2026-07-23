@@ -19,17 +19,22 @@ package tasks
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/nexus-rpc/sdk-go/nexus"
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
+
+const testConstTaskNested = "nested"
 
 func TestDoTaskBuilderWorkflowExecutor(t *testing.T) {
 	t.Helper()
@@ -363,6 +368,210 @@ func TestDoTaskBuilderIterateTasksContinueAsNew(t *testing.T) {
 	}
 }
 
+func TestDoTaskBuilderInlineExecutorDoesNotContinueAsNew(t *testing.T) {
+	builder := newTestDoTaskBuilder("inline-no-continue-as-new")
+	state := utils.NewState()
+	runOrder := make([]string, 0, 1)
+	tasks := []workflowFunc{
+		newSimpleWorkflowFunc(testConstTaskOne, &model.TaskBase{}, &runOrder),
+	}
+	inline := builder.inlineExecutor(tasks)
+
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+	env.SetContinueAsNewSuggested(true)
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+		return inline(ctx, nil, state)
+	}, workflow.RegisterOptions{Name: builder.GetTaskName()})
+
+	env.ExecuteWorkflow(builder.GetTaskName())
+
+	assert.NoError(t, env.GetWorkflowError())
+	assert.Equal(t, []string{testConstTaskOne}, runOrder)
+	assert.Nil(t, state.CANStartFrom)
+}
+
+func TestDoTaskBuilderBuildInlineRecursesIntoNestedDo(t *testing.T) {
+	task := &model.DoTask{Do: &model.TaskList{
+		&model.TaskItem{Key: testConstTaskNested, Task: &model.DoTask{Do: &model.TaskList{
+			&model.TaskItem{Key: testConstTaskOne, Task: &model.SetTask{
+				TaskBase: model.TaskBase{
+					Then: &model.FlowDirective{Value: string(model.FlowDirectiveEnd)},
+				},
+				Set: model.NewObjectOrRuntimeExpr(map[string]any{testConstValue: testConstDone}),
+			}},
+		}}},
+	}}
+	builder, err := NewDoTaskBuilder(nil, task, "inline-nested-do", testWorkflow, testEvents, nil)
+	require.NoError(t, err)
+	inline, err := builder.buildInline()
+	require.NoError(t, err)
+
+	state := utils.NewState()
+	var gotOutput any
+	var gotErr error
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+	env.SetContinueAsNewSuggested(true)
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+		gotOutput, gotErr = inline(ctx, nil, state)
+		return nil, nil
+	}, workflow.RegisterOptions{Name: builder.GetTaskName()})
+
+	env.ExecuteWorkflow(builder.GetTaskName())
+
+	require.NoError(t, env.GetWorkflowError())
+	assert.ErrorIs(t, gotErr, flow.ErrEnd)
+	assert.False(t, workflow.IsContinueAsNewError(gotErr))
+	assert.Equal(t, map[string]any{testConstValue: testConstDone}, gotOutput)
+	assert.Nil(t, state.CANStartFrom)
+}
+
+func TestDoTaskBuilderInlineExecutorPropagatesEnd(t *testing.T) {
+	builder := newTestDoTaskBuilder("inline-end")
+	state := utils.NewState()
+	taskBuilder := newFakeTaskBuilder(testConstTaskOne, &model.TaskBase{
+		Then: &model.FlowDirective{Value: string(model.FlowDirectiveEnd)},
+	})
+	tasks := []workflowFunc{
+		{
+			TaskBuilder: taskBuilder,
+			Name:        taskBuilder.GetTaskName(),
+			Func: func(workflow.Context, any, *utils.State) (any, error) {
+				return map[string]any{testConstValue: testConstDone}, nil
+			},
+		},
+	}
+	inline := builder.inlineExecutor(tasks)
+
+	var gotErr error
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+		output, err := inline(ctx, nil, state)
+		gotErr = err
+		return output, nil
+	}, workflow.RegisterOptions{Name: builder.GetTaskName()})
+
+	env.ExecuteWorkflow(builder.GetTaskName())
+
+	assert.NoError(t, env.GetWorkflowError())
+	assert.ErrorIs(t, gotErr, flow.ErrEnd)
+	assert.Equal(t, map[string]any{testConstValue: testConstDone}, state.Output)
+}
+
+func TestDoTaskBuilderInlineExecutorResetsActivityOptions(t *testing.T) {
+	builder := newTestDoTaskBuilder("inline-activity-options")
+	state := utils.NewState()
+	taskBuilder := newFakeTaskBuilder(testConstTaskOne, &model.TaskBase{})
+	var observed workflow.ActivityOptions
+	tasks := []workflowFunc{
+		{
+			TaskBuilder: taskBuilder,
+			Name:        taskBuilder.GetTaskName(),
+			Func: func(ctx workflow.Context, _ any, _ *utils.State) (any, error) {
+				observed = workflow.GetActivityOptions(ctx)
+				return nil, nil
+			},
+		},
+	}
+	inline := builder.inlineExecutor(tasks)
+
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+			ScheduleToCloseTimeout: 2 * time.Hour,
+			TaskQueue:              "outer-activity-queue",
+		})
+		return inline(ctx, nil, state)
+	}, workflow.RegisterOptions{Name: builder.GetTaskName()})
+
+	env.ExecuteWorkflow(builder.GetTaskName())
+
+	assert.NoError(t, env.GetWorkflowError())
+	assert.Zero(t, observed.ScheduleToCloseTimeout)
+	assert.Empty(t, observed.TaskQueue)
+	assert.Equal(t, testConstTaskOne, observed.Summary)
+}
+
+func TestDoTaskBuilderInlineExecutorPreservesExplicitChildTasks(t *testing.T) {
+	runInline := func(t *testing.T, task workflowFunc, childName string) {
+		t.Helper()
+
+		builder := newTestDoTaskBuilder("inline-explicit-child")
+		inline := builder.inlineExecutor([]workflowFunc{task})
+		state := utils.NewState()
+		childStarts := make([]string, 0, 1)
+
+		var s testsuite.WorkflowTestSuite
+		env := s.NewTestWorkflowEnvironment()
+		env.SetOnChildWorkflowStartedListener(
+			func(info *workflow.Info, _ workflow.Context, _ converter.EncodedValues) {
+				childStarts = append(childStarts, info.WorkflowType.Name)
+			},
+		)
+		env.RegisterWorkflowWithOptions(
+			func(workflow.Context, any, *utils.State) (map[string]any, error) {
+				return map[string]any{testConstValue: testConstDone}, nil
+			},
+			workflow.RegisterOptions{Name: childName},
+		)
+		env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+			return inline(ctx, nil, state)
+		}, workflow.RegisterOptions{Name: builder.GetTaskName()})
+
+		env.ExecuteWorkflow(builder.GetTaskName())
+
+		require.NoError(t, env.GetWorkflowError())
+		assert.Equal(t, []string{childName}, childStarts)
+	}
+
+	t.Run("run workflow", func(t *testing.T) {
+		const childName = "inline-run-child"
+		task := &model.RunTask{Run: model.RunTaskConfiguration{
+			Await: utils.Ptr(true),
+			Workflow: &model.RunWorkflow{
+				Namespace: constDefaultNamespace,
+				Name:      childName,
+				Version:   testConstRunWorkflowVersion,
+			},
+		}}
+		builder, err := NewRunTaskBuilder(nil, task, "nested-run", testWorkflow, testEvents, nil)
+		require.NoError(t, err)
+		fn, err := builder.Build()
+		require.NoError(t, err)
+
+		runInline(t, workflowFunc{TaskBuilder: builder, Name: builder.GetTaskName(), Func: fn}, childName)
+	})
+
+	t.Run("fork", func(t *testing.T) {
+		const childName = "inline-fork-child"
+		task := &model.ForkTask{Fork: model.ForkTaskConfiguration{
+			Branches: &model.TaskList{},
+		}}
+		builder, err := NewForkTaskBuilder(nil, task, "nested-fork", testWorkflow, testEvents, nil)
+		require.NoError(t, err)
+		fn, err := builder.exec([]*forkedTask{{
+			task:              &model.TaskItem{Key: "branch"},
+			childWorkflowName: childName,
+			taskName:          "branch",
+		}})
+		require.NoError(t, err)
+
+		runInline(t, workflowFunc{TaskBuilder: builder, Name: builder.GetTaskName(), Func: fn}, childName)
+	})
+
+	t.Run("named redirect", func(t *testing.T) {
+		const childName = "inline-redirect-child"
+		runOrder := make([]string, 0, 1)
+		task := newSwitchWorkflowFunc(flow.RedirectError{Target: childName}, &runOrder)
+
+		runInline(t, task, childName)
+		assert.Equal(t, []string{testConstTaskSwitch}, runOrder)
+	})
+}
+
 func TestDoTaskBuilderIterateTasksSkipsCompletedTasks(t *testing.T) {
 	t.Helper()
 
@@ -498,7 +707,7 @@ func TestDoTaskBuilderBuildSkipsNestedDoAfterNonDoTask(t *testing.T) {
 				},
 			},
 			{
-				Key: "nested",
+				Key: testConstTaskNested,
 				Task: &model.DoTask{
 					Do: &model.TaskList{
 						{
@@ -517,7 +726,7 @@ func TestDoTaskBuilderBuildSkipsNestedDoAfterNonDoTask(t *testing.T) {
 
 	temporalWorker.
 		On("RegisterWorkflowWithOptions", mock.Anything, workflow.RegisterOptions{
-			Name: "nested",
+			Name: testConstTaskNested,
 		}).
 		Once()
 	temporalWorker.

@@ -87,6 +87,40 @@ type workflowFunc struct {
 }
 
 func (t *DoTaskBuilder) Build() (TemporalWorkflowFunc, error) {
+	tasks, hasNoDo, err := t.buildTasks(false)
+	if err != nil {
+		return nil, err
+	}
+
+	// Execute the workflow
+	wf := t.workflowExecutor(tasks)
+
+	if !t.opts.DisableRegisterWorkflow {
+		if hasNoDo {
+			log.Debug().Str("name", t.GetTaskName()).Msg("Registering workflow")
+			t.temporalWorker.RegisterWorkflowWithOptions(wf, workflow.RegisterOptions{
+				Name: t.GetTaskName(),
+			})
+		}
+	}
+
+	return wf, nil
+}
+
+// buildInline compiles a Do task as an inline scope within its enclosing
+// workflow. Unlike workflowExecutor, it does not create workflow lifecycle
+// events, increment workflow telemetry, translate flow.ErrEnd across a
+// workflow boundary or continue as new from within the nested scope.
+func (t *DoTaskBuilder) buildInline() (TemporalWorkflowFunc, error) {
+	tasks, _, err := t.buildTasks(true)
+	if err != nil {
+		return nil, err
+	}
+
+	return t.inlineExecutor(tasks), nil
+}
+
+func (t *DoTaskBuilder) buildTasks(inline bool) ([]workflowFunc, bool, error) {
 	tasks := make([]workflowFunc, 0)
 
 	var hasNoDo bool
@@ -106,14 +140,26 @@ func (t *DoTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		l.Debug().Msg("Creating task builder")
 		builder, err := NewTaskBuilder(task.Key, task.Task, t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts, t.childTaskPath(task.Key))
 		if err != nil {
-			return nil, fmt.Errorf("error creating task builder: %w", err)
+			return nil, false, fmt.Errorf("error creating task builder: %w", err)
 		}
 
 		// Build the task and store it for use
 		l.Debug().Msg("Building task")
-		fn, err := builder.Build()
+		var fn TemporalWorkflowFunc
+		if inline && addTasks {
+			if doBuilder, ok := builder.(*DoTaskBuilder); ok {
+				fn, err = doBuilder.buildInline()
+			} else {
+				fn, err = builder.Build()
+			}
+		} else {
+			// A nested Do after executable tasks is a named workflow
+			// declaration. Build it normally so redirects and explicit child
+			// calls can still target the registered workflow.
+			fn, err = builder.Build()
+		}
 		if err != nil {
-			return nil, fmt.Errorf("error building task: %w", err)
+			return nil, false, fmt.Errorf("error building task: %w", err)
 		}
 		if fn != nil && addTasks {
 			l.Debug().Msg("Adding task to workflow")
@@ -125,19 +171,7 @@ func (t *DoTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		}
 	}
 
-	// Execute the workflow
-	wf := t.workflowExecutor(tasks)
-
-	if !t.opts.DisableRegisterWorkflow {
-		if hasNoDo {
-			log.Debug().Str("name", t.GetTaskName()).Msg("Registering workflow")
-			t.temporalWorker.RegisterWorkflowWithOptions(wf, workflow.RegisterOptions{
-				Name: t.GetTaskName(),
-			})
-		}
-	}
-
-	return wf, nil
+	return tasks, hasNoDo, nil
 }
 
 func (t *DoTaskBuilder) PostLoad() error {
@@ -232,9 +266,9 @@ func (t *DoTaskBuilder) workflowExecutor(tasks []workflowFunc) TemporalWorkflowF
 		// Iterate through the tasks to create the workflow. An `end` flow
 		// directive propagates outward as flow.ErrEnd. At the true root
 		// workflow boundary this is a clean termination, not a failure.
-		// At nested child workflow boundaries (e.g. redirect targets,
-		// for-loop iteration bodies) we re-emit ErrEnd as a serialisable
-		// Temporal ApplicationError so the parent workflow can detect it
+		// At actual child workflow boundaries (e.g. redirect targets) we
+		// re-emit ErrEnd as a serialisable Temporal ApplicationError so the
+		// parent workflow can detect it
 		// and continue propagating "end" upward until it reaches the
 		// root. Without this, ErrEnd would be silently swallowed by every
 		// child workflow boundary and `then: end` could only end the
@@ -265,6 +299,22 @@ func (t *DoTaskBuilder) workflowExecutor(tasks []workflowFunc) TemporalWorkflowF
 	}
 }
 
+func (t *DoTaskBuilder) inlineExecutor(tasks []workflowFunc) TemporalWorkflowFunc {
+	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
+		// A real child workflow starts without the enclosing task's activity
+		// options. Reset them before running inline so task-specific and document
+		// defaults keep the same inheritance semantics as before.
+		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{})
+		ctx = workflow.WithTaskQueue(ctx, "")
+
+		if err := t.iterateTasksInline(ctx, tasks, input, state); err != nil {
+			return state.Output, err
+		}
+
+		return state.Output, nil
+	}
+}
+
 func (t *DoTaskBuilder) continueAsNew(
 	ctx workflow.Context, wfn, taskID string, input any, state *utils.State,
 ) error {
@@ -286,6 +336,18 @@ func (t *DoTaskBuilder) continueAsNew(
 func (t *DoTaskBuilder) iterateTasks(
 	ctx workflow.Context, tasks []workflowFunc, input any, state *utils.State,
 ) error {
+	return t.iterateTasksWithContinueAsNew(ctx, tasks, input, state, true)
+}
+
+func (t *DoTaskBuilder) iterateTasksInline(
+	ctx workflow.Context, tasks []workflowFunc, input any, state *utils.State,
+) error {
+	return t.iterateTasksWithContinueAsNew(ctx, tasks, input, state, false)
+}
+
+func (t *DoTaskBuilder) iterateTasksWithContinueAsNew(
+	ctx workflow.Context, tasks []workflowFunc, input any, state *utils.State, allowContinueAsNew bool,
+) error {
 	var nextTargetName *string
 	logger := workflow.GetLogger(ctx)
 
@@ -295,7 +357,7 @@ func (t *DoTaskBuilder) iterateTasks(
 		logger.Debug("Set current workflow time", "taskID", taskID, "workflow", t.name)
 		state = state.AddWorkflowNow(ctx)
 
-		if t.shouldContinueAsNew(ctx) {
+		if allowContinueAsNew && t.shouldContinueAsNew(ctx) {
 			logger.Debug("Task continue-as-new", "taskID", taskID, "workflow", t.name)
 			return t.continueAsNew(ctx, t.name, taskID, input, state)
 		}
@@ -589,8 +651,8 @@ func (t *DoTaskBuilder) applyRedirectResult(task workflowFunc, res any, state *u
 
 // isRootWorkflow reports whether ctx belongs to the topmost workflow in
 // the current execution. Child workflows started via
-// workflow.ExecuteChildWorkflow (redirect targets, for-loop iteration
-// bodies, etc.) have ParentWorkflowExecution set; the original workflow
+// workflow.ExecuteChildWorkflow (redirect targets, forks and explicit
+// workflow calls) have ParentWorkflowExecution set; the original workflow
 // started by the client does not.
 func isRootWorkflow(ctx workflow.Context) bool {
 	return workflow.GetInfo(ctx).ParentWorkflowExecution == nil
