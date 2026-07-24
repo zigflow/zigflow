@@ -16,7 +16,7 @@ integer count.
 | for.in | `string` | `yes` | A [runtime expression](/docs/dsl/tasks/intro#runtime-expressions) used to get the collection to enumerate. |
 | for.at | `string` | `no` | The name of the variable used to store the index of the current item being enumerated.<br />Defaults to `index`. |
 | while | `string` | `no` | A [runtime expression](/docs/dsl/tasks/intro#runtime-expressions) that represents the condition, if any, that must be met for the iteration to continue.<br />The result of each iteration is stored in `$data.<taskName>`, allowing the while expression to conditionally stop the loop. |
-| do | [`map[string, task]`](/docs/dsl/tasks/intro) | `yes` | The [task(s)](/docs/dsl/tasks/intro) to perform for each item in the collection. These will be run as a [child workflow](https://docs.temporal.io/child-workflows) |
+| do | [`map[string, task]`](/docs/dsl/tasks/intro) | `yes` | The [task(s)](/docs/dsl/tasks/intro) to perform for each item in the collection. These run inline within the current workflow, once per item. |
 
 ## Example
 
@@ -88,11 +88,19 @@ do:
 
 ## Gotchas
 
-**Each iteration runs as a child workflow.** A loop over a large collection
-creates many child workflow executions. Temporal's history limits apply.
+**Iterations run inline and in sequence.** Each iteration executes within the
+current workflow, one after another, not as a separate child workflow.
 
-**The `while` condition is evaluated after each iteration.** It cannot prevent
-the first iteration from running.
+**Each iteration has isolated task-local state.** The loop index and item
+variables, and any `$data` an iteration writes, are scoped to that iteration.
+Only the previous iteration's `Context` (from an `export`) and `Output` are
+carried into the next iteration; arbitrary `$data` mutations do not leak
+between iterations or back to the parent. Because iterations no longer cross an
+internal child-workflow boundary, values keep their native types rather than
+being coerced by JSON serialisation.
+
+**`then: end` inside an iteration ends the whole workflow**, carrying the
+iteration's effective output, and stops any remaining iterations.
 
 **Iteration results are stored under `$data.<taskName>`.** The `while`
 expression can access this key to implement early termination.

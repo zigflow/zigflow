@@ -43,7 +43,7 @@ do:
 
 | Part | Purpose |
 | --- | --- |
-| `try` | Runs inner tasks as a child workflow |
+| `try` | Runs inner tasks inline within the current workflow |
 | `catch.do` | Runs if any task inside `try` fails |
 | `setError` | Sets a fallback value when an error is caught |
 
@@ -51,7 +51,7 @@ do:
 filtering by error type. To handle different errors differently,
 inspect the error object inside the `catch` block.
 
-**The `try` block runs as a child workflow.** Inner tasks are
+**The `try` block runs inline within the current workflow.** Inner tasks are
 retried according to their configured retry policy before the
 `catch` block is entered.
 

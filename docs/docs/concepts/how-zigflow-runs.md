@@ -101,6 +101,31 @@ flowchart TD
 
 ---
 
+## Structural tasks run inline
+
+Zigflow's structural control-flow tasks (`do`, `for`, `try` and `fork`, and the
+named targets a `switch` redirects to) execute inside the current Temporal
+workflow. They do not create separate Temporal workflow executions.
+
+> Structural tasks execute inside the current Temporal workflow. An explicit
+> `run.workflow` task starts a child workflow.
+
+This means:
+
+- A `for` iteration, a `try` or `catch` body, a `fork` branch and a `switch`
+  redirect target all run as part of the one workflow's event history.
+- Only the document root and an explicit [`run.workflow`](/docs/dsl/tasks/run#workflow)
+  target are separate Temporal workflow executions.
+- Flow directives such as `then: end` propagate directly through these inline
+  bodies and end the whole workflow.
+
+Running structural tasks inline keeps control flow within one workflow and
+avoids the scheduling, persistence and parent-completion overhead of a separate
+workflow per branch, iteration or block. Use `run.workflow` when you
+deliberately want a separate execution with its own history and identity.
+
+---
+
 ## What the worker exposes
 
 While running, the Zigflow worker exposes HTTP endpoints on two ports:

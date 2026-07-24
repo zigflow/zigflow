@@ -59,7 +59,7 @@ The workflow drives a small ReAct-style loop:
    `agent.SummarisePartialResult` produces a best-effort response.
 
 All inter-iteration state is carried in `$context` so the for loop has a
-single, stable carrier. Each named child workflow returns the full updated
+single, stable carrier. Each named redirect target returns the full updated
 agent state, and the switch task's `export` merges it back into `$context`.
 
 ## Example questions
