@@ -28,179 +28,502 @@ import (
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"go.temporal.io/sdk/activity"
-	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
 
-type fakeWorkflowContext struct{}
+const (
+	// winnerKey is the output key used by the competing-fork tests.
+	winnerKey = "winner"
+	// branchAKey is a fork branch key reused across the fork builder tests.
+	branchAKey = "branchA"
+	// fastWinner is the winning branch's marker in the competing-fork test.
+	fastWinner = "fast"
+)
 
-func (fakeWorkflowContext) Deadline() (time.Time, bool) { return time.Time{}, false }
-func (fakeWorkflowContext) Done() workflow.Channel      { return nil }
-func (fakeWorkflowContext) Err() error                  { return nil }
-func (fakeWorkflowContext) Value(key interface{}) interface{} {
-	return nil
-}
-
-func TestForkTaskBuilderAwaitCondition(t *testing.T) {
-	builder := &ForkTaskBuilder{}
-
-	tests := []struct {
-		name        string
-		replyErr    error
-		endSeen     bool
-		isCompeting bool
-		winningCtx  workflow.Context
-		hasReplied  []bool
-		expect      bool
-	}{
-		{
-			name:     "reply error short circuits",
-			replyErr: errors.New("boom"),
-			expect:   true,
+// newForkExecBuilder builds a ForkTaskBuilder for the exec-level tests. Branches
+// are supplied directly to exec as inline closures, so the task's Branches list
+// is not consulted.
+func newForkExecBuilder(compete bool) *ForkTaskBuilder {
+	return &ForkTaskBuilder{
+		builder: builder[*model.ForkTask]{
+			doc:          testWorkflow,
+			eventEmitter: testEvents,
+			name:         "fork-task",
+			task: &model.ForkTask{
+				Fork: model.ForkTaskConfiguration{Compete: compete},
+			},
 		},
-		{
-			name:    "end signal short circuits",
-			endSeen: true,
-			expect:  true,
-		},
-		{
-			name:        "competing fork waits for winner",
-			isCompeting: true,
-			expect:      false,
-		},
-		{
-			name:        "competing fork with winner returns true",
-			isCompeting: true,
-			winningCtx:  fakeWorkflowContext{},
-			expect:      true,
-		},
-		{
-			name:       "non competing waits for all replies",
-			hasReplied: []bool{true, false},
-			expect:     false,
-		},
-		{
-			name:       "non competing completes when all replied",
-			hasReplied: []bool{true, true},
-			expect:     true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			cond := builder.awaitCondition(tc.replyErr, tc.endSeen, tc.isCompeting, tc.winningCtx, tc.hasReplied)
-			assert.Equal(t, tc.expect, cond())
-		})
 	}
 }
 
-// runForkExec executes the supplied fork branches inside a Temporal
-// test environment. registerBranch maps each branch name to the child
-// workflow function that should back it.
-func runForkExec(
-	t *testing.T,
-	compete bool,
-	branches map[string]func(ctx workflow.Context, input any, state *utils.State) (map[string]any, error),
-) (workflowErr error) {
+// runForkExec builds the fork exec function from the supplied inline branches
+// and runs it inside the workflow test environment, returning the raw output
+// and error captured before the test-environment boundary (so native Go types
+// and the error chain survive for assertions).
+func runForkExec(t *testing.T, compete bool, state *utils.State, branches ...forkBranch) (any, error) {
 	t.Helper()
 
-	forkedTasks := make([]*forkedTask, 0, len(branches))
-	for name := range branches {
-		forkedTasks = append(forkedTasks, &forkedTask{
-			task:              &model.TaskItem{Key: name},
-			childWorkflowName: "fork-" + name,
-			taskName:          name,
-		})
+	b := newForkExecBuilder(compete)
+	fn, err := b.exec(branches)
+	require.NoError(t, err)
+
+	if state == nil {
+		state = utils.NewState()
 	}
 
-	builder := &ForkTaskBuilder{
+	return runInlineWorkflowFunc(t, "fork-exec-host", fn, nil, state)
+}
+
+// sleepBranch returns a branch that waits (in workflow time) before producing
+// its output, letting tests force completion order to differ from declaration
+// order without wall-clock sleeps.
+func sleepBranch(name string, d time.Duration, output any) forkBranch {
+	return forkBranch{
+		name: name,
+		fn: func(ctx workflow.Context, _ any, _ *utils.State) (any, error) {
+			if err := workflow.Sleep(ctx, d); err != nil {
+				return nil, err
+			}
+			return output, nil
+		},
+	}
+}
+
+// TestForkExecAggregatesDeclarationOrderDespiteCompletion proves branches run
+// concurrently and the aggregate output is by branch name regardless of the
+// order branches complete in. The fast branch finishing first must not drop or
+// reorder the slow branch's contribution.
+func TestForkExecAggregatesDeclarationOrderDespiteCompletion(t *testing.T) {
+	output, err := runForkExec(
+		t, false, nil,
+		sleepBranch("a", 3*time.Hour, "a-out"),
+		sleepBranch("b", 1*time.Hour, "b-out"),
+		sleepBranch("c", 0, "c-out"),
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, map[string]any{
+		"a": "a-out",
+		"b": "b-out",
+		"c": "c-out",
+	}, output)
+}
+
+// TestForkExecBranchesReceiveClonedParentState proves each branch starts from
+// the same parent input state (a clone), and that the fork does not mutate the
+// parent state.
+func TestForkExecBranchesReceiveClonedParentState(t *testing.T) {
+	parent := utils.NewState()
+	parent.Input = map[string]any{"in": "put"}
+	parent.AddData(map[string]any{testConstSeed: 1})
+
+	var aSeed, bSeed any
+	var aInput, bInput any
+
+	output, err := runForkExec(
+		t, false, parent,
+		forkBranch{name: "a", fn: func(_ workflow.Context, input any, st *utils.State) (any, error) {
+			aSeed = st.Data[testConstSeed]
+			aInput = input
+			return "a", nil
+		}},
+		forkBranch{name: "b", fn: func(_ workflow.Context, input any, st *utils.State) (any, error) {
+			bSeed = st.Data[testConstSeed]
+			bInput = input
+			return "b", nil
+		}},
+	)
+	require.NoError(t, err)
+
+	// Both branches saw the same seeded parent data (via their clones).
+	assert.Equal(t, 1, aSeed)
+	assert.Equal(t, 1, bSeed)
+	// Input flows through unchanged.
+	assert.Nil(t, aInput)
+	assert.Nil(t, bInput)
+	assert.Equal(t, map[string]any{"a": "a", "b": "b"}, output)
+
+	// Parent state is untouched by the fork.
+	assert.Equal(t, map[string]any{testConstSeed: 1}, parent.Data)
+	assert.Nil(t, parent.Output)
+}
+
+// TestForkExecBranchDataAndContextIsolation proves no branch observes another
+// branch's Data or Context mutations, and neither leaks to the parent.
+func TestForkExecBranchDataAndContextIsolation(t *testing.T) {
+	parent := utils.NewState()
+
+	var aSawX, bSawX any
+	var aSawCtx, bSawCtx any
+
+	_, err := runForkExec(
+		t, false, parent,
+		// "a" waits so "b" mutates its own state first; isolation must hold
+		// regardless of ordering.
+		forkBranch{name: "a", fn: func(ctx workflow.Context, _ any, st *utils.State) (any, error) {
+			if err := workflow.Sleep(ctx, time.Hour); err != nil {
+				return nil, err
+			}
+			aSawX = st.Data["x"]
+			aSawCtx = st.Context
+			st.AddData(map[string]any{"x": "a"})
+			st.Context = map[string]any{"who": "a"}
+			return "a", nil
+		}},
+		forkBranch{name: "b", fn: func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+			bSawX = st.Data["x"]
+			bSawCtx = st.Context
+			st.AddData(map[string]any{"x": "b"})
+			st.Context = map[string]any{"who": "b"}
+			return "b", nil
+		}},
+	)
+	require.NoError(t, err)
+
+	// Neither branch saw the other's Data or Context mutation.
+	assert.Nil(t, aSawX, "branch a must not see branch b's Data mutation")
+	assert.Nil(t, bSawX, "branch b must not see branch a's Data mutation")
+	assert.Nil(t, aSawCtx, "branch a must not see branch b's Context mutation")
+	assert.Nil(t, bSawCtx, "branch b must not see branch a's Context mutation")
+
+	// Neither branch's mutation leaked to the parent.
+	assert.Nil(t, parent.Data["x"], "branch Data must not leak to parent")
+	assert.Nil(t, parent.Context, "branch Context must not leak to parent")
+}
+
+// TestForkExecSingleBranchFailure proves a genuine branch failure fails the
+// fork, is wrapped with inline terminology and the branch name, and leaves the
+// parent state unchanged.
+func TestForkExecSingleBranchFailure(t *testing.T) {
+	parent := utils.NewState()
+	parent.Output = testConstOriginal
+
+	output, err := runForkExec(
+		t, false, parent,
+		forkBranch{name: "boom", fn: func(_ workflow.Context, _ any, _ *utils.State) (any, error) {
+			return nil, errors.New("genuine branch failure")
+		}},
+	)
+
+	require.Error(t, err)
+	assert.Nil(t, output)
+	assert.Contains(t, err.Error(), "error running fork branch tasks")
+	assert.Contains(t, err.Error(), "boom", "wrapped error must identify the failing branch")
+	assert.Contains(t, err.Error(), "genuine branch failure")
+	assert.NotContains(t, err.Error(), flow.ErrEnd.Error())
+
+	// Parent output is untouched on failure.
+	assert.Equal(t, testConstOriginal, parent.Output)
+}
+
+// TestForkExecMultipleFailuresLowestIndexWins proves failure selection is
+// deterministic by declaration index, not completion order: the branch that
+// fails first in wall-clock terms must not win if a lower-index branch also
+// fails.
+func TestForkExecMultipleFailuresLowestIndexWins(t *testing.T) {
+	_, err := runForkExec(
+		t, false, nil,
+		// index 0 fails, but only after a delay.
+		forkBranch{name: "a", fn: func(ctx workflow.Context, _ any, _ *utils.State) (any, error) {
+			if err := workflow.Sleep(ctx, time.Hour); err != nil {
+				return nil, err
+			}
+			return nil, errors.New("failure-a")
+		}},
+		// index 1 fails immediately.
+		forkBranch{name: "b", fn: func(_ workflow.Context, _ any, _ *utils.State) (any, error) {
+			return nil, errors.New("failure-b")
+		}},
+	)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failure-a", "lowest-index failure must win deterministically")
+	assert.Contains(t, err.Error(), "(a)")
+	assert.NotContains(t, err.Error(), "failure-b")
+}
+
+// TestForkExecNonCompetingRunsAllBranchesDespiteFailure proves non-competing
+// forks wait for every branch: a sibling still runs to completion even though
+// another branch fails.
+func TestForkExecNonCompetingRunsAllBranchesDespiteFailure(t *testing.T) {
+	siblingRan := false
+
+	_, err := runForkExec(
+		t, false, nil,
+		forkBranch{name: "boom", fn: func(_ workflow.Context, _ any, _ *utils.State) (any, error) {
+			return nil, errors.New("boom")
+		}},
+		forkBranch{name: "sibling", fn: func(ctx workflow.Context, _ any, _ *utils.State) (any, error) {
+			if err := workflow.Sleep(ctx, time.Hour); err != nil {
+				return nil, err
+			}
+			siblingRan = true
+			return testConstOK, nil
+		}},
+	)
+
+	require.Error(t, err)
+	assert.True(t, siblingRan, "non-competing fork must wait for all branches even when one fails")
+}
+
+// TestForkExecCompeteFirstCompletedWinsAndCancelsLosers proves competing forks
+// return the first completed branch's output and cancel the losers.
+func TestForkExecCompeteFirstCompletedWinsAndCancelsLosers(t *testing.T) {
+	slowCompleted := false
+
+	output, err := runForkExec(
+		t, true, nil,
+		forkBranch{name: fastWinner, fn: func(_ workflow.Context, _ any, _ *utils.State) (any, error) {
+			return map[string]any{winnerKey: fastWinner}, nil
+		}},
+		forkBranch{name: "slow", fn: func(ctx workflow.Context, _ any, _ *utils.State) (any, error) {
+			if err := workflow.Sleep(ctx, time.Hour); err != nil {
+				return nil, err
+			}
+			slowCompleted = true
+			return map[string]any{winnerKey: "slow"}, nil
+		}},
+	)
+	require.NoError(t, err)
+
+	// The competing fork returns the winner's output directly.
+	assert.Equal(t, map[string]any{winnerKey: fastWinner}, output)
+	// The loser was cancelled before it could finish its delayed work.
+	assert.False(t, slowCompleted, "losing branch must be cancelled once the winner is decided")
+}
+
+// TestForkExecNonCompetingWaitsForAll proves that without compete every branch
+// completes and contributes to the aggregate.
+func TestForkExecNonCompetingWaitsForAll(t *testing.T) {
+	aRan, bRan := false, false
+
+	output, err := runForkExec(
+		t, false, nil,
+		forkBranch{name: "a", fn: func(_ workflow.Context, _ any, _ *utils.State) (any, error) {
+			aRan = true
+			return "a", nil
+		}},
+		forkBranch{name: "b", fn: func(ctx workflow.Context, _ any, _ *utils.State) (any, error) {
+			if err := workflow.Sleep(ctx, time.Hour); err != nil {
+				return nil, err
+			}
+			bRan = true
+			return "b", nil
+		}},
+	)
+	require.NoError(t, err)
+
+	assert.True(t, aRan)
+	assert.True(t, bRan)
+	assert.Equal(t, map[string]any{"a": "a", "b": "b"}, output)
+}
+
+// TestForkExecDirectErrEnd proves a branch returning (output, flow.ErrEnd)
+// directly — the primary inline path — terminates the fork with flow.ErrEnd and
+// the branch's carried output, not wrapped as a fork failure.
+func TestForkExecDirectErrEnd(t *testing.T) {
+	endOutput := map[string]any{testConstValue: "branch-end-output"}
+
+	output, err := runForkExec(
+		t, false, nil,
+		forkBranch{name: "ending", fn: func(_ workflow.Context, _ any, _ *utils.State) (any, error) {
+			return endOutput, flow.ErrEnd
+		}},
+	)
+
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, flow.ErrEnd), "direct end must surface as flow.ErrEnd")
+	assert.Equal(t, endOutput, output, "branch end output must be preserved")
+	assert.NotContains(t, err.Error(), "error running fork branch tasks")
+}
+
+// TestForkExecEncodedErrEnd proves the retained backwards-compatibility path: an
+// encoded Temporal end error is decoded and its payload output preserved.
+func TestForkExecEncodedErrEnd(t *testing.T) {
+	encodedOutput := map[string]any{testConstValue: testConstEncodedEndOutput}
+
+	output, err := runForkExec(
+		t, false, nil,
+		forkBranch{name: "ending", fn: func(_ workflow.Context, _ any, _ *utils.State) (any, error) {
+			return nil, flow.NewEndApplicationError(encodedOutput)
+		}},
+	)
+
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, flow.ErrEnd), "encoded end must surface as flow.ErrEnd")
+	assert.Equal(t, encodedOutput, output, "encoded end payload output must be preserved")
+}
+
+// TestForkExecErrorTakesPrecedenceOverEnd proves a genuine failure outranks an
+// end directive regardless of index: an end at index 0 does not mask an error
+// at index 1.
+func TestForkExecErrorTakesPrecedenceOverEnd(t *testing.T) {
+	_, err := runForkExec(
+		t, false, nil,
+		forkBranch{name: "ends", fn: func(_ workflow.Context, _ any, _ *utils.State) (any, error) {
+			return map[string]any{"k": "v"}, flow.ErrEnd
+		}},
+		forkBranch{name: "fails", fn: func(_ workflow.Context, _ any, _ *utils.State) (any, error) {
+			return nil, errors.New("genuine failure")
+		}},
+	)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "error running fork branch tasks")
+	assert.False(t, errors.Is(err, flow.ErrEnd), "a genuine failure must outrank an end directive")
+}
+
+// TestForkExecEndLowestIndexWins proves that among multiple ending branches the
+// lowest-index branch's output is the one carried, deterministically.
+func TestForkExecEndLowestIndexWins(t *testing.T) {
+	output, err := runForkExec(
+		t, false, nil,
+		// index 0 ends after a delay.
+		forkBranch{name: "a", fn: func(ctx workflow.Context, _ any, _ *utils.State) (any, error) {
+			if serr := workflow.Sleep(ctx, time.Hour); serr != nil {
+				return nil, serr
+			}
+			return "end-a", flow.ErrEnd
+		}},
+		// index 1 ends immediately.
+		forkBranch{name: "b", fn: func(_ workflow.Context, _ any, _ *utils.State) (any, error) {
+			return "end-b", flow.ErrEnd
+		}},
+	)
+
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, flow.ErrEnd))
+	assert.Equal(t, "end-a", output, "lowest-index end output must win deterministically")
+}
+
+// TestForkExecEmptyReturnsEmptyMap proves an empty branch set is a safe no-op
+// rather than a workflow that blocks forever.
+func TestForkExecEmptyReturnsEmptyMap(t *testing.T) {
+	output, err := runForkExec(t, false, nil)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{}, output)
+}
+
+// TestForkBranchBuilderUsesInlineOptions proves fork branch bodies are built
+// with both inline options enabled: not registered as standalone workflows and
+// exposing inline control-flow directives.
+func TestForkBranchBuilderUsesInlineOptions(t *testing.T) {
+	b := &ForkTaskBuilder{
 		builder: builder[*model.ForkTask]{
-			name: "fork-task-end",
-			task: &model.ForkTask{
-				Fork: model.ForkTaskConfiguration{
-					Compete: compete,
-				},
+			doc:          testWorkflow,
+			eventEmitter: testEvents,
+			name:         testForkTaskName,
+			taskPath:     []string{testForkTaskName},
+			task:         &model.ForkTask{},
+		},
+	}
+
+	branch := &model.TaskItem{Key: branchAKey, Task: &model.SetTask{}}
+	builder, err := b.branchBuilder(branch)
+	require.NoError(t, err)
+
+	assert.True(t, builder.opts.DisableRegisterWorkflow, "fork branch bodies must not register a workflow")
+	assert.True(t, builder.opts.InlineExecution, "fork branch bodies must run with inline control-flow semantics")
+}
+
+// TestForkBuildDoesNotRegisterBranchWorkflows proves Build/PostLoad/Validate
+// build branch bodies without registering any branch child workflow.
+func TestForkBuildDoesNotRegisterBranchWorkflows(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-fork-noreg"}}
+	w := new(WorkflowRegistryMock)
+
+	forkTask := &model.ForkTask{
+		Fork: model.ForkTaskConfiguration{
+			Branches: &model.TaskList{
+				&model.TaskItem{Key: branchAKey, Task: &model.SetTask{}},
+				&model.TaskItem{Key: "branchB", Task: &model.SetTask{}},
 			},
 		},
 	}
 
-	fn, err := builder.exec(forkedTasks)
-	require.NoError(t, err)
-
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
-	for _, ft := range forkedTasks {
-		impl := branches[ft.taskName]
-		env.RegisterWorkflowWithOptions(impl, workflow.RegisterOptions{Name: ft.childWorkflowName})
+	b := &ForkTaskBuilder{
+		builder: builder[*model.ForkTask]{
+			doc:            doc,
+			eventEmitter:   testEvents,
+			name:           testForkTaskName,
+			taskPath:       []string{testForkTaskName},
+			task:           forkTask,
+			temporalWorker: w,
+		},
 	}
 
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return fn(ctx, nil, utils.NewState())
-	}, workflow.RegisterOptions{Name: "fork-exec-host"})
+	fn, err := b.Build()
+	require.NoError(t, err)
+	require.NotNil(t, fn)
 
-	env.ExecuteWorkflow("fork-exec-host")
-	return env.GetWorkflowError()
+	require.NoError(t, b.PostLoad())
+	require.NoError(t, b.Validate())
+
+	w.AssertNotCalled(t, "RegisterWorkflowWithOptions", mock.Anything, mock.Anything)
 }
 
-// TestForkTaskBuilderExecPropagatesEndFromBranch proves that a branch
-// signalling `then: end` short-circuits the fork without being wrapped
-// as "error forking task", and surfaces flow.ErrEnd carrying the
-// branch's effective output. The other branches' eventual results
-// must not be reported back.
-func TestForkTaskBuilderExecPropagatesEndFromBranch(t *testing.T) {
-	endingOutput := map[string]any{testConstValue: "branch-end-output"}
+// TestForkDuplicateLeafNamesRegisterDistinctActivities proves branches that
+// reuse the same leaf task name register distinct per-task activity aliases,
+// because each branch threads a unique task path.
+func TestForkDuplicateLeafNamesRegisterDistinctActivities(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-fork-dup"}}
 
-	// A single end-emitting branch is sufficient: the assertion is that
-	// the fork as a whole surfaces flow.ErrEnd rather than wrapping the
-	// signal as a fork failure. Returning endingOutput alongside the
-	// end signal also satisfies the unparam lint by avoiding a function
-	// whose result is always nil.
-	workflowErr := runForkExec(t, false, map[string]func(workflow.Context, any, *utils.State) (map[string]any, error){
-		"ending": func(_ workflow.Context, _ any, _ *utils.State) (map[string]any, error) {
-			return endingOutput, flow.NewEndApplicationError(endingOutput)
+	w := new(WorkflowRegistryMock)
+	w.
+		On("RegisterActivityWithOptions", mock.Anything, activity.RegisterOptions{
+			Name: "wf-fork-dup.dispatch.left.step",
+		}).
+		Once()
+	w.
+		On("RegisterActivityWithOptions", mock.Anything, activity.RegisterOptions{
+			Name: "wf-fork-dup.dispatch.right.step",
+		}).
+		Once()
+
+	forkTask := &model.ForkTask{
+		Fork: model.ForkTaskConfiguration{
+			Branches: &model.TaskList{
+				&model.TaskItem{Key: "left", Task: &model.DoTask{Do: &model.TaskList{
+					&model.TaskItem{Key: testConstStep, Task: newTestHTTPTask()},
+				}}},
+				&model.TaskItem{Key: "right", Task: &model.DoTask{Do: &model.TaskList{
+					&model.TaskItem{Key: testConstStep, Task: newTestHTTPTask()},
+				}}},
+			},
 		},
-	})
+	}
 
-	require.Error(t, workflowErr)
-	assert.Contains(t, workflowErr.Error(), flow.ErrEnd.Error())
-	assert.NotContains(t, workflowErr.Error(), "error forking task",
-		"a branch-emitted end must not be wrapped as a fork failure")
-}
-
-// TestForkTaskBuilderExecStillWrapsRealBranchFailure regresses normal
-// fork error handling: a real branch failure must still surface as
-// "error forking task" rather than being mistaken for end propagation.
-func TestForkTaskBuilderExecStillWrapsRealBranchFailure(t *testing.T) {
-	workflowErr := runForkExec(t, false, map[string]func(workflow.Context, any, *utils.State) (map[string]any, error){
-		"boom": func(_ workflow.Context, _ any, _ *utils.State) (map[string]any, error) {
-			return nil, errors.New("genuine branch failure")
+	b := &ForkTaskBuilder{
+		builder: builder[*model.ForkTask]{
+			doc:            doc,
+			eventEmitter:   testEvents,
+			name:           testForkTaskName,
+			taskPath:       []string{testForkTaskName},
+			task:           forkTask,
+			temporalWorker: w,
 		},
-	})
+	}
 
-	require.Error(t, workflowErr)
-	assert.Contains(t, workflowErr.Error(), "error forking task")
-	assert.NotContains(t, workflowErr.Error(), flow.ErrEnd.Error())
+	_, err := b.Build()
+	require.NoError(t, err)
+
+	w.AssertExpectations(t)
 }
 
-// testForkTaskName is the fork task's own name (and sole path segment) used
-// by the alias-derivation tests below.
+// testForkTaskName is the fork task's own name (and sole path segment) used by
+// the alias-derivation tests below.
 const testForkTaskName = "dispatch"
 
-// A single-task fork branch is wrapped in a synthetic child workflow before
-// being built. The generated per-task activity alias must still be derived
-// from the original, user-visible branch key ("branchA"), not from the
-// synthetic child workflow name ("workflow_fork_dispatch_branchA").
+// A single-task fork branch is wrapped as an inline do-task before being built.
+// The generated per-task activity alias must be derived from the original,
+// user-visible branch key ("branchA"), threaded via the fork's task path.
 //
-// Only the original-key alias is registered as an expectation; the mock
-// fails any RegisterActivityWithOptions call with a different name, so an
-// alias built from the synthetic name would fail the test rather than pass
-// silently.
+// No branch workflow is registered (inline execution); only the activity alias
+// is asserted.
 func TestForkSingleTaskBranchAliasUsesOriginalBranchKey(t *testing.T) {
 	doc := &model.Workflow{Document: model.Document{Name: "wf-fork-single"}}
 
 	w := new(WorkflowRegistryMock)
-	// The wrapper child workflow registration is incidental here.
-	w.On("RegisterWorkflowWithOptions", mock.Anything, mock.Anything).Maybe()
 	w.
 		On("RegisterActivityWithOptions", mock.Anything, activity.RegisterOptions{
 			Name: "wf-fork-single.dispatch.branchA",
@@ -210,7 +533,7 @@ func TestForkSingleTaskBranchAliasUsesOriginalBranchKey(t *testing.T) {
 	forkTask := &model.ForkTask{
 		Fork: model.ForkTaskConfiguration{
 			Branches: &model.TaskList{
-				&model.TaskItem{Key: "branchA", Task: newTestHTTPTask()},
+				&model.TaskItem{Key: branchAKey, Task: newTestHTTPTask()},
 			},
 		},
 	}
@@ -232,14 +555,12 @@ func TestForkSingleTaskBranchAliasUsesOriginalBranchKey(t *testing.T) {
 	w.AssertExpectations(t)
 }
 
-// A multi-task fork branch is a do-task scope: the branch key is an
-// intermediate path segment and the body's leaf tasks nest beneath it. This
-// pins the sibling behaviour the single-task case is kept consistent with.
+// A multi-task fork branch is a do-task scope: the branch key is an intermediate
+// path segment and the body's leaf tasks nest beneath it.
 func TestForkMultiTaskBranchAliasNestsUnderBranchKey(t *testing.T) {
 	doc := &model.Workflow{Document: model.Document{Name: "wf-fork-multi"}}
 
 	w := new(WorkflowRegistryMock)
-	w.On("RegisterWorkflowWithOptions", mock.Anything, mock.Anything).Maybe()
 	w.
 		On("RegisterActivityWithOptions", mock.Anything, activity.RegisterOptions{
 			Name: "wf-fork-multi.dispatch.branchB.leaf",

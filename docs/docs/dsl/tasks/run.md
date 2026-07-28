@@ -344,6 +344,12 @@ from a parent workflow, facilitating modularization, reusability, and abstractio
 of complex logic or business processes by encapsulating them into standalone
 workflow units.
 
+`run.workflow` is the explicit way to start a separate Temporal workflow
+execution. Structural control-flow tasks (`do`, `for`, `try`, `fork` and
+`switch` redirects) run inline within the current workflow and do not start a
+child workflow. Reach for `run.workflow` when you deliberately want a separate
+execution with its own history and identity.
+
 ### Properties {/*#workflow-properties*/}
 
 | Name | Type | Required | Description |

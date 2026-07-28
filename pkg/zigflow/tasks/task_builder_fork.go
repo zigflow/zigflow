@@ -17,16 +17,15 @@
 package tasks
 
 import (
+	"errors"
 	"fmt"
-	"maps"
 
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/rs/zerolog/log"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"
-	"go.temporal.io/api/enums/v1"
-	"go.temporal.io/sdk/temporal"
+	sdklog "go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 )
@@ -55,38 +54,45 @@ type ForkTaskBuilder struct {
 	builder[*model.ForkTask]
 }
 
-type forkedTask struct {
-	task              *model.TaskItem
-	childWorkflowName string
-	taskName          string
+// forkBranch is a single fork branch built once as an inline function.
+type forkBranch struct {
+	name string
+	fn   TemporalWorkflowFunc
+}
+
+// forkBranchResult is the self-contained value each branch goroutine sends back
+// to the parent workflow goroutine. Branches never write to shared state; the
+// parent is the sole owner of ordering, aggregation and error selection.
+//
+// Only Output is carried back: fork aggregates branch outputs and never
+// promotes a branch's Context or Data to the parent (matching the previous
+// child-workflow contract, which returned only state.Output).
+type forkBranchResult struct {
+	index  int
+	name   string
+	output any
+	err    error
 }
 
 func (t *ForkTaskBuilder) Build() (TemporalWorkflowFunc, error) {
-	forkedTasks, builders, err := t.buildOrPostLoad()
+	branches, err := t.buildBranches()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, builder := range builders {
-		if _, err := builder.Build(); err != nil {
-			log.Error().Err(err).Msg("Error building forked workflow")
-			return nil, fmt.Errorf("error building forked workflow: %w", err)
-		}
-	}
-
-	return t.exec(forkedTasks)
+	return t.exec(branches)
 }
 
 func (t *ForkTaskBuilder) PostLoad() error {
-	_, builders, err := t.buildOrPostLoad()
-	if err != nil {
-		return err
-	}
+	for _, branch := range *t.task.Fork.Branches {
+		builder, err := t.branchBuilder(branch)
+		if err != nil {
+			return err
+		}
 
-	for _, builder := range builders {
 		if err := builder.PostLoad(); err != nil {
-			log.Error().Err(err).Msg("Error post loading forked workflow")
-			return fmt.Errorf("error post loading forked workflow: %w", err)
+			log.Error().Err(err).Str("branch", branch.Key).Msg("Error post-loading fork branch")
+			return fmt.Errorf("error post loading fork branch %q: %w", branch.Key, err)
 		}
 	}
 
@@ -94,286 +100,206 @@ func (t *ForkTaskBuilder) PostLoad() error {
 }
 
 func (t *ForkTaskBuilder) Validate() error {
-	_, builders, err := t.buildOrPostLoad()
-	if err != nil {
-		return err
-	}
+	for _, branch := range *t.task.Fork.Branches {
+		builder, err := t.branchBuilder(branch)
+		if err != nil {
+			return err
+		}
 
-	for _, builder := range builders {
 		if err := builder.Validate(); err != nil {
-			return fmt.Errorf("error validating forked workflow: %w", err)
+			return fmt.Errorf("error validating fork branch %q: %w", branch.Key, err)
 		}
 	}
 
 	return nil
 }
 
-func (t *ForkTaskBuilder) awaitCondition(
-	replyErr error, endSeen bool, isCompeting bool, winningCtx workflow.Context, hasReplied []bool,
-) func() bool {
-	return func() bool {
-		// Any short-circuit reason ends the await: a genuine failure
-		// from a branch, or a Zigflow end signal from a branch.
-		if replyErr != nil || endSeen {
-			return true
-		}
+// branchBuilder constructs the inline DoTaskBuilder for one fork branch without
+// registering a workflow, threading a unique task path so leaf tasks that reuse
+// a name across sibling branches do not collide on a per-task activity alias.
+//
+//   - A multi-task branch is a do-task scope: the branch key is an intermediate
+//     path segment and the body's leaf tasks nest beneath it.
+//   - A single-task branch is wrapped so it runs as an inline do-task; the
+//     branch key stays the task's own leaf segment, so the parent path is
+//     threaded to avoid duplicating it.
+func (t *ForkTaskBuilder) branchBuilder(branch *model.TaskItem) (*DoTaskBuilder, error) {
+	var (
+		taskList *model.TaskList
+		taskPath []string
+	)
 
-		predicate := func(v bool) bool { return v }
-
-		if isCompeting {
-			return winningCtx != nil
-		}
-
-		return utils.SliceEvery(hasReplied, predicate)
+	if d := branch.AsDoTask(); d != nil {
+		taskList = d.Do
+		taskPath = t.childTaskPath(branch.Key)
+	} else {
+		taskList = &model.TaskList{branch}
+		taskPath = t.taskPath
 	}
+
+	builder, err := newInlineDoBuilder(t.temporalWorker, taskList, "", t.doc, t.eventEmitter, t.taskOpts, taskPath)
+	if err != nil {
+		return nil, fmt.Errorf("error creating fork branch builder %q: %w", branch.Key, err)
+	}
+
+	return builder, nil
 }
 
-func (t *ForkTaskBuilder) buildOrPostLoad() ([]*forkedTask, []TaskBuilder, error) {
-	forkedTasks := make([]*forkedTask, 0)
-	builders := make([]TaskBuilder, 0)
+// buildBranches builds every branch body once into an inline TemporalWorkflowFunc.
+func (t *ForkTaskBuilder) buildBranches() ([]forkBranch, error) {
+	branches := make([]forkBranch, 0, len(*t.task.Fork.Branches))
 
 	for _, branch := range *t.task.Fork.Branches {
-		// Capture the original, user-visible branch key before the branch
-		// is (potentially) wrapped as a synthetic child workflow below.
-		// Per-task activity aliases must read as
-		// <workflowType>.<fork>.<branch>..., using this key rather than the
-		// synthetic child workflow name.
-		originalKey := branch.Key
-		childWorkflowName := utils.GenerateChildWorkflowName("fork", t.GetTaskName(), originalKey)
-
-		forkedTasks = append(forkedTasks, &forkedTask{
-			task:              branch,
-			childWorkflowName: childWorkflowName,
-			taskName:          originalKey,
-		})
-
-		// Multi-task branches are a do-task scope, so the branch key is an
-		// intermediate path segment and the body's tasks nest beneath it.
-		childPath := t.childTaskPath(originalKey)
-
-		if d := branch.AsDoTask(); d == nil {
-			// Single task - register this as a single task workflow. The
-			// wrapper still contains the original task item (keyed
-			// originalKey), which re-supplies the branch key as the leaf
-			// path segment, so hand the wrapper the parent path to avoid
-			// duplicating originalKey in the generated alias.
-			log.Debug().Str("task", originalKey).Msg("Registering single task workflow")
-			branch = &model.TaskItem{
-				Key: childWorkflowName,
-				Task: &model.DoTask{
-					Do: &model.TaskList{branch},
-				},
-			}
-			childPath = t.taskPath
-		}
-
-		builder, err := NewTaskBuilder(
-			childWorkflowName, branch.Task,
-			t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts, childPath,
-		)
+		builder, err := t.branchBuilder(branch)
 		if err != nil {
-			log.Error().Err(err).Msg("Error creating the forked task builder")
-			return nil, nil, fmt.Errorf("error creating the forked task builder: %w", err)
+			return nil, err
 		}
 
-		builders = append(builders, builder)
+		fn, err := builder.Build()
+		if err != nil {
+			log.Error().Err(err).Str("branch", branch.Key).Msg("Error building fork branch")
+			return nil, fmt.Errorf("error building fork branch %q: %w", branch.Key, err)
+		}
+
+		branches = append(branches, forkBranch{name: branch.Key, fn: fn})
 	}
 
-	return forkedTasks, builders, nil
+	return branches, nil
 }
 
-func (t *ForkTaskBuilder) exec(forkedTasks []*forkedTask) (TemporalWorkflowFunc, error) {
+func (t *ForkTaskBuilder) exec(branches []forkBranch) (TemporalWorkflowFunc, error) {
 	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
 		isCompeting := t.task.Fork.Compete
 
 		logger := workflow.GetLogger(ctx)
-		logger.Debug("Forking a task", "isCompeting", isCompeting)
+		logger.Debug("Forking a task", "isCompeting", isCompeting, "branches", len(branches))
 
-		futures := &utils.CancellableFutures{}
+		n := len(branches)
+		if n == 0 {
+			// The schema requires at least one branch; guard defensively so an
+			// empty fork is a no-op rather than a workflow that blocks forever
+			// waiting on a channel that never receives.
+			return map[string]any{}, nil
+		}
 
-		// Create a new state with no output to pass to the children
-		childState := state.Clone().ClearOutput()
-		output := map[string]any{}
+		// A buffered channel sized to the branch count means a branch send never
+		// blocks, so cancelled losers can always complete without deadlocking.
+		results := workflow.NewBufferedChannel(ctx, n)
+		cancels := make([]workflow.CancelFunc, n)
 
-		// Run the child workflows in parallel
-		for _, branch := range forkedTasks {
-			opts := workflow.ChildWorkflowOptions{
-				WorkflowID: fmt.Sprintf("%s_fork_%s", workflow.GetInfo(ctx).WorkflowExecution.ID, branch.task.Key),
-			}
-			if isCompeting {
-				// Allow cancellation of children
-				opts.ParentClosePolicy = enums.PARENT_CLOSE_POLICY_REQUEST_CANCEL
-			}
+		for idx, branch := range branches {
+			// Each branch runs in its own cancellable context against its own
+			// isolated state clone, so no branch can observe or corrupt another
+			// branch's (or the parent's) state.
+			branchCtx, cancel := workflow.WithCancel(ctx)
+			cancels[idx] = cancel
 
-			childCtx := workflow.WithChildOptions(ctx, opts)
-			childCtx, cancelHandler := workflow.WithCancel(childCtx)
+			branchState := state.Clone().ClearOutput()
 
-			logger.Info("Triggering forked child workflow", "name", branch.childWorkflowName)
+			index, name, fn := idx, branch.name, branch.fn
+			logger.Info("Running fork branch inline", "branch", name)
 
-			futures.Add(branch.taskName, utils.CancellableFuture{
-				Cancel:  cancelHandler,
-				Context: childCtx,
-				Future:  workflow.ExecuteChildWorkflow(childCtx, branch.childWorkflowName, input, childState),
+			workflow.Go(branchCtx, func(gctx workflow.Context) {
+				output, err := fn(gctx, input, branchState)
+				results.Send(gctx, forkBranchResult{index: index, name: name, output: output, err: err})
 			})
-		}
-
-		// Now they're running, wait for the results.
-		fs := &forkState{
-			isCompeting: isCompeting,
-			output:      output,
-			hasReplied:  make([]bool, futures.Length()),
-		}
-
-		i := 0
-		for taskName, w := range futures.List() {
-			// Get the replies in parallel as the "winner" may be last
-			workflow.Go(w.Context, func(ctx workflow.Context) {
-				var childData map[string]any
-				err := w.Future.Get(ctx, &childData)
-				if t.handleBranchError(ctx, logger, taskName, err, fs) {
-					return
-				}
-				fs.recordReply(ctx, logger, taskName, childData, i)
-				i++
-			})
-		}
-
-		// Wait for the concurrent tasks to complete
-		if err := workflow.Await(ctx, func() bool {
-			// Wrap the function so the values are updated each time it's triggered
-			return t.awaitCondition(fs.replyErr, fs.endSeen, isCompeting, fs.winningCtx, fs.hasReplied)()
-		}); err != nil {
-			logger.Error("Error waiting for forked tasks to complete", "error", err)
-			return nil, fmt.Errorf("error waiting for forked tasks to complete: %w", err)
-		}
-
-		logger.Debug("Forked task has completed")
-
-		if fs.replyErr != nil {
-			return nil, fs.replyErr
-		}
-
-		// End takes precedence after replyErr because a fork branch that
-		// signalled end means "terminate the whole workflow". Surface
-		// flow.ErrEnd to the do-task pipeline carrying the branch's
-		// effective output so the originating fork task's output and
-		// state still update before end keeps propagating upward.
-		if fs.endSeen {
-			return fs.endOutput, flow.ErrEnd
 		}
 
 		if isCompeting {
-			logger.Debug("Cancelling other forked workflows")
-			futures.CancelOthers(fs.winningCtx)
+			// Competing forks are a race: the first branch to complete wins.
+			// This is deliberately completion-order sensitive (it is the
+			// meaning of compete) but remains deterministic on replay because
+			// Temporal records completion order in history.
+			var res forkBranchResult
+			results.Receive(ctx, &res)
+
+			// Cancel every other branch so losing in-flight work stops.
+			for i, cancel := range cancels {
+				if i != res.index {
+					cancel()
+				}
+			}
+
+			return t.resolveWinner(logger, res)
 		}
 
-		return output, nil
+		// Non-competing forks wait for every branch, then select the outcome by
+		// declaration index. This is deterministic regardless of completion
+		// order (see the compatibility note in the package refactor).
+		collected := make([]forkBranchResult, n)
+		for range n {
+			var res forkBranchResult
+			results.Receive(ctx, &res)
+			collected[res.index] = res
+		}
+
+		return t.aggregate(logger, collected)
 	}, nil
 }
 
-// forkState bundles the mutable bookkeeping shared by all fork branch
-// goroutines so that the per-branch handling code can live outside of
-// exec's main closure. Methods on forkState are only ever called from
-// inside a workflow.Go goroutine that already holds the workflow
-// determinism guarantees, so plain mutation is safe.
-type forkState struct {
-	isCompeting bool
+// resolveWinner interprets the single winning branch of a competing fork.
+func (t *ForkTaskBuilder) resolveWinner(logger sdklog.Logger, res forkBranchResult) (any, error) {
+	isEnd, endOutput, genuine := classifyForkBranch(res)
+	if genuine != nil {
+		logger.Error("Error running fork branch tasks", "error", genuine, "branch", res.name)
+		return nil, fmt.Errorf("error running fork branch tasks (%s): %w", res.name, genuine)
+	}
+	if isEnd {
+		logger.Info("Fork branch signalled end; propagating", "branch", res.name)
+		return endOutput, flow.ErrEnd
+	}
 
-	hasReplied []bool
-
-	// output is the shared aggregate map across non-competing branches
-	// (and the winning branch in competing mode). It is the same map
-	// returned by exec, mutated in place.
-	output map[string]any
-
-	// winningCtx records the first branch to reply in competing mode.
-	winningCtx workflow.Context
-
-	// replyErr captures a genuine branch failure that should fail the
-	// whole fork. endSeen + endOutput capture a Zigflow end signal,
-	// which terminates the workflow cleanly instead of failing it.
-	replyErr  error
-	endSeen   bool
-	endOutput any
+	return res.output, nil
 }
 
-// handleBranchError interprets the per-branch future error and updates
-// fs accordingly. It returns true if the branch should stop here and
-// not contribute to the aggregate output.
-func (t *ForkTaskBuilder) handleBranchError(
-	ctx workflow.Context,
-	logger interface {
-		Debug(msg string, keyvals ...interface{})
-		Info(msg string, keyvals ...interface{})
-		Error(msg string, keyvals ...interface{})
-	},
-	taskName string,
-	err error,
-	fs *forkState,
-) bool {
-	_ = ctx
-	if err == nil {
-		return false
-	}
-
-	if temporal.IsCanceledError(err) {
-		logger.Debug("Forked task cancelled", "task", taskName)
-		return true
-	}
-
-	// A `then: end` directive inside a fork branch crosses the child
-	// workflow boundary as a typed Temporal ApplicationError. That is
-	// a deliberate workflow termination, not a "fork failure":
-	// short-circuit the await without wrapping it as "error forking
-	// task" and carry the branch's effective output upward.
-	if endPayload, isEnd := flow.DecodeEndApplicationError(err); isEnd {
-		logger.Info("Fork branch signalled end; propagating",
-			"task", taskName, "carriedOutput", endPayload.Output)
-		if !fs.endSeen {
-			fs.endSeen = true
-			fs.endOutput = endPayload.Output
+// aggregate resolves a completed set of non-competing branch results.
+//
+// Precedence, matching the previous contract (a genuine failure outranks an end
+// directive) but made deterministic by declaration index rather than completion
+// order:
+//  1. lowest-index genuine failure fails the whole fork;
+//  2. otherwise the lowest-index end directive terminates the workflow,
+//     carrying that branch's effective output;
+//  3. otherwise every branch output is aggregated under its branch name.
+func (t *ForkTaskBuilder) aggregate(logger sdklog.Logger, collected []forkBranchResult) (any, error) {
+	for _, res := range collected {
+		if _, _, genuine := classifyForkBranch(res); genuine != nil {
+			logger.Error("Error running fork branch tasks", "error", genuine, "branch", res.name)
+			return nil, fmt.Errorf("error running fork branch tasks (%s): %w", res.name, genuine)
 		}
-		return true
 	}
 
-	logger.Error("Error forking task", "error", err, "task", taskName)
-	fs.replyErr = fmt.Errorf("error forking task: %w", err)
-	return false
+	for _, res := range collected {
+		if isEnd, endOutput, _ := classifyForkBranch(res); isEnd {
+			logger.Info("Fork branch signalled end; propagating", "branch", res.name)
+			return endOutput, flow.ErrEnd
+		}
+	}
+
+	output := make(map[string]any, len(collected))
+	for _, res := range collected {
+		output[res.name] = res.output
+	}
+
+	return output, nil
 }
 
-// recordReply records a successful branch reply into the shared output
-// state. In competing mode the first reply wins and only its data is
-// kept; in non-competing mode every branch contributes under its task
-// name.
-func (fs *forkState) recordReply(
-	ctx workflow.Context,
-	logger interface {
-		Debug(msg string, keyvals ...interface{})
-	},
-	taskName string,
-	childData map[string]any,
-	i int,
-) {
-	fs.hasReplied[i] = true
-
-	addData := !fs.isCompeting
-	if fs.isCompeting && fs.winningCtx == nil {
-		logger.Debug(
-			"Winner declared",
-			"childWorkflowID",
-			workflow.GetChildWorkflowOptions(ctx).WorkflowID,
-		)
-		addData = true
-		fs.winningCtx = ctx
+// classifyForkBranch interprets a branch result's error. It reports whether the
+// branch signalled flow.ErrEnd (with the effective output it carried) or failed
+// for a genuine reason.
+//
+// The encoded end error is decoded first so its carried payload output is not
+// lost; a direct inline flow.ErrEnd is the primary path.
+func classifyForkBranch(res forkBranchResult) (isEnd bool, endOutput any, genuine error) {
+	if res.err == nil {
+		return false, nil, nil
+	}
+	if payload, ok := flow.DecodeEndApplicationError(res.err); ok {
+		return true, payload.Output, nil
+	}
+	if errors.Is(res.err, flow.ErrEnd) {
+		return true, res.output, nil
 	}
 
-	if !addData {
-		return
-	}
-
-	data := childData
-	if !fs.isCompeting {
-		data = map[string]any{taskName: childData}
-	}
-	maps.Copy(fs.output, data)
+	return false, nil, res.err
 }

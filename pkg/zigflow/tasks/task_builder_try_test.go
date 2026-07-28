@@ -26,7 +26,6 @@ import (
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"go.temporal.io/sdk/temporal"
-	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -53,164 +52,13 @@ func TestTryTaskBuilderGetTasks(t *testing.T) {
 	assert.Equal(t, task.Catch.Do, got["catch"])
 }
 
-func TestTryTaskBuilderExecRunsCatchOnError(t *testing.T) {
-	builder := &TryTaskBuilder{
+// newInlineTryBuilder builds a TryTaskBuilder wired for inline execution.
+// The try and catch bodies are supplied directly to exec as
+// TemporalWorkflowFunc closures, so no child workflows are registered.
+func newInlineTryBuilder(catchAs string) *TryTaskBuilder {
+	return &TryTaskBuilder{
 		builder: builder[*model.TryTask]{
 			name: "try-task",
-			task: &model.TryTask{
-				Try: &model.TaskList{},
-				Catch: &model.TryTaskCatch{
-					Do: &model.TaskList{},
-				},
-			},
-		},
-		tryChildWorkflowName:   "try-child",
-		catchChildWorkflowName: "catch-child",
-	}
-
-	fn, err := builder.exec()
-	assert.NoError(t, err)
-
-	state := utils.NewState()
-
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
-
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context, input any, st *utils.State) (map[string]any, error) {
-		return nil, errors.New("boom")
-	}, workflow.RegisterOptions{Name: builder.tryChildWorkflowName})
-
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context, input any, st *utils.State) (map[string]any, error) {
-		return map[string]any{
-			testConstHandledKey: true,
-		}, nil
-	}, workflow.RegisterOptions{Name: builder.catchChildWorkflowName})
-
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return fn(ctx, nil, state)
-	}, workflow.RegisterOptions{Name: "try-exec"})
-
-	env.ExecuteWorkflow("try-exec")
-	assert.NoError(t, env.GetWorkflowError())
-
-	var result map[string]any
-	assert.NoError(t, env.GetWorkflowResult(&result))
-	assert.Equal(t, map[string]any{testConstHandledKey: true}, result)
-}
-
-// TestTryTaskBuilderExecPropagatesEndFromTryChild proves that a
-// `then: end` directive inside the try child workflow is NOT treated
-// as a catchable failure. The carried output must survive the boundary
-// and exec must surface flow.ErrEnd to the do-task pipeline so the
-// overall workflow ends cleanly, not run the catch handler.
-func TestTryTaskBuilderExecPropagatesEndFromTryChild(t *testing.T) {
-	builder := &TryTaskBuilder{
-		builder: builder[*model.TryTask]{
-			name: "try-task-end",
-			task: &model.TryTask{
-				Try: &model.TaskList{},
-				Catch: &model.TryTaskCatch{
-					Do: &model.TaskList{},
-				},
-			},
-		},
-		tryChildWorkflowName:   "try-child-end",
-		catchChildWorkflowName: "catch-child-end",
-	}
-
-	fn, err := builder.exec()
-	require.NoError(t, err)
-
-	state := utils.NewState()
-	childOutput := map[string]any{testConstValue: "end-time-output"}
-	catchRan := false
-
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
-
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context, input any, st *utils.State) (map[string]any, error) {
-		return nil, flow.NewEndApplicationError(childOutput)
-	}, workflow.RegisterOptions{Name: builder.tryChildWorkflowName})
-
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context, input any, st *utils.State) (map[string]any, error) {
-		catchRan = true
-		return map[string]any{testConstHandledKey: true}, nil
-	}, workflow.RegisterOptions{Name: builder.catchChildWorkflowName})
-
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return fn(ctx, nil, state)
-	}, workflow.RegisterOptions{Name: "try-exec-end"})
-
-	env.ExecuteWorkflow("try-exec-end")
-
-	// The try task surfaces flow.ErrEnd through the Temporal envelope.
-	wErr := env.GetWorkflowError()
-	require.Error(t, wErr)
-	assert.Contains(t, wErr.Error(), flow.ErrEnd.Error())
-	assert.False(t, catchRan, "catch handler must not run when the try child workflow signalled end")
-}
-
-// TestTryTaskBuilderExecPropagatesEndFromCatchChild is the symmetric
-// case: when the try child fails for a real reason and the catch
-// handler itself emits `then: end`, that end must propagate as
-// flow.ErrEnd rather than being wrapped as a generic catch-workflow
-// failure.
-func TestTryTaskBuilderExecPropagatesEndFromCatchChild(t *testing.T) {
-	builder := &TryTaskBuilder{
-		builder: builder[*model.TryTask]{
-			name: "try-task-catch-end",
-			task: &model.TryTask{
-				Try: &model.TaskList{},
-				Catch: &model.TryTaskCatch{
-					Do: &model.TaskList{},
-				},
-			},
-		},
-		tryChildWorkflowName:   "try-child-real-fail",
-		catchChildWorkflowName: "catch-child-end",
-	}
-
-	fn, err := builder.exec()
-	require.NoError(t, err)
-
-	state := utils.NewState()
-	catchOutput := map[string]any{testConstValue: "catch-end-output"}
-
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
-
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context, input any, st *utils.State) (map[string]any, error) {
-		return nil, errors.New("boom from try")
-	}, workflow.RegisterOptions{Name: builder.tryChildWorkflowName})
-
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context, input any, st *utils.State) (map[string]any, error) {
-		return nil, flow.NewEndApplicationError(catchOutput)
-	}, workflow.RegisterOptions{Name: builder.catchChildWorkflowName})
-
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return fn(ctx, nil, state)
-	}, workflow.RegisterOptions{Name: "try-exec-catch-end"})
-
-	env.ExecuteWorkflow("try-exec-catch-end")
-
-	wErr := env.GetWorkflowError()
-	require.Error(t, wErr)
-	assert.Contains(t, wErr.Error(), flow.ErrEnd.Error())
-	assert.NotContains(t, wErr.Error(), "error calling catch workflow",
-		"catch-emitted end must not be wrapped as a catch-workflow failure")
-}
-
-// runCatchAndCaptureState executes a try task whose try child fails, then
-// returns the $data the catch child workflow actually observed alongside the
-// parent state the exec function was handed. The catch child records the data
-// it receives into a closure-captured map so the test can assert on the exact
-// caught-error contract exposed under $data.
-func runCatchAndCaptureState(t *testing.T, catchAs string, tryErr error) (caughtData map[string]any, parentState *utils.State) {
-	t.Helper()
-
-	builder := &TryTaskBuilder{
-		builder: builder[*model.TryTask]{
-			name: "try-task-capture",
 			task: &model.TryTask{
 				Try: &model.TaskList{},
 				Catch: &model.TryTaskCatch{
@@ -219,66 +67,247 @@ func runCatchAndCaptureState(t *testing.T, catchAs string, tryErr error) (caught
 				},
 			},
 		},
-		tryChildWorkflowName:   "try-child-capture",
-		catchChildWorkflowName: "catch-child-capture",
+	}
+}
+
+// TestTryTaskBuilderExecRunsCatchOnError proves the catch body runs when the
+// try body returns a genuine failure, that the try body receives the original
+// input and state, and that the catch output becomes the result.
+func TestTryTaskBuilderExecRunsCatchOnError(t *testing.T) {
+	builder := newInlineTryBuilder("")
+
+	state := utils.NewState()
+	state.Input = map[string]any{"in": "put"}
+
+	var (
+		tryInput any
+		tryState *utils.State
+		catchRan bool
+	)
+
+	tryFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
+		tryInput = input
+		tryState = st
+		return nil, errors.New("boom")
+	}
+	catchFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
+		catchRan = true
+		return map[string]any{testConstHandledKey: true}, nil
 	}
 
-	fn, err := builder.exec()
+	fn, err := builder.exec(tryFn, catchFn)
 	require.NoError(t, err)
 
-	parentState = utils.NewState()
+	output, execErr := runInlineWorkflowFunc(t, "try-exec", fn, state.Input, state)
+	require.NoError(t, execErr)
 
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
+	// The try body must receive the original input and the exact parent state.
+	assert.Equal(t, state.Input, tryInput)
+	assert.Same(t, state, tryState)
 
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context, input any, st *utils.State) (map[string]any, error) {
-		return nil, tryErr
-	}, workflow.RegisterOptions{Name: builder.tryChildWorkflowName})
-
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context, input any, st *utils.State) (map[string]any, error) {
-		caughtData = st.Data
-		return map[string]any{testConstHandledKey: true}, nil
-	}, workflow.RegisterOptions{Name: builder.catchChildWorkflowName})
-
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return fn(ctx, nil, parentState)
-	}, workflow.RegisterOptions{Name: "try-exec-capture"})
-
-	env.ExecuteWorkflow("try-exec-capture")
-	require.NoError(t, env.GetWorkflowError())
-
-	return caughtData, parentState
+	assert.True(t, catchRan, "catch body must run when the try body fails")
+	assert.Equal(t, map[string]any{testConstHandledKey: true}, output)
 }
 
-// TestTryTaskBuilderExecExposesErrorUnderDefaultKey proves the catch child
-// workflow sees the caught error under $data.error when catch.as is unset.
+// TestTryTaskBuilderExecSuccessSkipsCatch proves a successful try body returns
+// its output unchanged and never invokes the catch body.
+func TestTryTaskBuilderExecSuccessSkipsCatch(t *testing.T) {
+	builder := newInlineTryBuilder("")
+
+	state := utils.NewState()
+	tryOutput := map[string]any{testConstValue: testConstOK}
+	catchRan := false
+
+	tryFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
+		return tryOutput, nil
+	}
+	catchFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
+		catchRan = true
+		return nil, nil
+	}
+
+	fn, err := builder.exec(tryFn, catchFn)
+	require.NoError(t, err)
+
+	output, execErr := runInlineWorkflowFunc(t, "try-exec", fn, nil, state)
+	require.NoError(t, execErr)
+
+	assert.False(t, catchRan, "catch body must not run when the try body succeeds")
+	assert.Equal(t, tryOutput, output, "successful try output must be returned unchanged")
+}
+
+// TestTryTaskBuilderExecWrapsCatchFailure proves a genuine catch-body failure
+// is wrapped with the expected contextual error.
+func TestTryTaskBuilderExecWrapsCatchFailure(t *testing.T) {
+	builder := newInlineTryBuilder("")
+
+	tryFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
+		return nil, errors.New("boom from try")
+	}
+	catchFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
+		return nil, errors.New("boom from catch")
+	}
+
+	fn, err := builder.exec(tryFn, catchFn)
+	require.NoError(t, err)
+
+	output, execErr := runInlineWorkflowFunc(t, "try-exec", fn, nil, utils.NewState())
+	require.Error(t, execErr)
+	assert.Nil(t, output)
+	assert.Contains(t, execErr.Error(), "error running catch tasks")
+	assert.Contains(t, execErr.Error(), "boom from catch")
+}
+
+// TestTryTaskBuilderExecPropagatesEndFromTryBody proves a `then: end`
+// directive inside the try body (returned inline as flow.ErrEnd) is NOT
+// treated as a catchable failure: the carried output survives and exec
+// surfaces flow.ErrEnd without running the catch body.
+func TestTryTaskBuilderExecPropagatesEndFromTryBody(t *testing.T) {
+	builder := newInlineTryBuilder("")
+
+	tryOutput := map[string]any{testConstValue: "end-time-output"}
+	catchRan := false
+
+	tryFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
+		return tryOutput, flow.ErrEnd
+	}
+	catchFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
+		catchRan = true
+		return nil, nil
+	}
+
+	fn, err := builder.exec(tryFn, catchFn)
+	require.NoError(t, err)
+
+	output, execErr := runInlineWorkflowFunc(t, "try-exec", fn, nil, utils.NewState())
+
+	require.Error(t, execErr)
+	assert.True(t, errors.Is(execErr, flow.ErrEnd), "try body end must surface as flow.ErrEnd")
+	assert.Equal(t, tryOutput, output, "carried output must be preserved")
+	assert.False(t, catchRan, "catch body must not run when the try body signalled end")
+}
+
+// TestTryTaskBuilderExecPropagatesEndFromCatchBody is the symmetric case:
+// when the try body fails for a real reason and the catch body itself emits
+// `then: end` (inline flow.ErrEnd), that end must propagate as flow.ErrEnd
+// rather than being wrapped as a generic catch failure.
+func TestTryTaskBuilderExecPropagatesEndFromCatchBody(t *testing.T) {
+	builder := newInlineTryBuilder("")
+
+	catchOutput := map[string]any{testConstValue: "catch-end-output"}
+
+	tryFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
+		return nil, errors.New("boom from try")
+	}
+	catchFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
+		return catchOutput, flow.ErrEnd
+	}
+
+	fn, err := builder.exec(tryFn, catchFn)
+	require.NoError(t, err)
+
+	output, execErr := runInlineWorkflowFunc(t, "try-exec", fn, nil, utils.NewState())
+
+	require.Error(t, execErr)
+	assert.True(t, errors.Is(execErr, flow.ErrEnd), "catch body end must surface as flow.ErrEnd")
+	assert.Equal(t, catchOutput, output, "carried output must be preserved")
+	assert.NotContains(t, execErr.Error(), "error running catch tasks",
+		"catch-emitted end must not be wrapped as a catch failure")
+}
+
+// TestTryTaskBuilderExecPropagatesEncodedEndCompat proves the retained
+// backwards-compatibility path: an encoded Temporal end error (as produced by
+// flow.NewEndApplicationError) is still recognised, its carried payload output
+// preserved, and the catch body skipped. This is not the primary inline path.
+func TestTryTaskBuilderExecPropagatesEncodedEndCompat(t *testing.T) {
+	builder := newInlineTryBuilder("")
+
+	encodedOutput := map[string]any{testConstValue: testConstEncodedEndOutput}
+	catchRan := false
+
+	tryFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
+		return nil, flow.NewEndApplicationError(encodedOutput)
+	}
+	catchFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
+		catchRan = true
+		return nil, nil
+	}
+
+	fn, err := builder.exec(tryFn, catchFn)
+	require.NoError(t, err)
+
+	output, execErr := runInlineWorkflowFunc(t, "try-exec", fn, nil, utils.NewState())
+
+	require.Error(t, execErr)
+	assert.True(t, errors.Is(execErr, flow.ErrEnd), "encoded end must surface as flow.ErrEnd")
+	assert.Equal(t, encodedOutput, output, "encoded end payload output must be preserved")
+	assert.False(t, catchRan, "catch body must not run when the try body signalled end")
+}
+
+// runCatchAndCaptureState executes a try task whose try body fails, then
+// returns the $data the catch body actually observed alongside the parent
+// state exec was handed and the input the catch body received. The catch body
+// records what it sees into closure-captured variables so tests can assert the
+// exact caught-error contract exposed under $data, all under inline execution.
+func runCatchAndCaptureState(t *testing.T, catchAs string, tryErr error) (
+	caughtData map[string]any, caughtInput any, parentState *utils.State,
+) {
+	t.Helper()
+
+	builder := newInlineTryBuilder(catchAs)
+
+	parentState = utils.NewState()
+	parentState.Input = map[string]any{testConstSeed: "input"}
+
+	tryFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
+		return nil, tryErr
+	}
+	catchFn := func(ctx workflow.Context, input any, st *utils.State) (any, error) {
+		caughtData = st.Data
+		caughtInput = input
+		return map[string]any{testConstHandledKey: true}, nil
+	}
+
+	fn, err := builder.exec(tryFn, catchFn)
+	require.NoError(t, err)
+
+	_, execErr := runInlineWorkflowFunc(t, "try-exec", fn, parentState.Input, parentState)
+	require.NoError(t, execErr)
+
+	return caughtData, caughtInput, parentState
+}
+
+// TestTryTaskBuilderExecExposesErrorUnderDefaultKey proves the catch body sees
+// the caught error under $data.error when catch.as is unset, and that inline
+// execution no longer decorates it with childWorkflow metadata.
 func TestTryTaskBuilderExecExposesErrorUnderDefaultKey(t *testing.T) {
-	caughtData, _ := runCatchAndCaptureState(t, "", temporal.NewApplicationError("kaboom", "MyAppError"))
+	caughtData, caughtInput, _ := runCatchAndCaptureState(t, "", temporal.NewApplicationError("kaboom", "MyAppError"))
 
 	caughtErr, ok := caughtData["error"].(map[string]any)
-	require.True(t, ok, "catch child must see the caught error under $data.error")
+	require.True(t, ok, "catch body must see the caught error under $data.error")
 
-	// The error crosses a real child workflow boundary, so it carries both the
-	// child workflow metadata and the unwrapped ApplicationError fields.
 	assert.Equal(t, "MyAppError", caughtErr["type"])
 	assert.Equal(t, "kaboom", caughtErr["message"])
-	assert.Contains(t, caughtErr, "childWorkflow")
-	childMeta, ok := caughtErr["childWorkflow"].(map[string]any)
-	require.True(t, ok)
-	assert.NotEmpty(t, childMeta["workflowType"])
-	assert.NotEmpty(t, childMeta["workflowID"])
+
+	// Execution is now inline, so there is no child workflow boundary and no
+	// childWorkflow metadata to expose.
+	assert.NotContains(t, caughtErr, "childWorkflow",
+		"inline execution must not attach childWorkflow metadata")
+
+	// The catch body must receive the cloned catch state's input.
+	assert.Equal(t, map[string]any{testConstSeed: "input"}, caughtInput)
 }
 
-// TestTryTaskBuilderExecExposesErrorUnderCustomKey proves the catch child
-// workflow sees the caught error under $data.<catch.as> when it is configured,
-// and that the default "error" key is not used in that case.
+// TestTryTaskBuilderExecExposesErrorUnderCustomKey proves the catch body sees
+// the caught error under $data.<catch.as> when configured, and that the
+// default "error" key is not used in that case.
 func TestTryTaskBuilderExecExposesErrorUnderCustomKey(t *testing.T) {
 	const customKey = "failure"
 
-	caughtData, _ := runCatchAndCaptureState(t, customKey, temporal.NewApplicationError("kaboom", "MyAppError"))
+	caughtData, _, _ := runCatchAndCaptureState(t, customKey, temporal.NewApplicationError("kaboom", "MyAppError"))
 
 	caughtErr, ok := caughtData[customKey].(map[string]any)
-	require.True(t, ok, "catch child must see the caught error under the custom $data key")
+	require.True(t, ok, "catch body must see the caught error under the custom $data key")
 	assert.Equal(t, "MyAppError", caughtErr["type"])
 	assert.Equal(t, "kaboom", caughtErr["message"])
 
@@ -291,7 +320,7 @@ func TestTryTaskBuilderExecExposesErrorUnderCustomKey(t *testing.T) {
 // propagation model: the error is only carried forward if the catch tasks
 // output it.
 func TestTryTaskBuilderExecDoesNotLeakErrorIntoParentState(t *testing.T) {
-	_, parentState := runCatchAndCaptureState(t, "", temporal.NewApplicationError("kaboom", "MyAppError"))
+	_, _, parentState := runCatchAndCaptureState(t, "", temporal.NewApplicationError("kaboom", "MyAppError"))
 
 	assert.NotContains(t, parentState.Data, "error",
 		"caught error must not leak back into the parent state after catch completes")
@@ -316,6 +345,9 @@ func TestBuildCatchError(t *testing.T) {
 		assert.Equal(t, true, out["nonRetryable"])
 		assert.Equal(t, "root cause", out["cause"])
 		assert.Equal(t, details, out["details"])
+
+		// Inline execution means no child workflow boundary is crossed.
+		assert.NotContains(t, out, "childWorkflow")
 	})
 
 	t.Run("retryable application error without details", func(t *testing.T) {
@@ -329,9 +361,12 @@ func TestBuildCatchError(t *testing.T) {
 		assert.NotContains(t, out, "details")
 	})
 
-	t.Run("non-application error yields empty map", func(t *testing.T) {
+	t.Run("plain Go error falls back to message", func(t *testing.T) {
 		out := tb.buildCatchError(errors.New("plain"))
 
-		assert.Empty(t, out)
+		// Inline execution surfaces plain Go errors more often; rather than an
+		// empty map, buildCatchError exposes at least the message so the catch
+		// tasks always have something interrogable under $data.
+		assert.Equal(t, "plain", out["message"])
 	})
 }

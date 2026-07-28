@@ -65,7 +65,7 @@ do:
 | Part | Purpose |
 | --- | --- |
 | `fork.compete: true` | First branch to finish cancels the others |
-| `fork.branches` | Each branch runs as a child workflow |
+| `fork.branches` | Each branch runs inline within the workflow |
 | `state` task | Generates a UUID before the race starts |
 
 `task1` finishes in roughly 2 seconds. `task2` would take 50
@@ -143,4 +143,4 @@ branch data is discarded.
 - [Fork](/docs/dsl/tasks/fork): `fork` reference
 - [Do](/docs/dsl/tasks/do): sequential execution within a branch
 - [Concepts: how Zigflow runs](/docs/concepts/how-zigflow-runs):
-  child workflows and execution model
+  concurrency and execution model

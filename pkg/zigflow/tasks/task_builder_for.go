@@ -52,95 +52,35 @@ func NewForTaskBuilder(
 	}, nil
 }
 
+// errForkIterationStop is an internal signal returned by iterator() when the
+// while condition evaluates false. It is not a failure: iterate() interprets
+// it as "stop the loop quietly" and never surfaces it to the caller.
 var errForkIterationStop = fmt.Errorf("fork iteration stop")
-
-// forChildResult is returned by the for-loop's child workflow and carries
-// intra-loop state only. Neither field is promoted to the parent workflow state.
-//
-// Output is the per-iteration result. It is stored in workingState.Output so
-// that the next iteration's while condition can read $output. The loop's final
-// aggregated result is returned from exec() and handled by the surrounding task
-// pipeline, not taken from this field.
-//
-// Context carries any value written by an export directive inside the iteration.
-// It is stored in workingState.Context so that the next iteration can read
-// $context. It is NOT copied to the parent state after the loop completes:
-// workingState.Context is loop-private, and copying it would cause inner-loop
-// exports to leak into the surrounding workflow context.
-type forChildResult struct {
-	Output  any `json:"output"`
-	Context any `json:"context"`
-}
 
 type ForTaskBuilder struct {
 	builder[*model.ForTask]
-
-	childWorkflowName string
 }
 
 func (t *ForTaskBuilder) Build() (TemporalWorkflowFunc, error) {
-	if len(*t.task.Do) == 0 {
-		log.Warn().Str("task", t.GetTaskName()).Msg("No do tasks detected in for task")
-		return nil, nil
-	}
-
-	t.childWorkflowName = utils.GenerateChildWorkflowName("for", t.GetTaskName())
-
-	// Build the inner DoTask with registration disabled so we can register our
-	// own wrapper that returns forChildResult instead of bare state.Output.
-	innerBuilder, err := NewDoTaskBuilder(
-		t.temporalWorker,
-		&model.DoTask{Do: t.task.Do},
-		t.childWorkflowName,
-		t.doc,
-		t.eventEmitter,
-		t.taskOpts,
-		DoTaskOpts{DisableRegisterWorkflow: true},
-	)
+	// Build the for body once as an ordinary inline function. It executes in
+	// the current workflow for every iteration rather than as a child workflow.
+	bodyFn, err := buildInlineTaskList(t.temporalWorker, t.task.Do, "", t.doc, t.eventEmitter, t.taskOpts, t.taskPath)
 	if err != nil {
-		log.Error().Str("task", t.childWorkflowName).Err(err).Msg("Error creating the for task builder")
-		return nil, fmt.Errorf("error creating the for task builder: %w", err)
-	}
-	// Direct construction bypasses NewTaskBuilder's path setter; thread it
-	// here so the body's tasks inherit the For's path.
-	innerBuilder.setTaskPath(t.taskPath)
-
-	innerFn, err := innerBuilder.Build()
-	if err != nil {
-		log.Error().Str("task", t.childWorkflowName).Err(err).Msg("Error building for workflow")
-		return nil, fmt.Errorf("error building for workflow: %w", err)
+		log.Error().Str("task", t.GetTaskName()).Err(err).Msg("Error building for body")
+		return nil, fmt.Errorf("error building for body: %w", err)
 	}
 
-	// Register a wrapper child workflow that returns the iteration output and
-	// exported context so the loop can propagate inter-iteration state.
-	t.temporalWorker.RegisterWorkflowWithOptions(
-		func(ctx workflow.Context, input any, state *utils.State) (forChildResult, error) {
-			output, err := innerFn(ctx, input, state)
-			if err != nil {
-				return forChildResult{}, err
-			}
-			return forChildResult{
-				Output:  output,
-				Context: state.Context,
-			}, nil
-		},
-		workflow.RegisterOptions{Name: t.childWorkflowName},
-	)
-
-	return t.exec()
+	return t.exec(bodyFn)
 }
 
 func (t *ForTaskBuilder) PostLoad() error {
-	builder, err := t.createBuilder()
+	builder, err := t.bodyBuilder()
 	if err != nil {
 		return err
 	}
-	if builder == nil {
-		return nil
-	}
 
 	if err := builder.PostLoad(); err != nil {
-		log.Error().Str("task", t.childWorkflowName).Err(err).Msg("Error building for workflow postload")
+		log.Error().Str("task", t.GetTaskName()).Err(err).Msg("Error post-loading for body")
 		return fmt.Errorf("error building for workflow postload: %w", err)
 	}
 
@@ -148,12 +88,9 @@ func (t *ForTaskBuilder) PostLoad() error {
 }
 
 func (t *ForTaskBuilder) Validate() error {
-	builder, err := t.createBuilder()
+	builder, err := t.bodyBuilder()
 	if err != nil {
 		return err
-	}
-	if builder == nil {
-		return nil
 	}
 
 	if err := builder.Validate(); err != nil {
@@ -189,28 +126,14 @@ func (t *ForTaskBuilder) addIterationResult(ctx workflow.Context, state *utils.S
 	})
 }
 
-func (t *ForTaskBuilder) createBuilder() (TaskBuilder, error) {
-	if len(*t.task.Do) == 0 {
-		log.Warn().Str("task", t.GetTaskName()).Msg("No do tasks detected in for task")
-		return nil, nil
-	}
-
-	// Register the ForTask's Do as a child workflow
-	t.childWorkflowName = utils.GenerateChildWorkflowName("for", t.GetTaskName())
-
-	builder, err := NewTaskBuilder(
-		t.childWorkflowName, &model.DoTask{Do: t.task.Do},
-		t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts, t.taskPath,
-	)
-	if err != nil {
-		log.Error().Str("task", t.childWorkflowName).Err(err).Msg("Error creating the for task builder")
-		return nil, fmt.Errorf("error creating the for task builder: %w", err)
-	}
-
-	return builder, nil
+// bodyBuilder constructs the inline DoTaskBuilder for the for body without
+// registering a workflow. It backs PostLoad and Validate so their configuration
+// cannot drift from Build's.
+func (t *ForTaskBuilder) bodyBuilder() (*DoTaskBuilder, error) {
+	return newInlineDoBuilder(t.temporalWorker, t.task.Do, "", t.doc, t.eventEmitter, t.taskOpts, t.taskPath)
 }
 
-func (t *ForTaskBuilder) exec() (TemporalWorkflowFunc, error) {
+func (t *ForTaskBuilder) exec(bodyFn TemporalWorkflowFunc) (TemporalWorkflowFunc, error) {
 	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
 		logger := workflow.GetLogger(ctx)
 
@@ -227,14 +150,13 @@ func (t *ForTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 		workingState := state.Clone()
 		workingState.Output = nil
 
-		output, err := t.iterate(ctx, workingState, data)
+		output, err := t.iterate(ctx, workingState, data, bodyFn)
 		if err != nil {
 			// flow.ErrEnd is special: an iteration deliberately requested
 			// that the workflow terminate, and the iterator has already
 			// surfaced its effective output. Propagate that output to the
 			// do-task layer so subsequent processTaskOutput / Export logic
-			// (and ultimately workflowExecutor's NewEndApplicationError
-			// payload) reflect the iteration's work rather than losing it.
+			// reflect the iteration's work rather than losing it.
 			if errors.Is(err, flow.ErrEnd) {
 				state.Output = output
 				return output, err
@@ -264,7 +186,7 @@ func (t *ForTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 // workingState is updated after each successful iteration: Context carries any
 // value written by an export directive, Output carries the iteration result so
 // that the next iteration's while condition can read $output.
-func (t *ForTaskBuilder) iterate(ctx workflow.Context, workingState *utils.State, data any) (any, error) {
+func (t *ForTaskBuilder) iterate(ctx workflow.Context, workingState *utils.State, data any, bodyFn TemporalWorkflowFunc) (any, error) {
 	logger := workflow.GetLogger(ctx)
 
 	switch v := data.(type) {
@@ -272,7 +194,7 @@ func (t *ForTaskBuilder) iterate(ctx workflow.Context, workingState *utils.State
 		logger.Debug("Iterating data as object", "task", t.GetTaskName())
 		output := map[string]any{}
 		for key, value := range v {
-			res, err := t.iterator(ctx, key, value, workingState)
+			res, err := t.iterator(ctx, key, value, workingState, bodyFn)
 			if done, endRes, endErr := t.classifyIterationOutcome(res, err); done {
 				if endErr != nil {
 					return endRes, endErr
@@ -287,7 +209,7 @@ func (t *ForTaskBuilder) iterate(ctx workflow.Context, workingState *utils.State
 		logger.Debug("Iterating data as array", "task", t.GetTaskName())
 		output := make([]any, 0)
 		for i, value := range v {
-			res, err := t.iterator(ctx, i, value, workingState)
+			res, err := t.iterator(ctx, i, value, workingState, bodyFn)
 			if done, endRes, endErr := t.classifyIterationOutcome(res, err); done {
 				if endErr != nil {
 					return endRes, endErr
@@ -312,7 +234,7 @@ func (t *ForTaskBuilder) iterate(ctx workflow.Context, workingState *utils.State
 	logger.Debug("Iterating data as a number", "task", t.GetTaskName())
 	output := make([]any, 0)
 	for i := range count {
-		res, err := t.iterator(ctx, i, i, workingState)
+		res, err := t.iterator(ctx, i, i, workingState, bodyFn)
 		if done, endRes, endErr := t.classifyIterationOutcome(res, err); done {
 			if endErr != nil {
 				return endRes, endErr
@@ -389,17 +311,20 @@ func (t *ForTaskBuilder) iterationCount(data any) (count int, ok bool, err error
 	return 0, false, nil
 }
 
-// iterator runs one iteration of the for loop.
+// iterator runs one iteration of the for loop by invoking the inline body
+// function in the current workflow.
 //
 // workingState carries accumulated cross-iteration state:
 // - Context from export directives
 // - Output from the previous iteration for while evaluation
 // - the last iteration result under the loop task name via addIterationResult
 //
-// Instead, iterator creates an iterState clone that includes the loop-local
-// variables and is passed to the child workflow. Only Context and Output are
-// propagated back from the child into workingState.
-func (t *ForTaskBuilder) iterator(ctx workflow.Context, key, value any, workingState *utils.State) (any, error) {
+// iterator creates an iterState clone that includes the loop-local variables
+// and passes it to bodyFn. Only Context and Output are propagated back into
+// workingState; the body's other Data mutations stay isolated to the iteration.
+func (t *ForTaskBuilder) iterator(
+	ctx workflow.Context, key, value any, workingState *utils.State, bodyFn TemporalWorkflowFunc,
+) (any, error) {
 	logger := workflow.GetLogger(ctx)
 
 	keyVar := t.task.For.At
@@ -432,48 +357,49 @@ func (t *ForTaskBuilder) iterator(ctx workflow.Context, key, value any, workingS
 		return nil, errForkIterationStop
 	}
 
-	// Clear output so the child starts with a clean slate.
+	// Clear output so the iteration body starts with a clean slate.
 	// Context is deliberately preserved in iterState so that exports from the
 	// previous iteration are visible to tasks inside this iteration via $context.
 	iterState.Output = nil
 
-	// Run the tasks
-	opts := workflow.ChildWorkflowOptions{
-		// key may be an integer or a string - use %v to let Go figure out how to represent it
-		WorkflowID: fmt.Sprintf("%s_for_%v", workflow.GetInfo(ctx).WorkflowExecution.ID, key),
-	}
-	childCtx := workflow.WithChildOptions(ctx, opts)
+	logger.Debug("Running inline for iteration body", "key", key, "task", t.GetTaskName())
 
-	logger.Info("Triggering forked child workflow", "name", t.childWorkflowName)
-
-	var res forChildResult
-	if err := workflow.ExecuteChildWorkflow(childCtx, t.childWorkflowName, iterState.Input, iterState).Get(ctx, &res); err != nil {
-		// A `then: end` directive inside the iteration body crosses the
-		// child workflow boundary as a typed Temporal ApplicationError
-		// carrying the iteration's effective output. Surface it as
-		// flow.ErrEnd here so the for-task signals end to its enclosing
-		// scope rather than reporting a generic failure, and update
-		// workingState.Output with the carried payload so the for-task
-		// returns the iteration's effective output rather than losing it.
+	output, err := bodyFn(ctx, iterState.Input, iterState)
+	if err != nil {
+		// A `then: end` directive inside the iteration body deliberately
+		// terminates the workflow. The inline body surfaces flow.ErrEnd
+		// directly, carrying its effective output. Surface it as flow.ErrEnd
+		// to the enclosing scope rather than reporting a generic failure, and
+		// update workingState.Output so the for-task returns the iteration's
+		// effective output rather than losing it.
+		//
+		// The DecodeEndApplicationError branch is retained only for
+		// backwards compatibility with an encoded end error that could still
+		// arrive from a Temporal boundary. It is checked first so its carried
+		// payload is not lost; it is not the primary inline path.
 		if endPayload, isEnd := flow.DecodeEndApplicationError(err); isEnd {
-			logger.Info("For iteration signalled end; propagating to caller",
-				"workflow", t.childWorkflowName, "carriedOutput", endPayload.Output)
+			logger.Info("For iteration signalled end (encoded); propagating to caller", "carriedOutput", endPayload.Output)
 			workingState.Output = endPayload.Output
 			return endPayload.Output, flow.ErrEnd
 		}
-		logger.Error("Error calling for workflow", "error", err, "workflow", t.childWorkflowName)
-		return nil, fmt.Errorf("error calling for workflow: %w", err)
+		if errors.Is(err, flow.ErrEnd) {
+			logger.Info("For iteration signalled end; propagating to caller", "carriedOutput", output)
+			workingState.Output = output
+			return output, flow.ErrEnd
+		}
+		logger.Error("Error running for iteration tasks", "error", err, "key", key, "task", t.GetTaskName())
+		return nil, fmt.Errorf("error running for iteration tasks: %w", err)
 	}
 
 	// Propagate only Context and Output back into workingState so that the
 	// next iteration's while check and $context references see current values.
-	// Data mutations made inside the child workflow are intentionally discarded:
-	// they are child-internal. The only Data update that crosses iteration
+	// Data mutations made inside the body are intentionally discarded: they
+	// are iteration-internal. The only Data update that crosses iteration
 	// boundaries is the one made by addIterationResult during loop iteration.
-	workingState.Context = res.Context
-	workingState.Output = res.Output
+	workingState.Context = iterState.Context
+	workingState.Output = output
 
-	return res.Output, nil
+	return output, nil
 }
 
 // checkWhile decides if we should stop the iteration

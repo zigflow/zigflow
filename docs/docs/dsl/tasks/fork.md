@@ -12,8 +12,8 @@ of the fastest branch and want to cancel the rest.
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
-| fork.branches | [`map[string, task]`](/docs/dsl/tasks/intro) | `no` | The tasks to perform concurrently. These will be run as [child workflows](https://docs.temporal.io/child-workflows). |
-| fork.compete | `boolean` | `no` | Indicates whether or not the concurrent [`tasks`](/docs/dsl/tasks/intro) are racing against each other, with a single possible winner, which sets the composite task's output.<br />*If set to `false`, the task returns an array that includes the outputs from each branch, preserving the order in which the branches are declared.*<br />*If to `true`, the task returns only the output of the winning branch.*<br />*Defaults to `false`.* |
+| fork.branches | [`map[string, task]`](/docs/dsl/tasks/intro) | `no` | The tasks to perform concurrently. These run inline within the workflow. |
+| fork.compete | `boolean` | `no` | Indicates whether or not the concurrent [`tasks`](/docs/dsl/tasks/intro) are racing against each other, with a single possible winner, which sets the composite task's output.<br />*If set to `false`, the task returns an object keyed by branch name, holding the output of each branch.*<br />*If set to `true`, the task returns only the output of the winning branch.*<br />*Defaults to `false`.* |
 
 ## Example
 
@@ -33,7 +33,7 @@ document:
   version: 0.0.1
 do:
   - raiseAlarm:
-      # A fork is a series of child workflows running in parallel
+      # A fork runs a series of branches concurrently
       output:
         # Add output to context without the `multiStep` key
         as:
@@ -57,7 +57,7 @@ do:
                 - wait2:
                     wait:
                       seconds: 2
-          # Another single step child workflow
+          # Another single step branch
           - callDoctor:
               call: http
               with:
@@ -84,20 +84,43 @@ This will output an object similar to this, with the workflow data under the
 
 ### Competing Fork
 
-This will return the fastest returning workflow only. Simply change `compete: false`
+This will return the fastest returning branch only. Simply change `compete: false`
 to `compete: true`. The data will look similar to this:
 
 ```json
 {
   "raiseAlarm": {
-    // The workflow's data
+    // The branch's data
   }
 }
 ```
 
 Unlike the non-competing version, the `raiseAlarm` object will *ONLY* contain
-the data of the winning fork. All the other workflows will be cancelled and any
+the data of the winning branch. All the other branches will be cancelled and any
 data generated will be discarded.
+
+## Behaviour
+
+**Branches run concurrently inline** within the current workflow, not as
+separate child workflows. Each branch starts from an isolated clone of the
+parent state, so a branch's `Data` and `Context` mutations do not leak into the
+parent or into sibling branches.
+
+**Non-competing forks wait for every branch** to complete and aggregate the
+successful results into an object keyed by branch name. Outcome selection is
+deterministic by declaration order rather than completion order:
+
+- If one or more branches fail, the fork fails with the error from the
+  earliest declared failing branch. A genuine error takes precedence over an
+  `end` directive.
+- If no branch fails but one or more signal `then: end`, the earliest declared
+  ending branch determines the carried output and the whole workflow ends.
+- Otherwise every branch output is aggregated under its branch name.
+
+**Competing forks (`compete: true`) are first-completed-wins.** The first
+branch to complete decides the result, whether that is a success, a failure or
+an `end`. The remaining branches are then cancelled and only the winner's
+output is returned.
 
 ## Gotchas
 
@@ -105,9 +128,8 @@ data generated will be discarded.
 (HTTP calls, state changes) performed in cancelled branches are not rolled back.
 Only the winner's output is returned.
 
-**Each branch runs as a child workflow.** Errors in a branch propagate back to
-the parent fork task and trigger the retry policy unless caught by a `try` task
-wrapping the branch.
+**Each branch runs inline within the workflow.** Errors in a branch propagate
+back to the parent fork task unless caught by a `try` task wrapping the branch.
 
 ## Related pages
 
@@ -115,6 +137,6 @@ wrapping the branch.
 - [For](/docs/dsl/tasks/for): iteration over collections
 - [Try](/docs/dsl/tasks/try): error handling within a branch
 - [Concepts: how Zigflow runs](/docs/concepts/how-zigflow-runs):
-  child workflows and execution model
+  concurrency and execution model
 - [Examples: parallel tasks](/docs/examples/parallel-tasks):
   competing and non-competing fork in action

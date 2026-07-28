@@ -24,12 +24,32 @@ import (
 
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
+
+// newForTestBuilder builds a ForTaskBuilder for the exec/iterator tests. The
+// Do list is a placeholder: these tests supply the iteration body directly as a
+// TemporalWorkflowFunc closure to exec/iterator, so the body is never built
+// from the task list.
+func newForTestBuilder(name string, cfg model.ForTaskConfiguration, while string) *ForTaskBuilder {
+	return &ForTaskBuilder{
+		builder: builder[*model.ForTask]{
+			doc:          testWorkflow,
+			eventEmitter: testEvents,
+			name:         name,
+			task: &model.ForTask{
+				For:   cfg,
+				While: while,
+				Do:    &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+			},
+		},
+	}
+}
 
 func TestForTaskBuilderAddIterationResult(t *testing.T) {
 	tests := []struct {
@@ -135,17 +155,7 @@ func TestForTaskBuilderCheckWhile(t *testing.T) {
 			state := utils.NewState()
 			state.AddData(tc.stateData)
 
-			builder := &ForTaskBuilder{
-				builder: builder[*model.ForTask]{
-					eventEmitter: testEvents,
-					name:         "for-task",
-					task: &model.ForTask{
-						For:   model.ForTaskConfiguration{In: testConstForDataItems},
-						While: tc.while,
-						Do:    &model.TaskList{},
-					},
-				},
-			}
+			builder := newForTestBuilder("for-task", model.ForTaskConfiguration{In: testConstForDataItems}, tc.while)
 
 			var s testsuite.WorkflowTestSuite
 			env := s.NewTestWorkflowEnvironment()
@@ -262,180 +272,137 @@ func TestForTaskBuilderIterationCount(t *testing.T) {
 	}
 }
 
+// TestForTaskBuilderIterator proves one iteration runs the inline body with the
+// current loop-local variables, returns its output, propagates that output onto
+// the working state, and keeps the loop-local variables off the working state.
 func TestForTaskBuilderIterator(t *testing.T) {
 	state := utils.NewState()
-	state.Input = map[string]any{
-		testConstRequestID: "abc",
+	state.Input = map[string]any{testConstRequestID: "abc"}
+
+	builder := newForTestBuilder("iterate", model.ForTaskConfiguration{
+		Each: testConstValue,
+		At:   testConstIdx,
+		In:   testConstForDataItems,
+	}, "")
+
+	// The body reads the loop-local item variable and echoes it back under a
+	// child key, mirroring what a real do-body would produce.
+	var (
+		bodyItem  any
+		bodyIndex any
+	)
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		bodyItem = st.Data[testConstValue]
+		bodyIndex = st.Data[testConstIdx]
+		return map[string]any{testConstChildValue: st.Data[testConstValue]}, nil
 	}
 
-	builder := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "iterate",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: testConstValue,
-					At:   testConstIdx,
-					In:   testConstForDataItems,
-				},
-				Do: &model.TaskList{
-					&model.TaskItem{Key: "first", Task: &model.DoTask{}},
-				},
-			},
-		},
-		childWorkflowName: utils.GenerateChildWorkflowName("for", "iterate"),
-	}
+	state.AddData(map[string]any{testConstItems: []any{testConstItemValue}})
 
 	var s testsuite.WorkflowTestSuite
 	env := s.NewTestWorkflowEnvironment()
 
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-		return forChildResult{
-			Output:  map[string]any{testConstChildValue: st.Data[testConstValue]},
-			Context: nil,
-		}, nil
-	}, workflow.RegisterOptions{Name: builder.childWorkflowName})
-
-	state.AddData(map[string]any{
-		testConstItems: []any{testConstItemValue},
-	})
-
 	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return builder.iterator(ctx, 0, testConstItemValue, state)
+		return builder.iterator(ctx, 0, testConstItemValue, state, bodyFn)
 	}, workflow.RegisterOptions{Name: "iterator-test"})
 
 	env.ExecuteWorkflow("iterator-test")
-	assert.NoError(t, env.GetWorkflowError())
+	require.NoError(t, env.GetWorkflowError())
 
-	var result map[string]any
-	assert.NoError(t, env.GetWorkflowResult(&result))
+	// The body observed the current loop-local variables.
+	assert.Equal(t, testConstItemValue, bodyItem)
+	assert.Equal(t, 0, bodyIndex)
 
-	assert.Equal(t, map[string]any{testConstChildValue: testConstItemValue}, result)
-	// iterator() propagates the child's output back onto the working state (the
-	// state passed as the workingState parameter, which in this test is state itself).
+	// iterator propagates the body's output onto the working state (here the
+	// state passed as workingState) with no JSON coercion of the value.
 	assert.Equal(t, map[string]any{testConstChildValue: testConstItemValue}, state.Output)
-	// Loop-local variables must not appear on the state passed to iterator()
-	// because they are placed on a per-iteration clone (iterState) inside iterator().
+
+	// Loop-local variables live on the per-iteration clone and must not appear
+	// on the working state passed to iterator().
 	assert.Nil(t, state.Data[testConstValue])
 	assert.Nil(t, state.Data[testConstIdx])
 }
 
-// TestForIteratorContextPropagates verifies that $context set by an export in
-// iteration N is visible as state.Context when iterator() is called for N+1.
+// TestForIteratorContextPropagates verifies that $context exported by iteration
+// N is visible as state.Context when iterator() runs for N+1.
 func TestForIteratorContextPropagates(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "ctx-prop")
+	b := newForTestBuilder("ctx-prop", model.ForTaskConfiguration{
+		Each: constDefaultItemVar,
+		At:   testConstIdx,
+		In:   testConstForDataItems,
+	}, "")
 
-	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "ctx-prop",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{Each: constDefaultItemVar, At: testConstIdx, In: testConstForDataItems},
-				Do:  &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
-			},
-		},
-		childWorkflowName: childWorkflowName,
+	// The body records the context it received then exports a new one.
+	var receivedContexts []any
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		receivedContexts = append(receivedContexts, st.Context)
+		st.Context = map[string]any{testConstLast: st.Data[constDefaultItemVar]}
+		return st.Data[constDefaultItemVar], nil
 	}
+
+	state := utils.NewState()
 
 	var s testsuite.WorkflowTestSuite
 	env := s.NewTestWorkflowEnvironment()
 
-	// The mock returns a context that records which items have been visited.
-	// The second invocation receives the context set by the first invocation.
-	var receivedContexts []any
-	env.RegisterWorkflowWithOptions(
-		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			receivedContexts = append(receivedContexts, st.Context)
-			return forChildResult{
-				Output:  st.Data[constDefaultItemVar],
-				Context: map[string]any{testConstLast: st.Data[constDefaultItemVar]},
-			}, nil
-		},
-		workflow.RegisterOptions{Name: childWorkflowName},
-	)
-
-	state := utils.NewState()
-
 	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) error {
-		if _, err := b.iterator(ctx, 0, "alpha", state); err != nil {
+		if _, err := b.iterator(ctx, 0, "alpha", state, bodyFn); err != nil {
 			return err
 		}
-		if _, err := b.iterator(ctx, 1, "beta", state); err != nil {
+		if _, err := b.iterator(ctx, 1, "beta", state, bodyFn); err != nil {
 			return err
 		}
 		return nil
 	}, workflow.RegisterOptions{Name: "ctx-prop-outer"})
 
 	env.ExecuteWorkflow("ctx-prop-outer")
-	assert.NoError(t, env.GetWorkflowError())
+	require.NoError(t, env.GetWorkflowError())
 
-	assert.Len(t, receivedContexts, 2)
+	require.Len(t, receivedContexts, 2)
 	// First iteration starts with no exported context.
 	assert.Nil(t, receivedContexts[0])
 	// Second iteration sees the context exported by the first iteration.
 	assert.Equal(t, map[string]any{testConstLast: "alpha"}, receivedContexts[1])
-	// Parent state ends with the context from the final iteration.
+	// Working state ends with the context from the final iteration.
 	assert.Equal(t, map[string]any{testConstLast: "beta"}, state.Context)
 }
 
 // TestForIteratorWhileSeesOutput verifies that the while condition for iteration
-// N+1 sees the output produced by iteration N.
+// N+1 sees the output produced by iteration N, and that the body is not invoked
+// for a rejected iteration.
 func TestForIteratorWhileSeesOutput(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "while-out")
+	b := newForTestBuilder("while-out", model.ForTaskConfiguration{
+		Each: constDefaultItemVar,
+		At:   testConstIdx,
+		In:   testConstForDataItems,
+	}, "${ $output.continue }")
 
-	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "while-out",
-			task: &model.ForTask{
-				// Continue while $output.continue is true.
-				While: "${ $output.continue }",
-				For:   model.ForTaskConfiguration{Each: constDefaultItemVar, At: testConstIdx, In: testConstForDataItems},
-				Do:    &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
-			},
-		},
-		childWorkflowName: childWorkflowName,
+	callCount := 0
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		callCount++
+		// The first iteration returns continue=false so the second iteration's
+		// while check stops the loop.
+		return map[string]any{testConstFlowContinue: false}, nil
 	}
 
+	state := utils.NewState()
+	// Pre-seed output so the first while check (before any iteration) passes.
+	state.Output = map[string]any{testConstFlowContinue: true}
+
+	// stoppedAt: 0 never stopped, 1 stopped on first, 2 stopped on second.
+	stoppedAt := 0
 	var s testsuite.WorkflowTestSuite
 	env := s.NewTestWorkflowEnvironment()
 
-	callCount := 0
-	env.RegisterWorkflowWithOptions(
-		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			callCount++
-			// The first iteration returns continue=false so the second iteration's
-			// while check should stop the loop.
-			return forChildResult{Output: map[string]any{testConstFlowContinue: false}, Context: nil}, nil
-		},
-		workflow.RegisterOptions{Name: childWorkflowName},
-	)
-
-	state := utils.NewState()
-	// Pre-seed output so the first while check (before any iteration runs) passes.
-	// This also doubles as a check that the pre-loop $output is visible to while.
-	state.Output = map[string]any{testConstFlowContinue: true}
-
-	// stoppedAt tracks which iteration caused the loop to stop.
-	// 0 = never stopped, 1 = stopped on first, 2 = stopped on second.
-	stoppedAt := 0
 	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) error {
-		// Iteration 0: state.Output.continue == true (pre-seeded), so while passes.
-		res0, err := b.iterator(ctx, 0, "first", state)
-		if err != nil {
+		if _, err := b.iterator(ctx, 0, "first", state, bodyFn); err != nil {
 			if errors.Is(err, errForkIterationStop) {
 				stoppedAt = 1
 				return nil
 			}
 			return err
 		}
-		_ = res0
-		// Iteration 1: state.Output.continue == false (from iteration 0), so while stops.
-		_, err = b.iterator(ctx, 1, "second", state)
-		if err != nil {
+		if _, err := b.iterator(ctx, 1, "second", state, bodyFn); err != nil {
 			if errors.Is(err, errForkIterationStop) {
 				stoppedAt = 2
 				return nil
@@ -446,625 +413,452 @@ func TestForIteratorWhileSeesOutput(t *testing.T) {
 	}, workflow.RegisterOptions{Name: "while-out-outer"})
 
 	env.ExecuteWorkflow("while-out-outer")
-	assert.NoError(t, env.GetWorkflowError())
+	require.NoError(t, env.GetWorkflowError())
 	// The while condition stopped the loop at the second iteration call.
 	assert.Equal(t, 2, stoppedAt)
-	// Child workflow was only invoked once (first iteration ran; second was stopped by while).
+	// The body ran only for the first iteration; the second was rejected by while.
 	assert.Equal(t, 1, callCount)
 }
 
-// TestForExecArrayAccumulatesResults verifies that the for task still returns an
-// array of per-iteration results when iterating over an array for.in value.
+// TestForExecArrayAccumulatesResults verifies exec returns an ordered array of
+// per-iteration results for an array for.in value, with the body invoked once
+// per item and no JSON coercion of the values.
 func TestForExecArrayAccumulatesResults(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "accum")
+	b := newForTestBuilder("accum", model.ForTaskConfiguration{
+		Each: constDefaultItemVar,
+		At:   testConstIdx,
+		In:   testConstForRefDataItems,
+	}, "")
 
-	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "accum",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: constDefaultItemVar,
-					At:   testConstIdx,
-					In:   testConstForRefDataItems,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
-			},
-		},
-		childWorkflowName: childWorkflowName,
+	callCount := 0
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		callCount++
+		return map[string]any{testConstProcessed: st.Data[constDefaultItemVar]}, nil
 	}
-
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
-
-	env.RegisterWorkflowWithOptions(
-		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			return forChildResult{
-				Output:  map[string]any{testConstProcessed: st.Data[constDefaultItemVar]},
-				Context: nil,
-			}, nil
-		},
-		workflow.RegisterOptions{Name: childWorkflowName},
-	)
 
 	state := utils.NewState()
 	state.AddData(map[string]any{testConstItems: []any{"x", "y", "z"}})
 
-	execFn, err := b.exec()
-	assert.NoError(t, err)
+	execFn, err := b.exec(bodyFn)
+	require.NoError(t, err)
 
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return execFn(ctx, nil, state)
-	}, workflow.RegisterOptions{Name: "accum-outer"})
-
-	env.ExecuteWorkflow("accum-outer")
-	assert.NoError(t, env.GetWorkflowError())
-
-	var result []any
-	assert.NoError(t, env.GetWorkflowResult(&result))
+	output, execErr := runInlineWorkflowFunc(t, "for-exec", execFn, nil, state)
+	require.NoError(t, execErr)
 
 	assert.Equal(t, []any{
 		map[string]any{testConstProcessed: "x"},
 		map[string]any{testConstProcessed: "y"},
 		map[string]any{testConstProcessed: "z"},
-	}, result)
+	}, output)
+	assert.Equal(t, 3, callCount)
+	// exec sets the parent output to the aggregated result on clean completion.
+	assert.Equal(t, output, state.Output)
 }
 
-// TestForExecObjectAccumulatesResults verifies the object for.in variant still
-// returns a map keyed by the original object keys.
+// TestForExecObjectAccumulatesResults verifies the object for.in variant returns
+// a map keyed by the original object keys. Inline execution preserves concrete
+// Go types (no float64 coercion). Map iteration order is not asserted.
 func TestForExecObjectAccumulatesResults(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "obj-accum")
+	b := newForTestBuilder("obj-accum", model.ForTaskConfiguration{
+		Each: testConstVal,
+		At:   "key",
+		In:   testConstForRefDataItems,
+	}, "")
 
-	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "obj-accum",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: testConstVal,
-					At:   "key",
-					In:   testConstForRefDataItems,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
-			},
-		},
-		childWorkflowName: childWorkflowName,
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		return st.Data[testConstVal], nil
 	}
-
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
-
-	env.RegisterWorkflowWithOptions(
-		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			return forChildResult{
-				Output:  st.Data[testConstVal],
-				Context: nil,
-			}, nil
-		},
-		workflow.RegisterOptions{Name: childWorkflowName},
-	)
 
 	state := utils.NewState()
 	state.AddData(map[string]any{testConstItems: map[string]any{"a": 1, "b": 2}})
 
-	execFn, err := b.exec()
-	assert.NoError(t, err)
+	execFn, err := b.exec(bodyFn)
+	require.NoError(t, err)
 
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return execFn(ctx, nil, state)
-	}, workflow.RegisterOptions{Name: "obj-accum-outer"})
+	output, execErr := runInlineWorkflowFunc(t, "for-exec", execFn, nil, state)
+	require.NoError(t, execErr)
 
-	env.ExecuteWorkflow("obj-accum-outer")
-	assert.NoError(t, env.GetWorkflowError())
-
-	var result map[string]any
-	assert.NoError(t, env.GetWorkflowResult(&result))
-
-	// JSON round-trip through the Temporal child workflow boundary converts integers to float64.
-	assert.Equal(t, map[string]any{"a": float64(1), "b": float64(2)}, result)
+	// Inline execution keeps ints as ints; there is no child-boundary JSON trip.
+	assert.Equal(t, map[string]any{"a": 1, "b": 2}, output)
 }
 
-// TestForExecNumericAccumulatesResults verifies the numeric for.in variant still
-// returns a slice with one entry per iteration index.
+// TestForExecNumericAccumulatesResults verifies the numeric for.in variant
+// returns a slice with one entry per iteration index, preserving int types.
 func TestForExecNumericAccumulatesResults(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-accum")
+	b := newForTestBuilder("num-accum", model.ForTaskConfiguration{
+		Each: testConstVal,
+		At:   testConstIdx,
+		In:   testConstForRefDataCount,
+	}, "")
 
-	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "num-accum",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: testConstVal,
-					At:   testConstIdx,
-					In:   testConstForRefDataCount,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
-			},
-		},
-		childWorkflowName: childWorkflowName,
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		return st.Data[testConstIdx], nil
 	}
-
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
-
-	env.RegisterWorkflowWithOptions(
-		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			return forChildResult{Output: st.Data[testConstIdx], Context: nil}, nil
-		},
-		workflow.RegisterOptions{Name: childWorkflowName},
-	)
 
 	state := utils.NewState()
 	state.AddData(map[string]any{testConstCount: 3})
 
-	execFn, err := b.exec()
-	assert.NoError(t, err)
+	execFn, err := b.exec(bodyFn)
+	require.NoError(t, err)
 
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return execFn(ctx, nil, state)
-	}, workflow.RegisterOptions{Name: "num-accum-outer"})
+	output, execErr := runInlineWorkflowFunc(t, "for-exec", execFn, nil, state)
+	require.NoError(t, execErr)
 
-	env.ExecuteWorkflow("num-accum-outer")
-	assert.NoError(t, env.GetWorkflowError())
-
-	var result []any
-	assert.NoError(t, env.GetWorkflowResult(&result))
-
-	// JSON round-trip through the Temporal child workflow boundary converts integers to float64.
-	assert.Equal(t, []any{float64(0), float64(1), float64(2)}, result)
+	assert.Equal(t, []any{0, 1, 2}, output)
 }
 
-// TestForExecNumericFloat64Whole verifies that the numeric for.in variant
-// accepts a float64 value that represents a whole number (for example 5.0)
-// and iterates the expected number of times. Variables resolved through jq
-// may arrive as float64 after a JSON round trip even when they were authored
-// as integer literals, so this case must be supported.
+// TestForExecNumericFloat64Whole verifies a float64 whole number (e.g. 5.0),
+// as jq may yield after a JSON round trip, is accepted as an iteration count.
 func TestForExecNumericFloat64Whole(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-float64-whole")
-
-	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "num-float64-whole",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: testConstVal,
-					At:   testConstIdx,
-					In:   testConstForRefDataCount,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
-			},
-		},
-		childWorkflowName: childWorkflowName,
-	}
-
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
+	b := newForTestBuilder("num-float64-whole", model.ForTaskConfiguration{
+		Each: testConstVal,
+		At:   testConstIdx,
+		In:   testConstForRefDataCount,
+	}, "")
 
 	callCount := 0
-	env.RegisterWorkflowWithOptions(
-		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			callCount++
-			return forChildResult{Output: st.Data[testConstIdx], Context: nil}, nil
-		},
-		workflow.RegisterOptions{Name: childWorkflowName},
-	)
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		callCount++
+		return st.Data[testConstIdx], nil
+	}
 
 	state := utils.NewState()
-	// A float64 whole number must be accepted and treated as an iteration count.
 	state.AddData(map[string]any{testConstCount: float64(5)})
 
-	execFn, err := b.exec()
-	assert.NoError(t, err)
+	execFn, err := b.exec(bodyFn)
+	require.NoError(t, err)
 
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return execFn(ctx, nil, state)
-	}, workflow.RegisterOptions{Name: "num-float64-whole-outer"})
+	output, execErr := runInlineWorkflowFunc(t, "for-exec", execFn, nil, state)
+	require.NoError(t, execErr)
 
-	env.ExecuteWorkflow("num-float64-whole-outer")
-	assert.NoError(t, env.GetWorkflowError())
-
-	var result []any
-	assert.NoError(t, env.GetWorkflowResult(&result))
-
-	// JSON round-trip through the Temporal child workflow boundary converts integers to float64.
-	assert.Equal(t, []any{float64(0), float64(1), float64(2), float64(3), float64(4)}, result)
-	assert.Equal(t, 5, callCount, "child workflow must be invoked once per iteration")
+	assert.Equal(t, []any{0, 1, 2, 3, 4}, output)
+	assert.Equal(t, 5, callCount, "body must be invoked once per iteration")
 }
 
-// TestForExecNumericFloat64Zero verifies that a float64 zero results in no
-// iterations rather than an error. Zero is a whole number so the trunc check
-// must accept it.
+// TestForExecNumericFloat64Zero verifies a float64 zero yields no iterations
+// rather than an error.
 func TestForExecNumericFloat64Zero(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-float64-zero")
-
-	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "num-float64-zero",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: testConstVal,
-					At:   testConstIdx,
-					In:   testConstForRefDataCount,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
-			},
-		},
-		childWorkflowName: childWorkflowName,
-	}
-
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
+	b := newForTestBuilder("num-float64-zero", model.ForTaskConfiguration{
+		Each: testConstVal,
+		At:   testConstIdx,
+		In:   testConstForRefDataCount,
+	}, "")
 
 	callCount := 0
-	env.RegisterWorkflowWithOptions(
-		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			callCount++
-			return forChildResult{Output: st.Data[testConstIdx], Context: nil}, nil
-		},
-		workflow.RegisterOptions{Name: childWorkflowName},
-	)
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		callCount++
+		return st.Data[testConstIdx], nil
+	}
 
 	state := utils.NewState()
 	state.AddData(map[string]any{testConstCount: float64(0)})
 
-	execFn, err := b.exec()
-	assert.NoError(t, err)
+	execFn, err := b.exec(bodyFn)
+	require.NoError(t, err)
 
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return execFn(ctx, nil, state)
-	}, workflow.RegisterOptions{Name: "num-float64-zero-outer"})
+	output, execErr := runInlineWorkflowFunc(t, "for-exec", execFn, nil, state)
+	require.NoError(t, execErr)
 
-	env.ExecuteWorkflow("num-float64-zero-outer")
-	assert.NoError(t, env.GetWorkflowError())
-
-	var result []any
-	assert.NoError(t, env.GetWorkflowResult(&result))
-
-	assert.Equal(t, []any{}, result, "zero count must produce no iterations")
-	assert.Equal(t, 0, callCount, "child workflow must not be invoked when count is zero")
+	assert.Equal(t, []any{}, output, "zero count must produce no iterations")
+	assert.Equal(t, 0, callCount, "body must not be invoked when count is zero")
 }
 
-// TestForExecNumericFloat64Fractional verifies that a for.in expression
-// resolving to a non-whole-number float64 fails with a clear, actionable
-// error that names the offending value. Silent truncation would violate the
-// determinism and explicit-validation principles of the engine.
+// TestForExecNumericFloat64Fractional verifies a non-whole-number float64 for.in
+// value fails with a clear error naming the offending value, and no iterations
+// run.
 func TestForExecNumericFloat64Fractional(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-float64-frac")
-
-	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "num-float64-frac",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: testConstVal,
-					At:   testConstIdx,
-					In:   testConstForRefDataCount,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
-			},
-		},
-		childWorkflowName: childWorkflowName,
-	}
-
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
+	b := newForTestBuilder("num-float64-frac", model.ForTaskConfiguration{
+		Each: testConstVal,
+		At:   testConstIdx,
+		In:   testConstForRefDataCount,
+	}, "")
 
 	callCount := 0
-	env.RegisterWorkflowWithOptions(
-		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			callCount++
-			return forChildResult{Output: st.Data[testConstIdx], Context: nil}, nil
-		},
-		workflow.RegisterOptions{Name: childWorkflowName},
-	)
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		callCount++
+		return st.Data[testConstIdx], nil
+	}
 
 	state := utils.NewState()
 	state.AddData(map[string]any{testConstCount: 5.5})
 
-	execFn, err := b.exec()
-	assert.NoError(t, err)
+	execFn, err := b.exec(bodyFn)
+	require.NoError(t, err)
 
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return execFn(ctx, nil, state)
-	}, workflow.RegisterOptions{Name: "num-float64-frac-outer"})
-
-	env.ExecuteWorkflow("num-float64-frac-outer")
-
-	wfErr := env.GetWorkflowError()
-	assert.Error(t, wfErr)
-	assert.Contains(t, wfErr.Error(), "for task numeric iteration value must be a whole number")
-	assert.Contains(t, wfErr.Error(), "5.5")
+	_, execErr := runInlineWorkflowFunc(t, "for-exec", execFn, nil, state)
+	require.Error(t, execErr)
+	assert.Contains(t, execErr.Error(), "for task numeric iteration value must be a whole number")
+	assert.Contains(t, execErr.Error(), "5.5")
 	assert.Equal(t, 0, callCount, "no iterations must run when the for.in value is invalid")
 }
 
-// TestForExecLoopVarsDoNotLeakToParent verifies that loop-local variables
-// (item, index or custom names) are not present in the parent state's Data
-// after the for loop completes.
+// TestForExecLoopVarsDoNotLeakToParent verifies loop-local variables are not
+// present in the parent state's Data after the loop completes.
 func TestForExecLoopVarsDoNotLeakToParent(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "leak-check")
+	b := newForTestBuilder("leak-check", model.ForTaskConfiguration{
+		Each: constDefaultItemVar,
+		At:   testConstIdx,
+		In:   testConstForRefDataItems,
+	}, "")
 
-	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "leak-check",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: constDefaultItemVar,
-					At:   testConstIdx,
-					In:   testConstForRefDataItems,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
-			},
-		},
-		childWorkflowName: childWorkflowName,
+	// The body also mutates its own Data; those mutations must not leak either.
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		st.AddData(map[string]any{"body-only": true})
+		return st.Data[constDefaultItemVar], nil
 	}
-
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
-
-	env.RegisterWorkflowWithOptions(
-		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			return forChildResult{Output: st.Data[constDefaultItemVar], Context: nil}, nil
-		},
-		workflow.RegisterOptions{Name: childWorkflowName},
-	)
 
 	state := utils.NewState()
 	state.AddData(map[string]any{testConstItems: []any{"a", "b"}})
 
-	execFn, err := b.exec()
-	assert.NoError(t, err)
+	execFn, err := b.exec(bodyFn)
+	require.NoError(t, err)
 
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return execFn(ctx, nil, state)
-	}, workflow.RegisterOptions{Name: "leak-check-outer"})
+	_, execErr := runInlineWorkflowFunc(t, "for-exec", execFn, nil, state)
+	require.NoError(t, execErr)
 
-	env.ExecuteWorkflow("leak-check-outer")
-	assert.NoError(t, env.GetWorkflowError())
-
-	// Loop-local variables must not appear in parent state after the loop exits.
 	assert.Nil(t, state.Data[constDefaultItemVar], "item must not leak to parent state")
 	assert.Nil(t, state.Data[testConstIdx], "idx must not leak to parent state")
+	assert.Nil(t, state.Data["body-only"], "arbitrary body Data must not leak to parent state")
 	// The pre-loop data must be unmodified.
 	assert.Equal(t, []any{"a", "b"}, state.Data[testConstItems])
 }
 
-// TestForExecContextDoesNotLeakToParent verifies that $context updated by an
-// export inside the loop does NOT propagate to the parent state after exec().
-// workingState.Context is loop-private and must not overwrite the surrounding
-// workflow context. Loop-internal Data changes must also not appear in parent Data.
-func TestForExecContextDoesNotLeakToParent(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "ctx-leak")
+// TestForIterInterIterationDataIsolation verifies arbitrary Data written by one
+// iteration body does not carry into the next iteration; only Context and Output
+// cross the boundary.
+func TestForIterInterIterationDataIsolation(t *testing.T) {
+	b := newForTestBuilder("data-iso", model.ForTaskConfiguration{
+		Each: constDefaultItemVar,
+		At:   testConstIdx,
+		In:   testConstForRefDataItems,
+	}, "")
 
-	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "ctx-leak",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: constDefaultItemVar,
-					At:   testConstIdx,
-					In:   testConstForRefDataItems,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
-			},
-		},
-		childWorkflowName: childWorkflowName,
+	var seenBodyOnly []any
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		seenBodyOnly = append(seenBodyOnly, st.Data["body-only"])
+		st.AddData(map[string]any{"body-only": st.Data[constDefaultItemVar]})
+		return st.Data[constDefaultItemVar], nil
 	}
 
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
+	state := utils.NewState()
+	state.AddData(map[string]any{testConstItems: []any{"a", "b"}})
 
-	env.RegisterWorkflowWithOptions(
-		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			return forChildResult{
-				Output:  st.Data[constDefaultItemVar],
-				Context: map[string]any{testConstLast: st.Data[constDefaultItemVar]},
-			}, nil
-		},
-		workflow.RegisterOptions{Name: childWorkflowName},
-	)
+	execFn, err := b.exec(bodyFn)
+	require.NoError(t, err)
+
+	_, execErr := runInlineWorkflowFunc(t, "for-exec", execFn, nil, state)
+	require.NoError(t, execErr)
+
+	require.Len(t, seenBodyOnly, 2)
+	// Neither iteration sees the "body-only" data written by the other.
+	assert.Nil(t, seenBodyOnly[0])
+	assert.Nil(t, seenBodyOnly[1], "arbitrary body Data must not cross to the next iteration")
+}
+
+// TestForExecContextDoesNotLeakToParent verifies $context updated by an export
+// inside the loop does not propagate to the parent state after exec(), and that
+// loop-internal Data (e.g. the accumulated iteration result) does not appear in
+// the parent Data.
+func TestForExecContextDoesNotLeakToParent(t *testing.T) {
+	b := newForTestBuilder("ctx-leak", model.ForTaskConfiguration{
+		Each: constDefaultItemVar,
+		At:   testConstIdx,
+		In:   testConstForRefDataItems,
+	}, "")
+
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		st.Context = map[string]any{testConstLast: st.Data[constDefaultItemVar]}
+		return st.Data[constDefaultItemVar], nil
+	}
 
 	state := utils.NewState()
 	state.AddData(map[string]any{testConstItems: []any{"x", "y"}})
 
-	execFn, err := b.exec()
-	assert.NoError(t, err)
+	execFn, err := b.exec(bodyFn)
+	require.NoError(t, err)
 
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return execFn(ctx, nil, state)
-	}, workflow.RegisterOptions{Name: "ctx-leak-outer"})
-
-	env.ExecuteWorkflow("ctx-leak-outer")
-	assert.NoError(t, env.GetWorkflowError())
+	_, execErr := runInlineWorkflowFunc(t, "for-exec", execFn, nil, state)
+	require.NoError(t, execErr)
 
 	// workingState.Context is loop-private and must NOT be copied to state.Context.
 	assert.Nil(t, state.Context, "loop-private context must not leak to parent state")
-	// Loop-internal Data (e.g. taskName -> lastResult set by addIterationResult
-	// on workingState) must not appear in the parent state's Data.
+	// Loop-internal Data (taskName -> lastResult set by addIterationResult on
+	// workingState) must not appear in the parent state's Data.
 	assert.Nil(t, state.Data["ctx-leak"], "accumulated iteration result must not leak to parent Data")
 }
 
-// TestForExecOutputIsAggregatedResult verifies that exec() sets state.Output to
-// the aggregated per-iteration result (array or object), not to the last
-// iteration's internal $output. The per-iteration $output lives only in
-// workingState and is used solely for while evaluation between iterations.
+// TestForExecOutputIsAggregatedResult verifies exec() sets state.Output to the
+// aggregated per-iteration result, not the last iteration's internal $output.
 func TestForExecOutputIsAggregatedResult(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "no-out-leak")
+	b := newForTestBuilder("no-out-leak", model.ForTaskConfiguration{
+		Each: constDefaultItemVar,
+		At:   testConstIdx,
+		In:   testConstForRefDataItems,
+	}, "")
 
-	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "no-out-leak",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: constDefaultItemVar,
-					At:   testConstIdx,
-					In:   testConstForRefDataItems,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
-			},
-		},
-		childWorkflowName: childWorkflowName,
+	const iterationOutput = "iteration-output"
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		return iterationOutput, nil
 	}
-
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
-
-	env.RegisterWorkflowWithOptions(
-		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			return forChildResult{Output: "iteration-output", Context: nil}, nil
-		},
-		workflow.RegisterOptions{Name: childWorkflowName},
-	)
 
 	state := utils.NewState()
 	state.AddData(map[string]any{testConstItems: []any{"a"}})
 
-	execFn, err := b.exec()
-	assert.NoError(t, err)
+	execFn, err := b.exec(bodyFn)
+	require.NoError(t, err)
 
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return execFn(ctx, nil, state)
-	}, workflow.RegisterOptions{Name: "no-out-leak-outer"})
+	output, execErr := runInlineWorkflowFunc(t, "for-exec", execFn, nil, state)
+	require.NoError(t, execErr)
 
-	env.ExecuteWorkflow("no-out-leak-outer")
-	assert.NoError(t, env.GetWorkflowError())
-
-	// exec() sets state.Output to the aggregated loop result, not the last
-	// iteration's internal $output. The per-iteration $output lives only in
-	// workingState and is used solely for while evaluation between iterations.
-	assert.Equal(t, []any{"iteration-output"}, state.Output,
+	assert.Equal(t, []any{iterationOutput}, output)
+	assert.Equal(t, []any{iterationOutput}, state.Output,
 		"exec() must set state.Output to the aggregated loop result")
 }
 
 // TestForExecErrorLeavesParentStateUnchanged verifies that when an iteration
-// fails the parent state is not modified at all. Context propagation only
-// happens after a clean loop exit so that retries and catch handlers see
-// the original state.
+// body fails, the loop aborts, a contextual error is returned, and the parent
+// state is not modified.
 func TestForExecErrorLeavesParentStateUnchanged(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "err-unchanged")
+	b := newForTestBuilder("err-unchanged", model.ForTaskConfiguration{
+		Each: constDefaultItemVar,
+		At:   testConstIdx,
+		In:   testConstForRefDataItems,
+	}, "")
 
-	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "err-unchanged",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: constDefaultItemVar,
-					At:   testConstIdx,
-					In:   testConstForRefDataItems,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
-			},
-		},
-		childWorkflowName: childWorkflowName,
+	callCount := 0
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		callCount++
+		return nil, fmt.Errorf("simulated iteration failure")
 	}
 
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
-
-	env.RegisterWorkflowWithOptions(
-		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			return forChildResult{}, fmt.Errorf("simulated iteration failure")
-		},
-		workflow.RegisterOptions{Name: childWorkflowName},
-	)
-
 	state := utils.NewState()
-	state.Context = map[string]any{"original": true}
-	state.Output = "original-output"
-	state.AddData(map[string]any{testConstItems: []any{"a"}})
+	state.Context = map[string]any{testConstOriginal: true}
+	state.Output = testConstOriginal + "-output"
+	state.AddData(map[string]any{testConstItems: []any{"a", "b"}})
 
-	execFn, err := b.exec()
-	assert.NoError(t, err)
+	execFn, err := b.exec(bodyFn)
+	require.NoError(t, err)
 
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return execFn(ctx, nil, state)
-	}, workflow.RegisterOptions{Name: "err-unchanged-outer"})
+	output, execErr := runInlineWorkflowFunc(t, "for-exec", execFn, nil, state)
+	require.Error(t, execErr)
+	assert.Nil(t, output)
+	assert.Contains(t, execErr.Error(), "error running for iteration tasks")
+	// The loop aborts on the first failure rather than running every item.
+	assert.Equal(t, 1, callCount)
 
-	env.ExecuteWorkflow("err-unchanged-outer")
-	// The workflow must have failed due to the child error.
-	assert.Error(t, env.GetWorkflowError())
-
-	// Context, Output, and Data must all be unchanged.
-	assert.Equal(t, map[string]any{"original": true}, state.Context,
+	// Context, Output and Data must all be unchanged.
+	assert.Equal(t, map[string]any{testConstOriginal: true}, state.Context,
 		"exec() must not modify state.Context when an iteration fails")
-	assert.Equal(t, "original-output", state.Output,
+	assert.Equal(t, testConstOriginal+"-output", state.Output,
 		"exec() must not modify state.Output when an iteration fails")
-	assert.Equal(t, []any{"a"}, state.Data[testConstItems],
+	assert.Equal(t, []any{"a", "b"}, state.Data[testConstItems],
 		"pre-loop Data must be unchanged when an iteration fails")
 	assert.Nil(t, state.Data["err-unchanged"],
 		"loop task result must not appear in parent Data when an iteration fails")
 	assert.Nil(t, state.Data[constDefaultItemVar],
 		"loop-local variable must not leak into parent Data when an iteration fails")
-	assert.Nil(t, state.Data[testConstIdx],
-		"loop-local variable must not leak into parent Data when an iteration fails")
 }
 
-// TestForIteratorChildEndsPropagatesErrEnd proves that a for-loop iteration
-// body emitting `then: end` causes the for-task to surface flow.ErrEnd to
-// its caller. The iteration's child workflow returns the typed Temporal
-// end ApplicationError (the way a nested DoTaskBuilder.workflowExecutor
-// emits ErrEnd across the child boundary); iterator() must decode that
-// error rather than wrapping it as a generic iteration failure, so the
-// enclosing scope can keep propagating end upward.
-func TestForIteratorChildEndsPropagatesErrEnd(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "iter-end")
+// TestForExecPropagatesDirectErrEnd proves that an iteration body returning
+// (output, flow.ErrEnd) directly — the normal inline shape — terminates the
+// loop, preserves the carried output, surfaces flow.ErrEnd to the caller, and
+// does not run later iterations. This is the primary inline end path.
+func TestForExecPropagatesDirectErrEnd(t *testing.T) {
+	b := newForTestBuilder("iter-end", model.ForTaskConfiguration{
+		Each: constDefaultItemVar,
+		At:   testConstIdx,
+		In:   testConstForRefDataItems,
+	}, "")
+
+	endOutput := map[string]any{testConstValue: "end-time-output"}
+	callCount := 0
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		callCount++
+		return endOutput, flow.ErrEnd
+	}
+
+	state := utils.NewState()
+	state.AddData(map[string]any{testConstItems: []any{"x", "y"}})
+
+	execFn, err := b.exec(bodyFn)
+	require.NoError(t, err)
+
+	output, execErr := runInlineWorkflowFunc(t, "for-exec", execFn, nil, state)
+
+	require.Error(t, execErr)
+	assert.True(t, errors.Is(execErr, flow.ErrEnd), "direct end must surface as flow.ErrEnd")
+	assert.Equal(t, endOutput, output, "carried end output must be preserved")
+	assert.Equal(t, 1, callCount, "later iterations must not run after end")
+	// Parent output reflects the effective end output.
+	assert.Equal(t, endOutput, state.Output)
+}
+
+// TestForExecPropagatesEncodedErrEnd is the retained backwards-compatibility
+// path: an encoded Temporal end error (as produced by
+// flow.NewEndApplicationError) is still recognised, its carried payload output
+// preserved, and later iterations skipped. Direct flow.ErrEnd remains the
+// primary path (see TestForExecPropagatesDirectErrEnd).
+func TestForExecPropagatesEncodedErrEnd(t *testing.T) {
+	b := newForTestBuilder("iter-end-encoded", model.ForTaskConfiguration{
+		Each: constDefaultItemVar,
+		At:   testConstIdx,
+		In:   testConstForRefDataItems,
+	}, "")
+
+	encodedOutput := map[string]any{testConstValue: testConstEncodedEndOutput}
+	callCount := 0
+	var bodyFn TemporalWorkflowFunc = func(_ workflow.Context, _ any, st *utils.State) (any, error) {
+		callCount++
+		return nil, flow.NewEndApplicationError(encodedOutput)
+	}
+
+	state := utils.NewState()
+	state.AddData(map[string]any{testConstItems: []any{"x", "y"}})
+
+	execFn, err := b.exec(bodyFn)
+	require.NoError(t, err)
+
+	output, execErr := runInlineWorkflowFunc(t, "for-exec", execFn, nil, state)
+
+	require.Error(t, execErr)
+	assert.True(t, errors.Is(execErr, flow.ErrEnd), "encoded end must surface as flow.ErrEnd")
+	assert.Equal(t, encodedOutput, output, "encoded end payload output must be preserved")
+	assert.Equal(t, 1, callCount, "later iterations must not run after end")
+	assert.Equal(t, encodedOutput, state.Output)
+}
+
+// TestForBuildDoesNotRegisterChildWorkflow proves the for body is built inline:
+// Build produces a non-nil executable function and never registers a child
+// workflow, and PostLoad and Validate use the same inline (non-registering)
+// configuration.
+func TestForBuildDoesNotRegisterChildWorkflow(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-for-noreg"}}
+
+	w := new(WorkflowRegistryMock)
 
 	b := &ForTaskBuilder{
 		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "iter-end",
+			doc:            doc,
+			eventEmitter:   testEvents,
+			name:           "loop",
+			taskPath:       []string{"loop"},
+			temporalWorker: w,
 			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: constDefaultItemVar,
-					At:   testConstIdx,
-					In:   testConstForRefDataItems,
+				For: model.ForTaskConfiguration{In: "[]"},
+				Do: &model.TaskList{
+					&model.TaskItem{Key: testConstStep, Task: &model.SetTask{}},
 				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 			},
 		},
-		childWorkflowName: childWorkflowName,
 	}
 
-	var s testsuite.WorkflowTestSuite
-	env := s.NewTestWorkflowEnvironment()
+	fn, err := b.Build()
+	require.NoError(t, err)
+	require.NotNil(t, fn, "Build must return a non-nil executable function")
 
-	env.RegisterWorkflowWithOptions(
-		func(ctx workflow.Context, input any, st *utils.State) (forChildResult, error) {
-			return forChildResult{}, flow.NewEndApplicationError(nil)
-		},
-		workflow.RegisterOptions{Name: childWorkflowName},
-	)
+	require.NoError(t, b.PostLoad())
+	require.NoError(t, b.Validate())
 
-	state := utils.NewState()
-	state.AddData(map[string]any{testConstItems: []any{"only-item"}})
-
-	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
-		return b.iterator(ctx, 0, "only-item", state)
-	}, workflow.RegisterOptions{Name: "iter-end-outer"})
-
-	env.ExecuteWorkflow("iter-end-outer")
-
-	err := env.GetWorkflowError()
-	require.Error(t, err)
-	// The error surfaced to the for-task's caller must mention ErrEnd so
-	// the surrounding scope can recognise the directive.
-	assert.Contains(t, err.Error(), flow.ErrEnd.Error())
+	// No child workflow may be registered for the inline body.
+	w.AssertNotCalled(t, "RegisterWorkflowWithOptions", mock.Anything, mock.Anything)
 }

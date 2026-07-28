@@ -13,7 +13,7 @@ calls and handling external service errors.
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
-| try | [`map[string, task]`](/docs/dsl/tasks/intro) | `yes` | The task(s) to perform. This will be run as a [child workflow](https://docs.temporal.io/child-workflows). |
+| try | [`map[string, task]`](/docs/dsl/tasks/intro) | `yes` | The task(s) to perform. These run inline within the current workflow. |
 | catch | [`catch`](#catch) | `yes` | Configures the errors to catch and how to handle them. |
 
 ## Example
@@ -69,7 +69,7 @@ errors.
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
-| do | [`map[string, task]`](/docs/dsl/tasks/intro) | `yes` | The definition of the task(s) to run when catching an error. This will be run as a [child workflow](https://docs.temporal.io/child-workflows). |
+| do | [`map[string, task]`](/docs/dsl/tasks/intro) | `yes` | The definition of the task(s) to run when catching an error. These run inline within the current workflow. |
 | as | `string` | `no` | The key under `$data` where the caught error is stored. Defaults to `error`. |
 
 ## Gotchas
@@ -78,9 +78,17 @@ errors.
 To handle different error types differently, inspect the error object inside
 the `catch` block.
 
-**The `try` block runs as a child workflow.** Its history and retries are
-independent from the parent workflow. The retry policy configured on inner
-tasks still applies before the `catch` block runs.
+**The `try` and `catch` bodies run inline** within the current workflow, not as
+a separate child workflow. The retry policy configured on inner tasks still
+applies before the `catch` block runs.
+
+**The caught error is exposed to the `catch` body under `$data`.** By default
+it is available as `$data.error`, or under a custom key when `catch.as` is set.
+It is injected into a cloned state that the `catch` body sees, so it does not
+leak back into the parent state unless the `catch` tasks output it.
+
+**`then: end` inside the `try` or `catch` body ends the whole workflow**,
+carrying the body's effective output.
 
 ## Related pages
 

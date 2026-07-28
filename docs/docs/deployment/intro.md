@@ -239,6 +239,33 @@ DISABLE_TELEMETRY=true
 
 ---
 
+## Upgrading: structural tasks now run inline
+
+Zigflow's structural control-flow tasks (`try`, `for`, `fork` and `switch`
+redirect targets) used to execute as Temporal child workflows. They now execute
+inline within the current workflow. See
+[How Zigflow runs](/docs/concepts/how-zigflow-runs#structural-tasks-run-inline).
+
+This changes the Temporal command history a running workflow produces: where
+the old version scheduled child-workflow commands, the new version does not. A
+workflow execution that started on the old version and is still in flight when
+you deploy the new version may reach code whose command shape has changed, which
+Temporal treats as non-deterministic.
+
+There is **no automatic versioning or replay shim** for this change. To upgrade
+safely:
+
+- Drain or complete affected executions before deploying the new version, or
+- Terminate and restart executions where draining is not possible.
+
+New executions started on the new version are unaffected. This is an
+operational concern about in-flight Temporal histories and is separate from DSL
+schema compatibility: your workflow YAML does not need to change.
+
+`run.workflow` is unchanged. It still starts a genuine Temporal child workflow.
+
+---
+
 ## Next steps
 
 - [Docker](/docs/deployment/docker): running Zigflow in a container
