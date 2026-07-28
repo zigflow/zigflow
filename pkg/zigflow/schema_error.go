@@ -67,7 +67,7 @@ func parseSchemaErrors(err error) []SchemaError {
 	}
 
 	var out []SchemaError
-	for _, line := range strings.Split(err.Error(), "\n") {
+	for line := range strings.SplitSeq(err.Error(), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
@@ -81,12 +81,12 @@ func parseSchemaErrors(err error) []SchemaError {
 		rest := line
 		for strings.HasPrefix(rest, "validating ") {
 			after := rest[len("validating "):]
-			idx := strings.Index(after, ": ")
-			if idx < 0 {
+			before, after0, ok := strings.Cut(after, ": ")
+			if !ok {
 				break
 			}
-			token := after[:idx]
-			rest = after[idx+2:]
+			token := before
+			rest = after0
 			if strings.HasPrefix(token, "/") {
 				location = token
 			}
@@ -112,16 +112,17 @@ func schemaPointerToInstancePath(pointer string) string {
 	}
 
 	parts := strings.Split(strings.Trim(pointer, "/"), "/")
-	path := "$"
+	var path strings.Builder
+	path.WriteString("$")
 	for i := 0; i < len(parts); i++ {
 		switch parts[i] {
 		case "properties", "patternProperties":
 			if i+1 < len(parts) {
-				path += "." + parts[i+1]
+				path.WriteString("." + parts[i+1])
 				i++
 			}
 		case "items", "prefixItems", "additionalItems", "contains":
-			path += "[]"
+			path.WriteString("[]")
 		case "$defs", "definitions", "allOf", "anyOf", "oneOf", "not", "if", "then", "else":
 			// Applicator / definition keywords carry a following index or name
 			// that is not part of the instance path; skip it.
@@ -134,5 +135,5 @@ func schemaPointerToInstancePath(pointer string) string {
 		}
 	}
 
-	return path
+	return path.String()
 }

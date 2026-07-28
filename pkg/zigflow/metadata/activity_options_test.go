@@ -45,7 +45,7 @@ func TestConvertRetryPolicy(t *testing.T) {
 			Name: "Full",
 			RetryPolicy: &metadata.RetryPolicy{
 				InitialInterval:        &model.Duration{Value: model.DurationInline{Seconds: 1}},
-				BackoffCoefficient:     utils.Ptr(2.0),
+				BackoffCoefficient:     new(2.0),
 				MaximumAttempts:        utils.Ptr[int32](3),
 				MaximumInterval:        &model.Duration{Value: model.DurationInline{Seconds: 3}},
 				NonRetryableErrorTypes: []string{"error1"},

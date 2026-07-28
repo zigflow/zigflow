@@ -23,7 +23,6 @@ import (
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/workflow"
@@ -80,7 +79,7 @@ func TestNewWorkflowRunsPostLoadBeforeBuild_RunScriptNilAwait(t *testing.T) {
 		Run: model.RunTaskConfiguration{
 			Script: &model.Script{
 				Language:   "python",
-				InlineCode: utils.Ptr("print('hello')"),
+				InlineCode: new("print('hello')"),
 				// Await is intentionally nil — PostLoad must set the default
 			},
 		},
@@ -130,7 +129,7 @@ func TestNewWorkflowRejectsNonDeterministicExpression(t *testing.T) {
 		Run: model.RunTaskConfiguration{
 			Script: &model.Script{
 				Language:   "python",
-				InlineCode: utils.Ptr("print('hello')"),
+				InlineCode: new("print('hello')"),
 			},
 		},
 	}

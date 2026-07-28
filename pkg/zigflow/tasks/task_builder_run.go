@@ -161,7 +161,7 @@ func (t *RunTaskBuilder) PostLoad() error {
 	// Default await to true: the returned closure and script validation in Build()
 	// both dereference this field, so it must be non-nil before Build() runs.
 	if t.task.Run.Await == nil {
-		t.task.Run.Await = utils.Ptr(true)
+		t.task.Run.Await = new(true)
 	}
 
 	// Default container lifetime: the container activity treats nil Lifetime the

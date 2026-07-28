@@ -37,7 +37,7 @@ type fakeWorkflowContext struct{}
 func (fakeWorkflowContext) Deadline() (time.Time, bool) { return time.Time{}, false }
 func (fakeWorkflowContext) Done() workflow.Channel      { return nil }
 func (fakeWorkflowContext) Err() error                  { return nil }
-func (fakeWorkflowContext) Value(key interface{}) interface{} {
+func (fakeWorkflowContext) Value(key any) any {
 	return nil
 }
 

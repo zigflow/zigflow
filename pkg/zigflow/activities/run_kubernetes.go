@@ -344,7 +344,7 @@ func (r *Run) buildJobSpec(
 					// workload ServiceAccount also disables automount, but
 					// pinning it here means the runtime is safe even when a
 					// caller wires it up against a token-mounted account.
-					AutomountServiceAccountToken: utils.Ptr(false),
+					AutomountServiceAccountToken: new(false),
 					Containers:                   []corev1.Container{container},
 				},
 			},
@@ -354,7 +354,7 @@ func (r *Run) buildJobSpec(
 	if task.Run.Container.Lifetime != nil && task.Run.Container.Lifetime.Cleanup == lifetimeCleanupEventually {
 		after := utils.ToDuration(task.Run.Container.Lifetime.After)
 		if after >= defaultTTLThreshold {
-			job.Spec.TTLSecondsAfterFinished = utils.Ptr(int32(after.Seconds()))
+			job.Spec.TTLSecondsAfterFinished = new(int32(after.Seconds()))
 		}
 	}
 

@@ -370,7 +370,7 @@ func TestDoTaskBuilderIterateTasksSkipsCompletedTasks(t *testing.T) {
 
 	runOrder := make([]string, 0, 2)
 	state := utils.NewState()
-	state.CANStartFrom = utils.Ptr("task-two-1")
+	state.CANStartFrom = new("task-two-1")
 
 	tasks := []workflowFunc{
 		newSimpleWorkflowFunc(testConstTaskOne, &model.TaskBase{}, &runOrder),
@@ -416,11 +416,11 @@ func TestDoTaskBuilderShouldSkip(t *testing.T) {
 			taskID: "query-listener-0",
 			state: func() *utils.State {
 				s := utils.NewState()
-				s.CANStartFrom = utils.Ptr("query-listener-0")
+				s.CANStartFrom = new("query-listener-0")
 				return s
 			}(),
 			expectSkip:  false,
-			expectedCAN: utils.Ptr("query-listener-0"),
+			expectedCAN: new("query-listener-0"),
 		},
 		{
 			name: "matching task ID resumes execution",
@@ -433,7 +433,7 @@ func TestDoTaskBuilderShouldSkip(t *testing.T) {
 			taskID: "task-two-1",
 			state: func() *utils.State {
 				s := utils.NewState()
-				s.CANStartFrom = utils.Ptr("task-two-1")
+				s.CANStartFrom = new("task-two-1")
 				return s
 			}(),
 			expectSkip:  false,
@@ -450,11 +450,11 @@ func TestDoTaskBuilderShouldSkip(t *testing.T) {
 			taskID: "task-one-0",
 			state: func() *utils.State {
 				s := utils.NewState()
-				s.CANStartFrom = utils.Ptr("task-two-1")
+				s.CANStartFrom = new("task-two-1")
 				return s
 			}(),
 			expectSkip:  true,
-			expectedCAN: utils.Ptr("task-two-1"),
+			expectedCAN: new("task-two-1"),
 		},
 		{
 			name: "no continue-as-new state never skips",

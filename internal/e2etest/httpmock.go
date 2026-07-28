@@ -34,6 +34,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -68,10 +69,11 @@ type HTTPMock struct {
 // be proxied, in particular the Temporal address host, since the proxy would
 // otherwise also intercept the worker's gRPC connection to Temporal.
 func (m *HTTPMock) WorkerEnv(noProxyHosts ...string) []string {
-	noProxy := "127.0.0.1,localhost"
+	var noProxy strings.Builder
+	noProxy.WriteString("127.0.0.1,localhost")
 	for _, h := range noProxyHosts {
 		if h != "" {
-			noProxy += "," + h
+			noProxy.WriteString("," + h)
 		}
 	}
 
@@ -79,7 +81,7 @@ func (m *HTTPMock) WorkerEnv(noProxyHosts ...string) []string {
 		"HTTPS_PROXY=" + m.ProxyURL,
 		"HTTP_PROXY=" + m.ProxyURL,
 		"SSL_CERT_FILE=" + m.CAFile,
-		"NO_PROXY=" + noProxy,
+		"NO_PROXY=" + noProxy.String(),
 	}
 }
 

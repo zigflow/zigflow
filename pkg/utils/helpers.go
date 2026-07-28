@@ -27,5 +27,5 @@ func CanBeInt(v any) bool {
 
 // Ptr returns a pointer to p.
 func Ptr[T any](p T) *T {
-	return &p
+	return new(p)
 }

@@ -49,7 +49,7 @@ func taskItem(key string, task model.Task) *model.TaskItem {
 	return &model.TaskItem{Key: key, Task: task}
 }
 
-func setTask(fields map[string]interface{}) *model.SetTask {
+func setTask(fields map[string]any) *model.SetTask {
 	return &model.SetTask{Set: model.NewObjectOrRuntimeExpr(fields)}
 }
 
@@ -70,7 +70,7 @@ func TestNew_MermaidFormat(t *testing.T) {
 
 func TestMermaid_FlowchartHeader(t *testing.T) {
 	gen, _ := graph.New(graph.FormatMermaid)
-	wf := makeWF("test", taskItem("greet", setTask(map[string]interface{}{"msg": "hi"})))
+	wf := makeWF("test", taskItem("greet", setTask(map[string]any{"msg": "hi"})))
 	out, err := gen.Generate(wf)
 	require.NoError(t, err)
 	assert.Contains(t, out, "flowchart TD")
@@ -80,7 +80,7 @@ func TestMermaid_SingleWorkflow_StartEnd(t *testing.T) {
 	gen, _ := graph.New(graph.FormatMermaid)
 	wf := makeWF(
 		"mywf",
-		taskItem("step1", setTask(map[string]interface{}{"key": "val"})),
+		taskItem("step1", setTask(map[string]any{"key": "val"})),
 		taskItem("step2", waitTaskSeconds(5)),
 	)
 	out, err := gen.Generate(wf)
@@ -105,7 +105,7 @@ func TestMermaid_SetLabel(t *testing.T) {
 	gen, _ := graph.New(graph.FormatMermaid)
 	wf := makeWF(
 		"mywf",
-		taskItem("init", setTask(map[string]interface{}{"aaa": 1, "bbb": 2})),
+		taskItem("init", setTask(map[string]any{"aaa": 1, "bbb": 2})),
 	)
 	out, err := gen.Generate(wf)
 	require.NoError(t, err)
@@ -171,7 +171,7 @@ func TestMermaid_SwitchTerminationEdge(t *testing.T) {
 func TestMermaid_ForNode(t *testing.T) {
 	gen, _ := graph.New(graph.FormatMermaid)
 	inner := model.TaskList([]*model.TaskItem{
-		taskItem("body", setTask(map[string]interface{}{"i": 0})),
+		taskItem("body", setTask(map[string]any{"i": 0})),
 	})
 	wf := makeWF(
 		"mywf",
@@ -254,7 +254,7 @@ func TestMermaid_TryNode(t *testing.T) {
 		}),
 	})
 	catchTasks := model.TaskList([]*model.TaskItem{
-		taskItem("recover", setTask(map[string]interface{}{"err": "caught"})),
+		taskItem("recover", setTask(map[string]any{"err": "caught"})),
 	})
 	wf := makeWF(
 		"mywf",
@@ -350,7 +350,7 @@ func TestMermaid_ConditionalTask(t *testing.T) {
 		"mywf",
 		taskItem("maybe", &model.SetTask{
 			TaskBase: model.TaskBase{If: ifExpr},
-			Set:      model.NewObjectOrRuntimeExpr(map[string]interface{}{"x": 1}),
+			Set:      model.NewObjectOrRuntimeExpr(map[string]any{"x": 1}),
 		}),
 	)
 	out, err := gen.Generate(wf)

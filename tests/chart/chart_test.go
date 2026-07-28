@@ -41,12 +41,12 @@ const (
 // assertions we care about and avoids pulling in the full Kubernetes API
 // types in a test that doesn't need them.
 type k8sObject struct {
-	APIVersion string                 `json:"apiVersion"`
-	Kind       string                 `json:"kind"`
-	Metadata   k8sObjectMeta          `json:"metadata"`
-	Spec       map[string]interface{} `json:"spec,omitempty"`
-	Subjects   []map[string]any       `json:"subjects,omitempty"`
-	RoleRef    map[string]any         `json:"roleRef,omitempty"`
+	APIVersion string           `json:"apiVersion"`
+	Kind       string           `json:"kind"`
+	Metadata   k8sObjectMeta    `json:"metadata"`
+	Spec       map[string]any   `json:"spec,omitempty"`
+	Subjects   []map[string]any `json:"subjects,omitempty"`
+	RoleRef    map[string]any   `json:"roleRef,omitempty"`
 }
 
 type k8sObjectMeta struct {
