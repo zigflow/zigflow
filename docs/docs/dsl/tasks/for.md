@@ -105,6 +105,12 @@ iteration's effective output, and stops any remaining iterations.
 **Iteration results are stored under `$data.<taskName>`.** The `while`
 expression can access this key to implement early termination.
 
+**The loop does not Continue-As-New between iterations.** Because the loop runs
+inline, the whole loop must fit within one workflow run. Continuation is checked
+before the loop starts and after it finishes. For very large collections, batch
+the work into smaller top-level tasks. See
+[Continue-As-New](/docs/dsl/metadata/continue-as-new).
+
 ## Related pages
 
 - [Fork](/docs/dsl/tasks/fork): parallel execution of multiple branches

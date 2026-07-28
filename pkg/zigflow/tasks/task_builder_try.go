@@ -191,6 +191,17 @@ func (t *TryTaskBuilder) exec(tryFn, catchFn TemporalWorkflowFunc) (TemporalWork
 
 		output, err := tryFn(ctx, input, state)
 		if err != nil {
+			// Continue-As-New is control flow owned by the registered
+			// workflow executor, never an application failure. If one ever
+			// surfaces through the try body it must bypass the catch handler
+			// entirely and propagate unchanged to the owning executor, which
+			// converts it into the real Temporal Continue-As-New command. Use
+			// the typed SDK helper rather than string matching.
+			if workflow.IsContinueAsNewError(err) {
+				logger.Info("Try body requested continue-as-new; propagating without running catch")
+				return nil, err
+			}
+
 			logger.Warn("Try body failed, catching the error", "error", err)
 
 			// A `then: end` directive inside the try body is a deliberate
@@ -233,6 +244,15 @@ func (t *TryTaskBuilder) exec(tryFn, catchFn TemporalWorkflowFunc) (TemporalWork
 			output, err = catchFn(ctx, catchState.Input, catchState)
 			if err != nil {
 				// Everything has failed
+
+				// As with the try body, a Continue-As-New request from the
+				// catch body is control flow, not a catch failure. Propagate
+				// it unchanged so the registered executor performs the
+				// continuation.
+				if workflow.IsContinueAsNewError(err) {
+					logger.Info("Catch body requested continue-as-new; propagating")
+					return nil, err
+				}
 
 				// The catch handler itself may emit `then: end`. Propagate
 				// that as flow.ErrEnd rather than wrapping it as a generic

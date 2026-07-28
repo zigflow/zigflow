@@ -313,7 +313,17 @@ func (t *DoTaskBuilder) iterateTasks(
 		logger.Debug("Set current workflow time", "taskID", taskID, "workflow", t.name)
 		state = state.AddWorkflowNow(ctx)
 
-		if t.shouldContinueAsNew(ctx) {
+		// Continue-As-New is owned exclusively by the registered (root)
+		// workflow executor. Inline structural bodies (for/fork/try) run
+		// inside the registered workflow and must never mint a Temporal
+		// Continue-As-New error themselves: they have no registered workflow
+		// type of their own (t.name is empty), and the flat CANStartFrom
+		// marker cannot describe a resume point inside a nested structural
+		// body. Instead the registered executor evaluates continuation at
+		// safe checkpoints — before a structural task begins and after it
+		// completes — using its own registered workflow type. See
+		// docs/docs/dsl/metadata/continue-as-new.md.
+		if !t.opts.InlineExecution && t.shouldContinueAsNew(ctx) {
 			logger.Debug("Task continue-as-new", "taskID", taskID, "workflow", t.name)
 			return t.continueAsNew(ctx, t.name, taskID, input, state)
 		}
