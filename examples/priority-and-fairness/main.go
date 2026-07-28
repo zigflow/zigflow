@@ -169,10 +169,7 @@ func (m *model) View() string {
 		totalCompleted += completed
 
 		frac := float64(completed) / float64(g.total)
-		filled := int(frac * float64(m.barWidth))
-		if filled > m.barWidth {
-			filled = m.barWidth
-		}
+		filled := min(int(frac*float64(m.barWidth)), m.barWidth)
 
 		bar := strings.Repeat("=", filled)
 		empty := strings.Repeat(" ", m.barWidth-filled)

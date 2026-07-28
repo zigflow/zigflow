@@ -352,7 +352,7 @@ func newRecordingEvents(t *testing.T) (events *cloudevents.Events, readEventType
 			}
 			data, err := os.ReadFile(filepath.Join(eventsDir, entry.Name()))
 			require.NoError(t, err)
-			for _, doc := range bytes.Split(data, []byte("---\n")) {
+			for doc := range bytes.SplitSeq(data, []byte("---\n")) {
 				doc = bytes.TrimSpace(doc)
 				if len(doc) == 0 {
 					continue
@@ -847,7 +847,7 @@ func newRecordingEventsWithPayload(t *testing.T) (events *cloudevents.Events, re
 			}
 			data, err := os.ReadFile(filepath.Join(eventsDir, entry.Name()))
 			require.NoError(t, err)
-			for _, doc := range bytes.Split(data, []byte("---\n")) {
+			for doc := range bytes.SplitSeq(data, []byte("---\n")) {
 				doc = bytes.TrimSpace(doc)
 				if len(doc) == 0 {
 					continue

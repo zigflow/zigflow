@@ -35,7 +35,7 @@ func TestGetSchema_EmptyOutputDefaultsToJSON(t *testing.T) {
 	require.Empty(t, out.Errors)
 	require.NotEmpty(t, out.Schema)
 
-	var parsed map[string]interface{}
+	var parsed map[string]any
 	require.NoError(t, json.Unmarshal([]byte(out.Schema), &parsed), "schema must be valid JSON")
 
 	id, _ := parsed["$id"].(string)
@@ -49,7 +49,7 @@ func TestGetSchema_JSONOutput(t *testing.T) {
 	require.Empty(t, out.Errors)
 	require.NotEmpty(t, out.Schema)
 
-	var parsed map[string]interface{}
+	var parsed map[string]any
 	require.NoError(t, json.Unmarshal([]byte(out.Schema), &parsed), "schema must be valid JSON")
 
 	id, _ := parsed["$id"].(string)
@@ -63,7 +63,7 @@ func TestGetSchema_YAMLOutput(t *testing.T) {
 	require.Empty(t, out.Errors)
 	require.NotEmpty(t, out.Schema)
 
-	var parsed map[string]interface{}
+	var parsed map[string]any
 	require.NoError(t, yaml.Unmarshal([]byte(out.Schema), &parsed), "schema must be valid YAML")
 
 	// $id key is present in the raw schema string since yaml.Unmarshal does not
@@ -75,7 +75,7 @@ func TestGetSchema_DefinitionOutput(t *testing.T) {
 	tests := []struct {
 		name      string
 		output    string
-		unmarshal func([]byte, interface{}) error
+		unmarshal func([]byte, any) error
 	}{
 		{"json", outputFormatJSON, json.Unmarshal},
 		{"yaml", outputFormatYAML, yaml.Unmarshal},
@@ -92,7 +92,7 @@ func TestGetSchema_DefinitionOutput(t *testing.T) {
 			require.Empty(t, out.Errors)
 			require.NotEmpty(t, out.Schema)
 
-			var parsed map[string]interface{}
+			var parsed map[string]any
 			require.NoError(t, tc.unmarshal([]byte(out.Schema), &parsed),
 				"schema definition must be valid %s", tc.output)
 

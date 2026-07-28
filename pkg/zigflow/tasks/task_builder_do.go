@@ -279,7 +279,7 @@ func (t *DoTaskBuilder) continueAsNew(
 	}
 
 	logger.Info("Continuing as new", "taskId", taskID)
-	state.CANStartFrom = utils.Ptr(taskID)
+	state.CANStartFrom = new(taskID)
 	return workflow.NewContinueAsNewError(ctx, wfn, input, state)
 }
 

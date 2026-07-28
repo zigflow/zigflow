@@ -670,7 +670,7 @@ func TestCollectExpressions_StableOrderForMapBackedStructures(t *testing.T) {
 	assert.Equal(t, wantPaths, first, "set body expressions must be in sorted order")
 
 	// Repeat to catch map-iteration randomisation.
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		assert.Equal(t, first, pathsFor(), "collected order must be stable across runs")
 	}
 }

@@ -159,7 +159,7 @@ func reactJobCreate(t *testing.T, c *fake.Clientset, opts jobReactorOpts) {
 						Kind:       testJobKind,
 						Name:       job.Name,
 						UID:        job.UID,
-						Controller: utils.Ptr(true),
+						Controller: new(true),
 					}},
 				},
 			}
@@ -1072,7 +1072,7 @@ func makeOwnedPod(name string, jobUID types.UID, created time.Time, controller b
 				Kind:       testJobKind,
 				Name:       "owner",
 				UID:        jobUID,
-				Controller: utils.Ptr(controller),
+				Controller: new(controller),
 			}},
 		},
 	}
@@ -1192,7 +1192,7 @@ func TestGetJobLogs_StalePodFromEarlierJobIsIgnored(t *testing.T) {
 				Kind:       testJobKind,
 				Name:       "ancient-job",
 				UID:        types.UID("ancient-job-uid"), // not our Job's UID
-				Controller: utils.Ptr(true),
+				Controller: new(true),
 			}},
 		},
 	}
@@ -1244,7 +1244,7 @@ func TestGetJobLogs_PodWithMatchingLabelsButWrongOwnerSurfacesAsNoPods(t *testin
 				Kind:       testJobKind,
 				Name:       "ancient-job",
 				UID:        types.UID("ancient-job-uid"),
-				Controller: utils.Ptr(true),
+				Controller: new(true),
 			}},
 		},
 	}

@@ -67,7 +67,7 @@ type Telemetry struct {
 	distinctID  string
 	isContainer bool
 	os          string
-	runCount    uint64
+	runCount    atomic.Uint64
 	version     string
 }
 
@@ -77,7 +77,7 @@ func (t *Telemetry) IncrementRun() {
 		return
 	}
 
-	newValue := atomic.AddUint64(&t.runCount, 1)
+	newValue := t.runCount.Add(1)
 	log.Trace().Uint64("count", newValue).Msg("Incrementing telemetry run count")
 
 	t.heartbeatOnce.Do(func() {
@@ -199,7 +199,7 @@ func (t *Telemetry) startHeartbeat() {
 		select {
 		case <-ticker.C:
 			// Only send if data is different
-			current := atomic.LoadUint64(&t.runCount)
+			current := t.runCount.Load()
 			if lastValue != current {
 				props := t.baseProps().
 					Set("workflow_run_count", current).

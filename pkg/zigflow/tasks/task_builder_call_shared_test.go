@@ -49,7 +49,7 @@ func assertRegistersOncePerWorker(
 	b, err := newBuilder(w, doc, taskName)
 	assert.NoError(t, err)
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		_, err = b.Build()
 		assert.NoError(t, err)
 	}

@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"slices"
 	"sort"
 	"strings"
 
@@ -221,13 +222,7 @@ func getTaskDocs(
 		}}}, nil
 	}
 
-	known := false
-	for _, t := range supported {
-		if t == taskType {
-			known = true
-			break
-		}
-	}
+	known := slices.Contains(supported, taskType)
 
 	if !known {
 		return GetTaskDocsOutput{Errors: []GetTaskDocsError{{
