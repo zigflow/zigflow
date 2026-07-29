@@ -18,7 +18,7 @@ and the comparison with the
 [Temporal SDK](/docs/concepts/comparing-zigflow-and-temporal-sdks).
 :::
 
-Zigflow is built upon the [CNCF's Open Workflow Specification](https://serverlessworkflow.io)
+Zigflow is built upon the [CNCF's Open Workflow Specification](https://open-workflow-specification.org)
 project. This provides a solid foundation of a comprehensive and vendor-neutral
 framework. The [specification](https://github.com/open-workflow-specification/specification/blob/main/dsl-reference.md)
 is well documented and acts as the inspiration behind this project.

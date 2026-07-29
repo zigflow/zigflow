@@ -74,7 +74,7 @@ Breaking changes should be rare and must be discussed in advance.
 ## Specification compatibility
 
 Zigflow is influenced by and aims to remain broadly compatible with the
-[Open Workflow Specification](https://serverlessworkflow.io).
+[Open Workflow Specification](https://open-workflow-specification.org).
 
 Where possible, new features and behavioural changes **should** align
 with the Open Workflow Specification (formerly Serverless Workflow) to

@@ -37,7 +37,7 @@ Domain-specific language. In this context, the YAML format that Zigflow uses
 to define workflows.
 
 Zigflow's DSL is based on the
-[CNCF Open Workflow Specification v1.0 (formerly Serverless Workflow)](https://serverlessworkflow.io).
+[CNCF Open Workflow Specification v1.0 (formerly Serverless Workflow)](https://open-workflow-specification.org).
 
 ---
 
