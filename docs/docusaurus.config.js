@@ -42,6 +42,15 @@ const vscodeLangserverTypesEsm = require
 /** @type {import('@docusaurus/types').PluginConfig[]} */
 const plugins = [
   loadExamplesPlugin,
+  [
+    '@docusaurus/plugin-content-docs',
+    {
+      id: 'spec',
+      path: 'spec',
+      routeBasePath: 'spec',
+      sidebarPath: false,
+    },
+  ],
   () => ({
     name: 'vscode-languageserver-types-esm-alias',
     configureWebpack() {
