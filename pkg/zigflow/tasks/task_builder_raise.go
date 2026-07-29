@@ -24,6 +24,7 @@ import (
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/utils"
+	"github.com/zigflow/zigflow/pkg/zigflow/models"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
@@ -60,14 +61,14 @@ const (
 
 // Open Workflow Specification native errors
 var raiseErrFuncMapping = map[string]func(error, string) *model.Error{
-	model.ErrorTypeAuthentication: model.NewErrAuthentication,
-	model.ErrorTypeValidation:     model.NewErrValidation,
-	model.ErrorTypeCommunication:  model.NewErrCommunication,
-	model.ErrorTypeAuthorization:  model.NewErrAuthorization,
-	model.ErrorTypeConfiguration:  model.NewErrConfiguration,
-	model.ErrorTypeExpression:     model.NewErrExpression,
-	model.ErrorTypeRuntime:        model.NewErrRuntime,
-	model.ErrorTypeTimeout:        model.NewErrTimeout,
+	models.ErrorTypeAuthentication: models.NewErrAuthentication,
+	models.ErrorTypeValidation:     models.NewErrValidation,
+	models.ErrorTypeCommunication:  models.NewErrCommunication,
+	models.ErrorTypeAuthorization:  models.NewErrAuthorization,
+	models.ErrorTypeConfiguration:  models.NewErrConfiguration,
+	models.ErrorTypeExpression:     models.NewErrExpression,
+	models.ErrorTypeRuntime:        models.NewErrRuntime,
+	models.ErrorTypeTimeout:        models.NewErrTimeout,
 }
 
 var temporalErrMapping = map[string]func(error, string) error{
