@@ -11,7 +11,7 @@
 **Declarative YAML workflows on Temporal. No SDK boilerplate.**
 
 Zigflow lets you define and run [Temporal](https://temporal.io) workflows using
-YAML, built on the [CNCF Open Workflow Specification](https://serverlessworkflow.io)
+YAML, built on the [CNCF Open Workflow Specification](https://open-workflow-specification.org)
 (formerly Serverless Workflow). You write a workflow definition; Zigflow
 compiles it into a fully-featured Temporal workflow with retries, state
 management and deterministic execution. No Go, Java or TypeScript workflow
@@ -402,7 +402,7 @@ Bug reports, feedback and contributions are welcome.
 ## Related projects
 
 - [Temporal](https://temporal.io)
-- [CNCF Open Workflow Specification](https://serverlessworkflow.io)
+- [CNCF Open Workflow Specification](https://open-workflow-specification.org)
 - [Helm chart](./charts/zigflow)
 
 ---

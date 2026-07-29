@@ -4,7 +4,7 @@ sidebar_position: 2
 # Extending the DSL
 
 Zigflow's DSL is based on the
-[Open Workflow Specification (formerly Serverless Workflow)](https://serverlessworkflow.io).
+[Open Workflow Specification (formerly Serverless Workflow)](https://open-workflow-specification.org).
 The mechanism on this page is the **only** sanctioned way to add
 semantics that the specification does not cover, and it exists for a
 narrow purpose: bridging the gap between an Open Workflow Specification task

@@ -333,7 +333,7 @@ const config = {
               },
               {
                 label: 'Open Workflow Specification',
-                href: 'https://serverlessworkflow.io',
+                href: 'https://open-workflow-specification.org',
               },
             ],
           },

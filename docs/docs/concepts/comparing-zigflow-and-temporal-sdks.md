@@ -16,7 +16,7 @@ higher-level abstraction like Zigflow.
 
 Zigflow is a workflow worker that reads YAML, validates it and runs it on
 Temporal. You define a workflow as data using a structure inspired by the
-[CNCF Open Workflow Specification (formerly Serverless Workflow)](https://serverlessworkflow.io).
+[CNCF Open Workflow Specification (formerly Serverless Workflow)](https://open-workflow-specification.org).
 Zigflow compiles that definition into a Temporal workflow at startup and
 registers a worker against a task queue.
 
