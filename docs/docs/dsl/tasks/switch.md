@@ -78,7 +78,7 @@ do:
   - handleUnknownType:
       raise:
         error:
-          type: https://serverlessworkflow.io/spec/1.0.0/errors/validation
+          type: https://zigflow.dev/spec/1.0.0/errors/validation
           status: 400
           title: Unknown order type
           detail: ${ "Received order type: " + $input.orderType }

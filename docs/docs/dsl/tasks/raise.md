@@ -35,7 +35,7 @@ do:
   - bug:
       raise:
         error:
-          type: https://serverlessworkflow.io/spec/1.0.0/errors/communication
+          type: https://zigflow.dev/spec/1.0.0/errors/communication
           status: 400
 ```
 
@@ -62,14 +62,14 @@ to another.
 
 | Type | Status[^1] | Description |
 | --- | :---: | --- |
-| [https://serverlessworkflow.io/spec/1.0.0/errors/configuration](https://serverlessworkflow.io/spec/1.0.0/errors/configuration) | `400` | Errors resulting from incorrect or invalid configuration settings, such as missing or misconfigured environment variables, incorrect parameter values, or configuration file errors. |
-| [https://serverlessworkflow.io/spec/1.0.0/errors/validation](https://serverlessworkflow.io/spec/1.0.0/errors/validation) | `400` | Errors arising from validation processes, such as validation of input data, schema validation failures, or validation constraints not being met. These errors indicate that the provided data or configuration does not adhere to the expected format or requirements specified by the workflow. |
-| [https://serverlessworkflow.io/spec/1.0.0/errors/expression](https://serverlessworkflow.io/spec/1.0.0/errors/expression) | `400` | Errors occurring during the evaluation of runtime expressions, such as invalid syntax or unsupported operations. |
-| [https://serverlessworkflow.io/spec/1.0.0/errors/authentication](https://serverlessworkflow.io/spec/1.0.0/errors/authentication) | `401` | Errors related to authentication failures. |
-| [https://serverlessworkflow.io/spec/1.0.0/errors/authorization](https://serverlessworkflow.io/spec/1.0.0/errors/authorization) | `403` | Errors related to unauthorized access attempts or insufficient permissions to perform certain actions within the workflow. |
-| [https://serverlessworkflow.io/spec/1.0.0/errors/timeout](https://serverlessworkflow.io/spec/1.0.0/errors/timeout) | `408` | Errors caused by timeouts during the execution of tasks or during interactions with external services. |
-| [https://serverlessworkflow.io/spec/1.0.0/errors/communication](https://serverlessworkflow.io/spec/1.0.0/errors/communication) | `500` | Errors  encountered while communicating with external services, including network errors, service unavailable, or invalid responses. |
-| [https://serverlessworkflow.io/spec/1.0.0/errors/runtime](https://serverlessworkflow.io/spec/1.0.0/errors/runtime) | `500` | Errors occurring during the runtime execution of a workflow, including unexpected exceptions, errors related to resource allocation, or failures in handling workflow tasks. These errors typically occur during the actual execution of workflow components and may require runtime-specific handling and resolution strategies. |
+| [https://zigflow.dev/spec/1.0.0/errors/configuration](https://zigflow.dev/spec/1.0.0/errors/configuration) | `400` | Errors resulting from incorrect or invalid configuration settings, such as missing or misconfigured environment variables, incorrect parameter values, or configuration file errors. |
+| [https://zigflow.dev/spec/1.0.0/errors/validation](https://zigflow.dev/spec/1.0.0/errors/validation) | `400` | Errors arising from validation processes, such as validation of input data, schema validation failures, or validation constraints not being met. These errors indicate that the provided data or configuration does not adhere to the expected format or requirements specified by the workflow. |
+| [https://zigflow.dev/spec/1.0.0/errors/expression](https://zigflow.dev/spec/1.0.0/errors/expression) | `400` | Errors occurring during the evaluation of runtime expressions, such as invalid syntax or unsupported operations. |
+| [https://zigflow.dev/spec/1.0.0/errors/authentication](https://zigflow.dev/spec/1.0.0/errors/authentication) | `401` | Errors related to authentication failures. |
+| [https://zigflow.dev/spec/1.0.0/errors/authorization](https://zigflow.dev/spec/1.0.0/errors/authorization) | `403` | Errors related to unauthorized access attempts or insufficient permissions to perform certain actions within the workflow. |
+| [https://zigflow.dev/spec/1.0.0/errors/timeout](https://zigflow.dev/spec/1.0.0/errors/timeout) | `408` | Errors caused by timeouts during the execution of tasks or during interactions with external services. |
+| [https://zigflow.dev/spec/1.0.0/errors/communication](https://zigflow.dev/spec/1.0.0/errors/communication) | `500` | Errors  encountered while communicating with external services, including network errors, service unavailable, or invalid responses. |
+| [https://zigflow.dev/spec/1.0.0/errors/runtime](https://zigflow.dev/spec/1.0.0/errors/runtime) | `500` | Errors occurring during the runtime execution of a workflow, including unexpected exceptions, errors related to resource allocation, or failures in handling workflow tasks. These errors typically occur during the actual execution of workflow components and may require runtime-specific handling and resolution strategies. |
 
 [^1]: Default value. The `status code` that best describes the error should always be used.
 
