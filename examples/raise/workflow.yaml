@@ -19,5 +19,5 @@ do:
   - error:
       raise:
         error:
-          type: https://serverlessworkflow.io/spec/1.0.0/errors/communication
+          type: https://zigflow.dev/spec/1.0.0/errors/communication
           status: 400

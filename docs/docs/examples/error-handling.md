@@ -64,7 +64,7 @@ Use the `raise` task to fail a workflow with a structured error:
     raise:
       error:
         type: >-
-          https://serverlessworkflow.io/spec/1.0.0/errors/validation
+          https://zigflow.dev/spec/1.0.0/errors/validation
         status: 400
         title: Missing required field
         detail: ${ "userId is required, got: " + ($input.userId | tostring) }
