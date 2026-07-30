@@ -41,6 +41,7 @@ require (
 	github.com/zigflow/schema v0.0.0-20260930083453-1d7f22b48f32
 	go.temporal.io/api v1.63.6
 	go.temporal.io/sdk v1.49.0
+	go.temporal.io/sdk/contrib/aws/lambdaworker v0.1.1
 	go.temporal.io/sdk/contrib/sysinfo v0.1.1
 	go.yaml.in/yaml/v2 v2.4.4
 	google.golang.org/grpc v1.84.0
@@ -56,6 +57,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/andybalholm/brotli v1.2.6 // indirect
+	github.com/aws/aws-lambda-go v1.47.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.21 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.2 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.5 // indirect
