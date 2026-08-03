@@ -31,6 +31,13 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
+var testWorkflowDoc = &model.Workflow{
+	Document: model.Document{
+		Name:    "for",
+		Version: "latest",
+	},
+}
+
 func TestForTaskBuilderAddIterationResult(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -284,7 +291,12 @@ func TestForTaskBuilderIterator(t *testing.T) {
 				},
 			},
 		},
-		childWorkflowName: utils.GenerateChildWorkflowName("for", "iterate"),
+		childWorkflowName: utils.GenerateChildWorkflowName(&model.Workflow{
+			Document: model.Document{
+				Name:    "for",
+				Version: "latest",
+			},
+		}, "iterate"),
 	}
 
 	var s testsuite.WorkflowTestSuite
@@ -324,7 +336,7 @@ func TestForTaskBuilderIterator(t *testing.T) {
 // TestForIteratorContextPropagates verifies that $context set by an export in
 // iteration N is visible as state.Context when iterator() is called for N+1.
 func TestForIteratorContextPropagates(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "ctx-prop")
+	childWorkflowName := utils.GenerateChildWorkflowName(testWorkflowDoc, "for", "ctx-prop")
 
 	b := &ForTaskBuilder{
 		builder: builder[*model.ForTask]{
@@ -383,7 +395,7 @@ func TestForIteratorContextPropagates(t *testing.T) {
 // TestForIteratorWhileSeesOutput verifies that the while condition for iteration
 // N+1 sees the output produced by iteration N.
 func TestForIteratorWhileSeesOutput(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "while-out")
+	childWorkflowName := utils.GenerateChildWorkflowName(testWorkflowDoc, "for", "while-out")
 
 	b := &ForTaskBuilder{
 		builder: builder[*model.ForTask]{
@@ -456,7 +468,7 @@ func TestForIteratorWhileSeesOutput(t *testing.T) {
 // TestForExecArrayAccumulatesResults verifies that the for task still returns an
 // array of per-iteration results when iterating over an array for.in value.
 func TestForExecArrayAccumulatesResults(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "accum")
+	childWorkflowName := utils.GenerateChildWorkflowName(testWorkflowDoc, "for", "accum")
 
 	b := &ForTaskBuilder{
 		builder: builder[*model.ForTask]{
@@ -514,7 +526,7 @@ func TestForExecArrayAccumulatesResults(t *testing.T) {
 // TestForExecObjectAccumulatesResults verifies the object for.in variant still
 // returns a map keyed by the original object keys.
 func TestForExecObjectAccumulatesResults(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "obj-accum")
+	childWorkflowName := utils.GenerateChildWorkflowName(testWorkflowDoc, "for", "obj-accum")
 
 	b := &ForTaskBuilder{
 		builder: builder[*model.ForTask]{
@@ -569,7 +581,7 @@ func TestForExecObjectAccumulatesResults(t *testing.T) {
 // TestForExecNumericAccumulatesResults verifies the numeric for.in variant still
 // returns a slice with one entry per iteration index.
 func TestForExecNumericAccumulatesResults(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-accum")
+	childWorkflowName := utils.GenerateChildWorkflowName(testWorkflowDoc, "for", "num-accum")
 
 	b := &ForTaskBuilder{
 		builder: builder[*model.ForTask]{
@@ -624,7 +636,7 @@ func TestForExecNumericAccumulatesResults(t *testing.T) {
 // may arrive as float64 after a JSON round trip even when they were authored
 // as integer literals, so this case must be supported.
 func TestForExecNumericFloat64Whole(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-float64-whole")
+	childWorkflowName := utils.GenerateChildWorkflowName(testWorkflowDoc, "for", "num-float64-whole")
 
 	b := &ForTaskBuilder{
 		builder: builder[*model.ForTask]{
@@ -681,7 +693,7 @@ func TestForExecNumericFloat64Whole(t *testing.T) {
 // iterations rather than an error. Zero is a whole number so the trunc check
 // must accept it.
 func TestForExecNumericFloat64Zero(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-float64-zero")
+	childWorkflowName := utils.GenerateChildWorkflowName(testWorkflowDoc, "for", "num-float64-zero")
 
 	b := &ForTaskBuilder{
 		builder: builder[*model.ForTask]{
@@ -737,7 +749,7 @@ func TestForExecNumericFloat64Zero(t *testing.T) {
 // error that names the offending value. Silent truncation would violate the
 // determinism and explicit-validation principles of the engine.
 func TestForExecNumericFloat64Fractional(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-float64-frac")
+	childWorkflowName := utils.GenerateChildWorkflowName(testWorkflowDoc, "for", "num-float64-frac")
 
 	b := &ForTaskBuilder{
 		builder: builder[*model.ForTask]{
@@ -791,7 +803,7 @@ func TestForExecNumericFloat64Fractional(t *testing.T) {
 // (item, index or custom names) are not present in the parent state's Data
 // after the for loop completes.
 func TestForExecLoopVarsDoNotLeakToParent(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "leak-check")
+	childWorkflowName := utils.GenerateChildWorkflowName(testWorkflowDoc, "for", "leak-check")
 
 	b := &ForTaskBuilder{
 		builder: builder[*model.ForTask]{
@@ -845,7 +857,7 @@ func TestForExecLoopVarsDoNotLeakToParent(t *testing.T) {
 // workingState.Context is loop-private and must not overwrite the surrounding
 // workflow context. Loop-internal Data changes must also not appear in parent Data.
 func TestForExecContextDoesNotLeakToParent(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "ctx-leak")
+	childWorkflowName := utils.GenerateChildWorkflowName(testWorkflowDoc, "for", "ctx-leak")
 
 	b := &ForTaskBuilder{
 		builder: builder[*model.ForTask]{
@@ -902,7 +914,7 @@ func TestForExecContextDoesNotLeakToParent(t *testing.T) {
 // iteration's internal $output. The per-iteration $output lives only in
 // workingState and is used solely for while evaluation between iterations.
 func TestForExecOutputIsAggregatedResult(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "no-out-leak")
+	childWorkflowName := utils.GenerateChildWorkflowName(testWorkflowDoc, "for", "no-out-leak")
 
 	b := &ForTaskBuilder{
 		builder: builder[*model.ForTask]{
@@ -956,7 +968,7 @@ func TestForExecOutputIsAggregatedResult(t *testing.T) {
 // happens after a clean loop exit so that retries and catch handlers see
 // the original state.
 func TestForExecErrorLeavesParentStateUnchanged(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "err-unchanged")
+	childWorkflowName := utils.GenerateChildWorkflowName(testWorkflowDoc, "for", "err-unchanged")
 
 	b := &ForTaskBuilder{
 		builder: builder[*model.ForTask]{
@@ -1024,7 +1036,7 @@ func TestForExecErrorLeavesParentStateUnchanged(t *testing.T) {
 // error rather than wrapping it as a generic iteration failure, so the
 // enclosing scope can keep propagating end upward.
 func TestForIteratorChildEndsPropagatesErrEnd(t *testing.T) {
-	childWorkflowName := utils.GenerateChildWorkflowName("for", "iter-end")
+	childWorkflowName := utils.GenerateChildWorkflowName(testWorkflowDoc, "for", "iter-end")
 
 	b := &ForTaskBuilder{
 		builder: builder[*model.ForTask]{
