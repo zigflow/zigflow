@@ -2,6 +2,28 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.14.3](https://github.com/zigflow/zigflow/releases/tag/v0.14.3) - 2026-08-03
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/524
+* ci(deps): bump the github-actions group with 2 updates by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/527
+* Improve deployment instructions for multi workflows by @mrsimonemms in https://github.com/zigflow/zigflow/pull/530
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/532
+* fix: clone the state data before http activity by @mrsimonemms in https://github.com/zigflow/zigflow/pull/534
+* chore: rename serverless workflow to open workflow specification by @mrsimonemms in https://github.com/zigflow/zigflow/pull/514
+* ci(deps): bump golang.org/x/crypto from 0.45.0 to 0.52.0 in /examples/money-transfer/server by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/536
+* deps(deps): bump the go-dependencies group with 6 updates by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/540
+* ci(deps): bump actions/setup-python from 6 to 7 in the github-actions group by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/541
+* ci(deps): bump golang.org/x/net from 0.54.0 to 0.55.0 in /examples/money-transfer/server by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/542
+* Modernise the linter by @mrsimonemms in https://github.com/zigflow/zigflow/pull/544
+* BREAKING: Create standard error types starting with zigflow.dev domain by @mrsimonemms in https://github.com/zigflow/zigflow/pull/545
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/546
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/547
+* ci(deps): bump actions/stale from 10 to 11 in the github-actions group by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/548
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.14.2...v0.14.3
+
 ## [v0.14.2](https://github.com/zigflow/zigflow/releases/tag/v0.14.2) - 2026-07-15
 
 ## What's Changed
