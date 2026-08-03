@@ -139,7 +139,7 @@ func (t *ForkTaskBuilder) buildOrPostLoad() ([]*forkedTask, []TaskBuilder, error
 		// <workflowType>.<fork>.<branch>..., using this key rather than the
 		// synthetic child workflow name.
 		originalKey := branch.Key
-		childWorkflowName := utils.GenerateChildWorkflowName("fork", t.GetTaskName(), originalKey)
+		childWorkflowName := utils.GenerateChildWorkflowName(t.doc, "fork", t.GetTaskName(), originalKey)
 
 		forkedTasks = append(forkedTasks, &forkedTask{
 			task:              branch,
