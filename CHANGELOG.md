@@ -2,6 +2,15 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.15.0-rc1](https://github.com/zigflow/zigflow/releases/tag/v0.15.0-rc1) - 2026-08-03
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/551
+* BREAKING fix: allow child workflow names to be unique per workflow by @mrsimonemms in https://github.com/zigflow/zigflow/pull/552
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.14.3...v0.15.0-rc1
+
 ## [v0.14.3](https://github.com/zigflow/zigflow/releases/tag/v0.14.3) - 2026-08-03
 
 ## What's Changed
