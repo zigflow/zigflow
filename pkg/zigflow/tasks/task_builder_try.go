@@ -55,15 +55,15 @@ type TryTaskBuilder struct {
 }
 
 func (t *TryTaskBuilder) Build() (TemporalWorkflowFunc, error) {
-	tryFn, err := t.createTaskFn(t.task.Try)
+	tryFn, err := t.createTaskFn(tryBodyPathSegment, t.task.Try)
 	if err != nil {
-		log.Error().Str("task", t.GetTaskName()).Str("taskType", "try").Msg("Error building for workflow")
+		log.Error().Str("task", t.GetTaskName()).Str("taskType", tryBodyPathSegment).Msg("Error building for workflow")
 		return nil, err
 	}
 
-	catchFn, err := t.createTaskFn(t.task.Catch.Do)
+	catchFn, err := t.createTaskFn(catchBodyPathSegment, t.task.Catch.Do)
 	if err != nil {
-		log.Error().Str("task", t.GetTaskName()).Str("taskType", "catch").Msg("Error building for workflow")
+		log.Error().Str("task", t.GetTaskName()).Str("taskType", catchBodyPathSegment).Msg("Error building for workflow")
 		return nil, err
 	}
 
@@ -72,7 +72,7 @@ func (t *TryTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 func (t *TryTaskBuilder) PostLoad() error {
 	for taskType, taskList := range t.getTasks() {
-		builder, err := t.createBuilder(taskList)
+		builder, err := t.createBuilder(taskType, taskList)
 		if err != nil {
 			return fmt.Errorf("error registering %s post load tasks for %s: %w", taskType, t.GetTaskName(), err)
 		}
@@ -88,7 +88,7 @@ func (t *TryTaskBuilder) PostLoad() error {
 
 func (t *TryTaskBuilder) Validate() error {
 	for taskType, taskList := range t.getTasks() {
-		builder, err := t.createBuilder(taskList)
+		builder, err := t.createBuilder(taskType, taskList)
 		if err != nil {
 			return err
 		}
@@ -171,20 +171,35 @@ func (t *TryTaskBuilder) buildCatchError(err error) map[string]any {
 	return out
 }
 
-func (t *TryTaskBuilder) createBuilder(task *model.TaskList) (*DoTaskBuilder, error) {
-	// Create the task builder, but without registering it
+// createBuilder builds the body of one branch (segment is
+// tryBodyPathSegment or catchBodyPathSegment) as an unregistered,
+// inline-executed DoTaskBuilder.
+func (t *TryTaskBuilder) createBuilder(segment string, task *model.TaskList) (*DoTaskBuilder, error) {
+	// Create the task builder, but without registering it. Nested marks it as
+	// running inline in this workflow's context so a `then: end` inside the
+	// body propagates outward instead of being mistaken for a clean root
+	// completion.
 	builder, err := NewDoTaskBuilder(t.temporalWorker, &model.DoTask{Do: task}, "", t.doc, t.eventEmitter, t.taskOpts, DoTaskOpts{
 		DisableRegisterWorkflow: true,
+		Nested:                  true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error creating do task builder: %w", err)
 	}
 
+	// Direct construction bypasses NewTaskBuilder's path setter, so thread the
+	// branch-specific path through here. Without it both bodies would build
+	// their tasks against an empty path and identical leaf names — the same
+	// name in try and catch, or in the try body and outside the try task —
+	// would collide on one per-task activity alias. childTaskPath allocates a
+	// fresh slice, so the two branches never share one.
+	builder.setTaskPath(t.childTaskPath(segment))
+
 	return builder, nil
 }
 
-func (t *TryTaskBuilder) createTaskFn(task *model.TaskList) (TemporalWorkflowFunc, error) {
-	builder, err := t.createBuilder(task)
+func (t *TryTaskBuilder) createTaskFn(segment string, task *model.TaskList) (TemporalWorkflowFunc, error) {
+	builder, err := t.createBuilder(segment, task)
 	if err != nil {
 		return nil, err
 	}
