@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkzigflow=self.webpackChunkzigflow||[]).push([["4601"],{5615(e){e.exports=JSON.parse('{"metadata":{"permalink":"/preview/dependabot-github-actions-github-actions-84c3d95bcf/articles","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
