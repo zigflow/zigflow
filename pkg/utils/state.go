@@ -85,7 +85,7 @@ func (s *State) AddActivityInfo(ctx context.Context) *State {
 	}
 
 	s.AddData(map[string]any{
-		"activity": activityData,
+		ActivityStateKey: activityData,
 	})
 
 	return s
@@ -163,11 +163,11 @@ func (s *State) GetAsMap() map[string]any {
 	s1 := s.Clone()
 
 	return map[string]any{
-		"$context": s1.Context,
-		"$data":    s1.Data,
-		"$env":     s1.Env,
-		"$input":   s1.Input,
-		"$output":  s1.Output,
+		StateVarContext: s1.Context,
+		StateVarData:    s1.Data,
+		StateVarEnv:     s1.Env,
+		StateVarInput:   s1.Input,
+		StateVarOutput:  s1.Output,
 	}
 }
 

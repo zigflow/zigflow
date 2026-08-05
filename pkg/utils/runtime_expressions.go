@@ -39,6 +39,12 @@ const (
 
 type ExpressionWrapperFunc func(func() (any, error)) (any, error)
 
+// PreserveExprFunc reports whether a strict-form runtime expression should be
+// left unevaluated during a traversal. It is used to perform partial
+// evaluation: resolve the expressions that can be resolved now and preserve the
+// rest verbatim for a later evaluation pass.
+type PreserveExprFunc func(expr string) bool
+
 // jqFunc describes a function exposed to Zigflow runtime expressions. The
 // Deterministic flag is the source of truth for replay-safety classification;
 // AnalyseExpressionDeterminism reads this list when walking expressions.
@@ -142,15 +148,35 @@ func TraverseAndEvaluateObj(
 	// export/output definitions at once.
 	//
 	// Clone the value first so each evaluation works on an isolated copy.
-	return traverseAndEvaluate(swUtil.DeepCloneValue(runtimeExpr.AsStringOrMap()), ctx, state, wrapperFn)
+	return traverseAndEvaluate(swUtil.DeepCloneValue(runtimeExpr.AsStringOrMap()), ctx, state, wrapperFn, nil)
 }
 
-func traverseAndEvaluate(node, ctx any, state *State, evaluationWrapper ExpressionWrapperFunc) (any, error) {
+// ResolveActivityInput evaluates the strict-form runtime expressions in value
+// against workflow state, except those that reference activity-runtime state
+// (e.g. $data.activity.*), which are preserved verbatim. It is used to resolve
+// an activity's `with` payload in the workflow, before the activity is
+// scheduled, so the Temporal activity input records concrete values for normal
+// workflow-side expressions while leaving genuinely activity-runtime
+// expressions for the activity to evaluate against activity-enriched state.
+//
+// value is expected to be a freshly decoded structure (map/slice/scalar) that
+// is safe to mutate; callers obtain it by JSON round-tripping the typed `with`
+// payload.
+func ResolveActivityInput(value any, state *State) (any, error) {
+	return traverseAndEvaluate(value, nil, state, nil, ExpressionReferencesActivityState)
+}
+
+func traverseAndEvaluate(
+	node, ctx any,
+	state *State,
+	evaluationWrapper ExpressionWrapperFunc,
+	preserve PreserveExprFunc,
+) (any, error) {
 	switch v := node.(type) {
 	case map[string]any:
 		// Traverse a object
 		for key, value := range v {
-			evaluatedValue, err := traverseAndEvaluate(value, ctx, state, evaluationWrapper)
+			evaluatedValue, err := traverseAndEvaluate(value, ctx, state, evaluationWrapper, preserve)
 			if err != nil {
 				return nil, err
 			}
@@ -163,7 +189,7 @@ func traverseAndEvaluate(node, ctx any, state *State, evaluationWrapper Expressi
 		// to avoid mutating the original, which may be shared across workflow executions.
 		clone := make(map[string]string, len(v))
 		for key, value := range v {
-			evaluatedValue, err := traverseAndEvaluate(value, ctx, state, evaluationWrapper)
+			evaluatedValue, err := traverseAndEvaluate(value, ctx, state, evaluationWrapper, preserve)
 			if err != nil {
 				return nil, err
 			}
@@ -176,11 +202,17 @@ func traverseAndEvaluate(node, ctx any, state *State, evaluationWrapper Expressi
 		return clone, nil
 	case []any:
 		// Traverse an array
-		return traverseSlice(v, ctx, state, evaluationWrapper)
+		return traverseSlice(v, ctx, state, evaluationWrapper, preserve)
 	case []string:
 		// Traverse an array
-		return traverseSlice(toAnySlice(v), ctx, state, evaluationWrapper)
+		return traverseSlice(toAnySlice(v), ctx, state, evaluationWrapper, preserve)
 	case string:
+		// Partial evaluation: leave preserved expressions untouched so a later
+		// pass (for example, inside the activity) can evaluate them against a
+		// more complete state.
+		if preserve != nil && model.IsStrictExpr(v) && preserve(v) {
+			return v, nil
+		}
 		if evaluationWrapper != nil {
 			return EvaluateString(v, ctx, state, evaluationWrapper)
 		}
@@ -191,9 +223,15 @@ func traverseAndEvaluate(node, ctx any, state *State, evaluationWrapper Expressi
 	}
 }
 
-func traverseSlice(v []any, ctx any, state *State, evaluationWrapper ExpressionWrapperFunc) ([]any, error) {
+func traverseSlice(
+	v []any,
+	ctx any,
+	state *State,
+	evaluationWrapper ExpressionWrapperFunc,
+	preserve PreserveExprFunc,
+) ([]any, error) {
 	for i, value := range v {
-		evaluatedValue, err := traverseAndEvaluate(value, ctx, state, evaluationWrapper)
+		evaluatedValue, err := traverseAndEvaluate(value, ctx, state, evaluationWrapper, preserve)
 		if err != nil {
 			return nil, err
 		}
