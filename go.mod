@@ -26,7 +26,7 @@ require (
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
-	github.com/testcontainers/testcontainers-go v0.43.0
+	github.com/testcontainers/testcontainers-go v0.44.0
 	github.com/zigflow/schema v0.0.0-20260701135855-e79c2b6217b1
 	go.temporal.io/sdk v1.47.0
 	go.temporal.io/sdk/contrib/sysinfo v0.1.1
