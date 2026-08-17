@@ -183,6 +183,13 @@ func (t *RunTaskBuilder) PostLoad() error {
 	return nil
 }
 
+// Run tasks are deliberately left out of the shared workflow-side `with`
+// resolution (builder.resolveActivityWith, issue #462). They have no `with`
+// payload (their input lives under `run:`) and their activities resolve
+// expressions against activity-enriched state on purpose: the script, shell and
+// container activities call state.Clone().AddActivityInfo(ctx) before
+// interpolating, so their expressions may legitimately depend on
+// $data.activity.* and must be evaluated activity-side.
 func (t *RunTaskBuilder) executeCommand(ctx workflow.Context, activityFn, input any, state *utils.State, additional ...any) (any, error) {
 	logger := workflow.GetLogger(ctx)
 	logger.Debug("Executing a command", "task", t.GetTaskName())
