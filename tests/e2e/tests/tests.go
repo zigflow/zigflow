@@ -19,6 +19,7 @@ package tests
 import (
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/callHTTP"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/catch-as"
+	_ "github.com/zigflow/zigflow/tests/e2e/tests/catch-end"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/complete"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/continue-as-new"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/fork"
@@ -26,6 +27,7 @@ import (
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/multi-file-diff-queues"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/multi-file-same-queue"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/set"
+	_ "github.com/zigflow/zigflow/tests/e2e/tests/try-end"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/wait-expression-duration"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/wait-until"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/wait-until-past"

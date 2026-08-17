@@ -37,10 +37,26 @@ import (
 
 type DoTaskOpts struct {
 	DisableRegisterWorkflow bool
-	Envvars                 map[string]any
-	MaxHistoryLength        int
-	Telemetry               *telemetry.Telemetry
-	Validator               *utils.Validator
+	// Nested marks this task list as executing inline inside an enclosing
+	// workflow's Temporal context rather than as a workflow of its own.
+	//
+	// It exists because the workflow context can no longer identify the
+	// logical root boundary on its own: an inline body (a try or catch
+	// task list) runs in the same Temporal context as the workflow that
+	// invoked it, so isRootWorkflow(ctx) reports true even though the
+	// builder is logically nested. Nested makes the distinction explicit
+	// so `then: end` inside an inline body ends the whole workflow instead
+	// of being consumed as a clean root completion.
+	//
+	// It is deliberately separate from DisableRegisterWorkflow: the
+	// for-task also disables registration for its inner body but then
+	// invokes it inside a registered child workflow, where the existing
+	// context-based root detection is still correct.
+	Nested           bool
+	Envvars          map[string]any
+	MaxHistoryLength int
+	Telemetry        *telemetry.Telemetry
+	Validator        *utils.Validator
 }
 
 func NewDoTaskBuilder(
@@ -230,24 +246,41 @@ func (t *DoTaskBuilder) workflowExecutor(tasks []workflowFunc) TemporalWorkflowF
 		})
 
 		// Iterate through the tasks to create the workflow. An `end` flow
-		// directive propagates outward as flow.ErrEnd. At the true root
-		// workflow boundary this is a clean termination, not a failure.
-		// At nested child workflow boundaries (e.g. redirect targets,
-		// for-loop iteration bodies) we re-emit ErrEnd as a serialisable
-		// Temporal ApplicationError so the parent workflow can detect it
-		// and continue propagating "end" upward until it reaches the
-		// root. Without this, ErrEnd would be silently swallowed by every
-		// child workflow boundary and `then: end` could only end the
-		// innermost scope rather than the overall workflow.
+		// directive propagates outward as flow.ErrEnd. There are three
+		// boundaries it can reach, and each handles it differently:
 		//
-		// state.Output is included in the end signal so the child's
-		// effective output survives the boundary; the parent's
+		//   true root workflow    consumes flow.ErrEnd as a successful
+		//                         workflow completion.
+		//   nested inline body    returns flow.ErrEnd unchanged with its
+		//                         effective output, so the invoking task
+		//                         (e.g. TryTaskBuilder.exec) keeps
+		//                         propagating end outward.
+		//   child workflow        re-emits ErrEnd as a serialisable
+		//                         Temporal ApplicationError so the parent
+		//                         can decode it and carry on propagating.
+		//
+		// The nested case must be explicit: an inline body shares the
+		// enclosing workflow's Temporal context, so isRootWorkflow(ctx)
+		// cannot tell it apart from the true root and would otherwise
+		// swallow the end directive, letting the catch body and every
+		// task after the containing try keep running.
+		//
+		// Without the child workflow re-emission, ErrEnd would be
+		// silently swallowed by every child workflow boundary and
+		// `then: end` could only end the innermost scope rather than the
+		// overall workflow.
+		//
+		// state.Output is included in the end signal so the nested
+		// scope's effective output survives the boundary; the parent's
 		// executeRedirect decodes it and applies the originating task's
 		// output/export directives to it before propagating end further
 		// upward.
 		if err := t.iterateTasks(ctx, tasks, input, state); err != nil {
 			if !errors.Is(err, flow.ErrEnd) {
 				return nil, err
+			}
+			if t.opts.Nested {
+				return state.Output, flow.ErrEnd
 			}
 			if !isRootWorkflow(ctx) {
 				return nil, flow.NewEndApplicationError(state.Output)
@@ -791,6 +824,14 @@ func (t *DoTaskBuilder) emitTaskCompleted(
 }
 
 func (t *DoTaskBuilder) shouldContinueAsNew(ctx workflow.Context) bool {
+	// A nested inline task list has no registered workflow type of its own
+	// (continueAsNew would be handed an empty workflow name) and shares the
+	// enclosing execution's history. Continue-As-New is the enclosing root
+	// workflow's decision; it takes it between its own tasks.
+	if t.opts.Nested {
+		return false
+	}
+
 	logger := workflow.GetLogger(ctx)
 	info := workflow.GetInfo(ctx)
 
