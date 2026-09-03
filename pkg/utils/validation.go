@@ -125,8 +125,7 @@ func validateTaskItem(sl validator.StructLevel) {
 	}
 
 	if err := model.GetValidator().Struct(taskItem.Task); err != nil {
-		var validationErrors validator.ValidationErrors
-		if errors.As(err, &validationErrors) {
+		if validationErrors, ok := errors.AsType[validator.ValidationErrors](err); ok {
 			for _, ve := range validationErrors {
 				sl.ReportError(ve.Value(), "Task."+ve.StructNamespace(), ve.StructField(), ve.Tag(), ve.Param())
 			}
