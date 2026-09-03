@@ -506,8 +506,7 @@ func (t *DoTaskBuilder) dispatchFlowDirective(
 		return false, flow.ErrEnd
 	}
 
-	var redirect flow.RedirectError
-	if errors.As(directive, &redirect) {
+	if redirect, ok := errors.AsType[flow.RedirectError](directive); ok {
 		if fromTaskLevel {
 			target := redirect.Target
 			*nextTargetName = &target
