@@ -163,7 +163,7 @@ template:
           - name: METRICS_LISTEN_ADDRESS
             value: {{ printf "0.0.0.0:%.0f" .Values.service.metrics.port | quote }}
         {{- with .Values.envvars }}
-          {{- toYaml . | nindent 12 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         ports:
           - name: health
@@ -187,7 +187,6 @@ template:
         volumeMounts:
           - mountPath: /tmp
             name: tmp
-        {{- if or .Values.workflow.enabled .Values.volumes }}
         {{- if .Values.workflow.enabled }}
           - mountPath: {{ .Values.workflow.file | quote }}
             subPath: workflow.yaml
@@ -195,8 +194,7 @@ template:
             readOnly: true
         {{- end }}
         {{- with .Values.volumeMounts }}
-          {{- toYaml . | nindent 12 }}
-        {{- end }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
     volumes:
       # Zigflow can create small temporary files
@@ -214,7 +212,7 @@ template:
           secretName: {{ .Values.workflow.secret }}
     {{- end }}
     {{- with .Values.volumes }}
-      {{- toYaml . | nindent 8 }}
+      {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with .Values.nodeSelector }}
     nodeSelector:

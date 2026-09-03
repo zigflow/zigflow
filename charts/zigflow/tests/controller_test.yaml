@@ -53,3 +53,50 @@ tests:
       - notExists:
           path: spec.temporalWorkerDeploymentRef
     template: templates/autoscaling.yaml
+
+  - it: appends extra env, volumeMounts and volumes as siblings of the built-in entries
+    set:
+      controller.enabled: true
+      workflow.enabled: true
+      workflow.secret: my-workflow-secret
+      envvars:
+        - name: CONVERTER_KEY_PATH
+          value: /etc/encryption-keys/key
+        - name: DISABLE_TELEMETRY
+          value: "true"
+      volumeMounts:
+        - name: encryption-keys
+          mountPath: /etc/encryption-keys
+          readOnly: true
+      volumes:
+        - name: encryption-keys
+          secret:
+            secretName: encryption-keys
+    asserts:
+      - documentIndex: 1
+        equal:
+          path: spec.template.spec.containers[0].env[6]
+          value:
+            name: CONVERTER_KEY_PATH
+            value: /etc/encryption-keys/key
+      - documentIndex: 1
+        equal:
+          path: spec.template.spec.containers[0].env[7]
+          value:
+            name: DISABLE_TELEMETRY
+            value: "true"
+      - documentIndex: 1
+        equal:
+          path: spec.template.spec.containers[0].volumeMounts[2]
+          value:
+            name: encryption-keys
+            mountPath: /etc/encryption-keys
+            readOnly: true
+      - documentIndex: 1
+        equal:
+          path: spec.template.spec.volumes[2]
+          value:
+            name: encryption-keys
+            secret:
+              secretName: encryption-keys
+    template: templates/controller.yaml
