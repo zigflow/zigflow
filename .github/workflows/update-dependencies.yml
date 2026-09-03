@@ -31,7 +31,7 @@ jobs:
 
       - name: Update Go dependencies
         run: |
-          go get -u ./...
+          go get -u ./... github.com/gobwas/glob@v0.2.3
           go mod tidy
           go generate ./...
 
