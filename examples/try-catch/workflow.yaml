@@ -22,4 +22,5 @@ do:
         do:
           - setError:
               set:
-                err: some error
+                error: ${ $data.error }
+                title: Get User error

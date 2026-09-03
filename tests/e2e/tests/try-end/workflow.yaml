@@ -1,0 +1,24 @@
+document:
+  dsl: 1.0.0
+  taskQueue: try-end
+  workflowType: workflow
+  version: 0.0.1
+do:
+  - guarded:
+      try:
+        # `then: end` inside the try body is a deliberate termination of the
+        # whole workflow, not a failure to be caught. The catch handler must
+        # not run, and neither must any task after the try task.
+        - finish:
+            set:
+              result: ended
+            then: end
+      catch:
+        as: error
+        do:
+          - caught:
+              set:
+                catchRan: true
+  - mustNotRun:
+      set:
+        afterTry: true
