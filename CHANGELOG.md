@@ -2,6 +2,30 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.14.4](https://github.com/zigflow/zigflow/releases/tag/v0.14.4) - 2026-09-03
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/551
+* deps(deps): bump the go-dependencies group with 2 updates by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/555
+* deps(deps): bump github.com/testcontainers/testcontainers-go from 0.43.0 to 0.44.0 in the go-dependencies group by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/557
+* fix: update linting for new golang lint failures by @mrsimonemms in https://github.com/zigflow/zigflow/pull/562
+* deps(deps): bump the go-dependencies group across 1 directory with 7 updates by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/560
+* fix(chart): fix wrongly indented additional values by @mrsimonemms in https://github.com/zigflow/zigflow/pull/561
+* ci: lock gobwas/glob to v0.2.3 by @mrsimonemms in https://github.com/zigflow/zigflow/pull/563
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/564
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.14.3...v0.14.4
+
+## [v0.15.0-rc1](https://github.com/zigflow/zigflow/releases/tag/v0.15.0-rc1) - 2026-08-03
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/551
+* BREAKING fix: allow child workflow names to be unique per workflow by @mrsimonemms in https://github.com/zigflow/zigflow/pull/552
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.14.3...v0.15.0-rc1
+
 ## [v0.14.3](https://github.com/zigflow/zigflow/releases/tag/v0.14.3) - 2026-08-03
 
 ## What's Changed
