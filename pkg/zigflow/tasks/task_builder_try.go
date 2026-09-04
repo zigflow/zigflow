@@ -19,6 +19,7 @@ package tasks
 import (
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/rs/zerolog/log"
@@ -52,43 +53,36 @@ func NewTryTaskBuilder(
 
 type TryTaskBuilder struct {
 	builder[*model.TryTask]
-
-	tryChildWorkflowName   string
-	catchChildWorkflowName string
 }
 
 func (t *TryTaskBuilder) Build() (TemporalWorkflowFunc, error) {
+	bodies := make(map[string]TemporalWorkflowFunc, len(t.getTasks()))
 	for taskType, list := range t.getTasks() {
-		name, builder, err := t.createBuilder(taskType, list)
+		builder, err := t.createBuilder(taskType, list)
 		if err != nil {
-			return nil, fmt.Errorf("erroring registering %s tasks for %s: %w", taskType, t.GetTaskName(), err)
+			return nil, fmt.Errorf("error creating %s tasks for %s: %w", taskType, t.GetTaskName(), err)
 		}
 
-		if _, err = builder.Build(); err != nil {
-			log.Error().Str("task", t.GetTaskName()).Str("taskType", taskType).Msg("Error building for workflow")
-			return nil, fmt.Errorf("error building for workflow: %w", err)
-		}
-
-		if taskType == tryBodyPathSegment {
-			t.tryChildWorkflowName = name
-		} else {
-			t.catchChildWorkflowName = name
+		bodies[taskType], err = builder.buildInline()
+		if err != nil {
+			log.Error().Str("task", t.GetTaskName()).Str("taskType", taskType).Msg("Error building inline tasks")
+			return nil, fmt.Errorf("error building inline %s tasks for %s: %w", taskType, t.GetTaskName(), err)
 		}
 	}
 
-	return t.exec()
+	return t.exec(bodies[tryBodyPathSegment], bodies[catchBodyPathSegment])
 }
 
 func (t *TryTaskBuilder) PostLoad() error {
 	for taskType, list := range t.getTasks() {
-		_, builder, err := t.createBuilder(taskType, list)
+		builder, err := t.createBuilder(taskType, list)
 		if err != nil {
-			return fmt.Errorf("erroring registering %s post load tasks for %s: %w", taskType, t.GetTaskName(), err)
+			return fmt.Errorf("error creating %s post load tasks for %s: %w", taskType, t.GetTaskName(), err)
 		}
 
 		if err = builder.PostLoad(); err != nil {
-			log.Error().Str("task", t.GetTaskName()).Str("taskType", taskType).Msg("Error building for workflow")
-			return fmt.Errorf("error building for post load workflow: %w", err)
+			log.Error().Str("task", t.GetTaskName()).Str("taskType", taskType).Msg("Error running post load for inline tasks")
+			return fmt.Errorf("error running post load for inline %s tasks for %s: %w", taskType, t.GetTaskName(), err)
 		}
 	}
 
@@ -97,9 +91,9 @@ func (t *TryTaskBuilder) PostLoad() error {
 
 func (t *TryTaskBuilder) Validate() error {
 	for taskType, list := range t.getTasks() {
-		_, builder, err := t.createBuilder(taskType, list)
+		builder, err := t.createBuilder(taskType, list)
 		if err != nil {
-			return fmt.Errorf("error registering %s validate tasks for %s: %w", taskType, t.GetTaskName(), err)
+			return fmt.Errorf("error creating %s validate tasks for %s: %w", taskType, t.GetTaskName(), err)
 		}
 		if err := builder.Validate(); err != nil {
 			return fmt.Errorf("error validating %s tasks for %s: %w", taskType, t.GetTaskName(), err)
@@ -109,7 +103,18 @@ func (t *TryTaskBuilder) Validate() error {
 }
 
 func (t *TryTaskBuilder) buildCatchError(err error) map[string]any {
-	out := map[string]any{}
+	out := map[string]any{
+		"message":      err.Error(),
+		"nonRetryable": false,
+	}
+
+	errType := reflect.TypeOf(err)
+	for errType.Kind() == reflect.Pointer {
+		errType = errType.Elem()
+	}
+	if errType.Name() != "" {
+		out["type"] = errType.Name()
+	}
 
 	if childErr, ok := errors.AsType[*temporal.ChildWorkflowExecutionError](err); ok {
 		out["childWorkflow"] = map[string]any{
@@ -181,31 +186,19 @@ func (t *TryTaskBuilder) buildCatchError(err error) map[string]any {
 	return out
 }
 
-func (t *TryTaskBuilder) exec() (TemporalWorkflowFunc, error) {
+func (t *TryTaskBuilder) exec(tryFn, catchFn TemporalWorkflowFunc) (TemporalWorkflowFunc, error) {
 	return func(ctx workflow.Context, input any, state *utils.State) (output any, err error) {
 		logger := workflow.GetLogger(ctx)
 
-		opts := workflow.ChildWorkflowOptions{
-			WorkflowID: fmt.Sprintf("%s_try", workflow.GetInfo(ctx).WorkflowExecution.ID),
-		}
-		childCtx := workflow.WithChildOptions(ctx, opts)
-
-		var res map[string]any
-		if err := workflow.ExecuteChildWorkflow(childCtx, t.tryChildWorkflowName, state.Input, state).Get(ctx, &res); err != nil {
-			// A `then: end` directive inside the try body crosses the
-			// child workflow boundary as a typed Temporal ApplicationError.
-			// That is a deliberate workflow termination, not a failure to
-			// be caught: surface it as flow.ErrEnd so the do-task pipeline
-			// can keep propagating end upward, and preserve the carried
-			// output from the child so the root completion reflects it.
-			// Crucially, this skips the catch handler.
-			if endPayload, isEnd := flow.DecodeEndApplicationError(err); isEnd {
-				logger.Info("Try child workflow signalled end; propagating without running catch",
-					"tryWorkflow", t.tryChildWorkflowName, "carriedOutput", endPayload.Output)
-				return endPayload.Output, flow.ErrEnd
+		tryState := state.Clone()
+		res, err := tryFn(ctx, tryState.Input, tryState)
+		if err != nil {
+			if errors.Is(err, flow.ErrEnd) {
+				logger.Info("Try tasks signalled end; propagating without running catch")
+				return res, err
 			}
 
-			logger.Warn("Workflow failed, catching the error", "tryWorkflow", t.tryChildWorkflowName, "catchWorkflow", t.catchChildWorkflowName)
+			logger.Warn("Try tasks failed, catching the error")
 
 			// Expose the caught error to the catch tasks so they can
 			// interrogate it. The Open Workflow Specification names this
@@ -225,25 +218,14 @@ func (t *TryTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 				errKey: t.buildCatchError(err),
 			})
 
-			// The try workflow has failed - let's run the catch workflow
-			opts := workflow.ChildWorkflowOptions{
-				WorkflowID: fmt.Sprintf("%s_catch", workflow.GetInfo(ctx).WorkflowExecution.ID),
-			}
-
-			childCtx := workflow.WithChildOptions(ctx, opts)
-
-			if err := workflow.ExecuteChildWorkflow(childCtx, t.catchChildWorkflowName, catchState.Input, catchState).Get(ctx, &res); err != nil {
-				// The catch handler itself may emit `then: end`. Propagate
-				// that as flow.ErrEnd rather than wrapping it as a generic
-				// catch-workflow failure.
-				if endPayload, isEnd := flow.DecodeEndApplicationError(err); isEnd {
-					logger.Info("Catch child workflow signalled end; propagating",
-						"catchWorkflow", t.catchChildWorkflowName, "carriedOutput", endPayload.Output)
-					return endPayload.Output, flow.ErrEnd
+			res, err = catchFn(ctx, catchState.Input, catchState)
+			if err != nil {
+				if errors.Is(err, flow.ErrEnd) {
+					logger.Info("Catch tasks signalled end; propagating")
+					return res, err
 				}
-				// Everything has failed
-				logger.Error("Error calling try workflow", "error", err)
-				return nil, fmt.Errorf("error calling catch workflow: %w", err)
+				logger.Error("Catch tasks failed", "error", err)
+				return nil, err
 			}
 		}
 
@@ -260,28 +242,27 @@ func (t *TryTaskBuilder) getTasks() map[string]*model.TaskList {
 
 func (t *TryTaskBuilder) createBuilder(
 	taskType string, list *model.TaskList,
-) (childWorkflowName string, builder TaskBuilder, err error) {
+) (*DoTaskBuilder, error) {
 	l := log.With().Str("task", t.GetTaskName()).Str("taskType", taskType).Logger()
 
 	if len(*list) == 0 {
-		err = fmt.Errorf("no tasks detected for %s in %s", taskType, t.GetTaskName())
-		return
+		return nil, fmt.Errorf("no tasks detected for %s in %s", taskType, t.GetTaskName())
 	}
 
-	childWorkflowName = utils.GenerateChildWorkflowName(taskType, t.GetTaskName())
-
-	childPath := t.childTaskPath(taskType)
-	b, err := NewTaskBuilder(
-		childWorkflowName, &model.DoTask{Do: list},
-		t.temporalWorker, t.doc, t.eventEmitter, t.taskOpts, childPath,
+	b, err := NewDoTaskBuilder(
+		t.temporalWorker,
+		&model.DoTask{Do: list},
+		fmt.Sprintf("%s.%s", t.GetTaskName(), taskType),
+		t.doc,
+		t.eventEmitter,
+		t.taskOpts,
 	)
 	if err != nil {
-		l.Error().Msg("Error creating the for task builder")
-		err = fmt.Errorf("error creating the for task builder: %w", err)
-		return
+		l.Error().Msg("Error creating the try task builder")
+		return nil, fmt.Errorf("error creating the try task builder: %w", err)
 	}
 
-	builder = b
+	b.setTaskPath(t.childTaskPath(taskType))
 
-	return
+	return b, nil
 }
