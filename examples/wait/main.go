@@ -24,8 +24,8 @@ import (
 	"time"
 
 	gh "github.com/mrsimonemms/golang-helpers"
-	"github.com/mrsimonemms/golang-helpers/temporal"
 	"github.com/rs/zerolog/log"
+	temporal "github.com/zigflow/helpers"
 	"go.temporal.io/sdk/client"
 )
 

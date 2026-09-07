@@ -29,9 +29,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	gh "github.com/mrsimonemms/golang-helpers"
-	"github.com/mrsimonemms/golang-helpers/temporal"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	temporal "github.com/zigflow/helpers"
 	"go.temporal.io/sdk/client"
 	sdktemporal "go.temporal.io/sdk/temporal"
 )

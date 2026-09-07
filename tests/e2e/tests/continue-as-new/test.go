@@ -50,10 +50,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mrsimonemms/golang-helpers/temporal"
 	zlog "github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	temporal "github.com/zigflow/helpers"
 	"github.com/zigflow/zigflow/tests/e2e/utils"
 	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/client"

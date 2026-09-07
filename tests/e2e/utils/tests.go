@@ -20,10 +20,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/mrsimonemms/golang-helpers/temporal"
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	zlog "github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
+	temporal "github.com/zigflow/helpers"
 	"go.temporal.io/sdk/client"
 )
 
