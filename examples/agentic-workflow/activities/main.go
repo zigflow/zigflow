@@ -26,8 +26,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mrsimonemms/golang-helpers/temporal"
 	"github.com/rs/zerolog/log"
+	temporal "github.com/zigflow/helpers"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/worker"
 )

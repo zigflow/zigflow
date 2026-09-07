@@ -23,8 +23,8 @@ import (
 	"os"
 
 	gh "github.com/mrsimonemms/golang-helpers"
-	"github.com/mrsimonemms/golang-helpers/temporal"
 	"github.com/rs/zerolog/log"
+	temporal "github.com/zigflow/helpers"
 	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/api/operatorservice/v1"
 	"go.temporal.io/sdk/client"

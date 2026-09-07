@@ -22,9 +22,9 @@ import (
 	"sort"
 
 	gh "github.com/mrsimonemms/golang-helpers"
-	"github.com/mrsimonemms/golang-helpers/temporal"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	temporal "github.com/zigflow/helpers"
 	"github.com/zigflow/zigflow/pkg/codec"
 	"github.com/zigflow/zigflow/pkg/zigflow"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
@@ -294,7 +294,9 @@ func startInitialWorkers(
 	for tq := range workers {
 		taskQueues = append(taskQueues, tq)
 	}
-	temporal.NewHealthCheck(ctx, taskQueues, opts.temporal.HealthListenAddress, tc)
+	if err := temporal.NewHealthCheck(ctx, taskQueues, opts.temporal.HealthListenAddress, tc); err != nil {
+		return nil, fmt.Errorf("error creating healthcheck: %w", err)
+	}
 
 	if opts.Telemetry != nil {
 		opts.Telemetry.StartWorker()

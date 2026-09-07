@@ -21,9 +21,9 @@ import (
 	"time"
 
 	gh "github.com/mrsimonemms/golang-helpers"
-	"github.com/mrsimonemms/golang-helpers/temporal"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	temporal "github.com/zigflow/helpers"
 	"github.com/zigflow/zigflow/pkg/codec"
 )
 

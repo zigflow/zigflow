@@ -19,10 +19,10 @@ package run
 import (
 	"testing"
 
-	"github.com/mrsimonemms/golang-helpers/temporal"
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	temporal "github.com/zigflow/helpers"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/codec"
 	"github.com/zigflow/zigflow/pkg/telemetry"
@@ -37,7 +37,7 @@ import (
 // that options which register global HTTP handlers (e.g. Prometheus) do not
 // panic when called more than once across tests. TLS options are pure
 // in-memory and always succeed.
-func applyOptions(options []temporal.Options) client.Options {
+func applyOptions(options []temporal.Option) client.Options {
 	opts := &client.Options{}
 	for _, o := range options {
 		func() {
@@ -53,7 +53,7 @@ func applyOptions(options []temporal.Options) client.Options {
 // deferred by the caller.
 func stubTemporalConnection(captured *client.Options, called *bool) func() {
 	original := newTemporalConnection
-	newTemporalConnection = func(options ...temporal.Options) (client.Client, error) {
+	newTemporalConnection = func(options ...temporal.Option) (client.Client, error) {
 		*called = true
 		*captured = applyOptions(options)
 		return nil, nil

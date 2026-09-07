@@ -25,9 +25,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
-	"github.com/mrsimonemms/golang-helpers/temporal"
 	zlog "github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
+	temporal "github.com/zigflow/helpers"
 	"github.com/zigflow/zigflow/tests/e2e/utils"
 	"go.temporal.io/sdk/client"
 )
