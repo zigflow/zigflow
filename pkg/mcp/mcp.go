@@ -72,6 +72,7 @@ func newHTTPHandler(server *mcp.Server) http.Handler {
 	handler = http.MaxBytesHandler(handler, maxBytes)
 	handler = withDocsRedirect(handler, docsURL)
 	handler = withCORS(handler)
+	handler = withHealthCheck(handler)
 
 	return handler
 }
@@ -109,6 +110,19 @@ func withCORS(next http.Handler) http.Handler {
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// withHealthCheck add GET:/healthz as a simple health check
+func withHealthCheck(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/healthz" {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok"))
 			return
 		}
 
