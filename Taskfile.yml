@@ -130,12 +130,12 @@ tasks:
 
         case "{{.TRANSPORT}}" in
           stdio)
-            npm_config_yes=true HOST=0.0.0.0 npx @modelcontextprotocol/inspector go run . mcp
+            npm_config_yes=true HOST=127.0.0.1 npx @modelcontextprotocol/inspector go run . mcp
             ;;
 
           http)
             echo "Make sure you run \"go run . mcp --transport http\" in another tab"
-            npm_config_yes=true HOST=0.0.0.0 npx @modelcontextprotocol/inspector {{.ADDRESS}}
+            npm_config_yes=true HOST=127.0.0.1 npx @modelcontextprotocol/inspector --transport streamable-http {{.ADDRESS}}
             ;;
 
           *)
