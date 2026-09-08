@@ -188,14 +188,16 @@ func New(server *mcp.Server, version string) *MCP {
 		Description: "Returns the Zigflow workflow JSON schema for the current version. Use this to understand valid " +
 			"workflow structure before generating or validating YAML. If a schema definition name is provided, only " +
 			"that definition is returned.",
-		Annotations: idempotentAnnotations,
+		Annotations:  idempotentAnnotations,
+		OutputSchema: outputSchemaFor[GetSchemaOutput](),
 	}, m.GetSchema)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "get_example",
-		Title:       "Get Example",
-		Description: "Returns a Zigflow example by name, including its YAML content and metadata.",
-		Annotations: idempotentAnnotations,
+		Name:         "get_example",
+		Title:        "Get Example",
+		Description:  "Returns a Zigflow example by name, including its YAML content and metadata.",
+		Annotations:  idempotentAnnotations,
+		OutputSchema: outputSchemaFor[GetExampleOutput](),
 	}, m.GetExample)
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -203,14 +205,16 @@ func New(server *mcp.Server, version string) *MCP {
 		Title: "List Examples",
 		Description: "Lists the bundled Zigflow workflow examples with short descriptions and tags. " +
 			"Use this to discover available examples before calling get_example.",
-		Annotations: idempotentAnnotations,
+		Annotations:  idempotentAnnotations,
+		OutputSchema: outputSchemaFor[ListExamplesOutput](),
 	}, m.ListExamples)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "validate_workflow",
-		Title:       "Validate Workflow",
-		Description: "Validates a Zigflow workflow YAML string and returns structured errors by stage.",
-		Annotations: idempotentAnnotations,
+		Name:         "validate_workflow",
+		Title:        "Validate Workflow",
+		Description:  "Validates a Zigflow workflow YAML string and returns structured errors by stage.",
+		Annotations:  idempotentAnnotations,
+		OutputSchema: outputSchemaFor[ValidateWorkflowOutput](),
 	}, m.ValidateWorkflow)
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -219,7 +223,8 @@ func New(server *mcp.Server, version string) *MCP {
 		Description: "Returns authoritative documentation for a single Zigflow task type, including its JSON " +
 			"schema (properties and required fields), the full reference page, related links and example " +
 			"workflows that use it. Use this to learn how a specific task type works before authoring YAML.",
-		Annotations: idempotentAnnotations,
+		Annotations:  idempotentAnnotations,
+		OutputSchema: outputSchemaFor[GetTaskDocsOutput](),
 	}, m.GetTaskDocs)
 
 	return m
