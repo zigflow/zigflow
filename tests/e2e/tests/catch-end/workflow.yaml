@@ -1,0 +1,33 @@
+document:
+  dsl: 1.0.0
+  taskQueue: catch-end
+  workflowType: workflow
+  version: 0.0.1
+do:
+  - guarded:
+      # The try task's own output directive shapes whatever the executed body
+      # produced, so the ended catch body's carried output is observable at the
+      # workflow boundary.
+      output:
+        as:
+          result: ${ . }
+      try:
+        # /posts/9999 does not exist, so the mock returns a non-retryable 404.
+        # That is an ordinary failure and must enter the catch body.
+        - getMissingPost:
+            call: http
+            with:
+              method: get
+              endpoint: ${ "http://" + $env.HTTP_MOCK + "/posts/9999" }
+      catch:
+        as: caughtError
+        do:
+          # `then: end` inside the catch body must end the whole workflow, so
+          # the task after the try task must not run.
+          - handled:
+              set:
+                handled: true
+              then: end
+  - mustNotRun:
+      set:
+        afterTry: true
