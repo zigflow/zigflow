@@ -2,6 +2,19 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.14.5](https://github.com/zigflow/zigflow/releases/tag/v0.14.5) - 2026-09-08
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/565
+* deps(deps): bump github.com/go-playground/validator/v10 from 10.30.3 to 10.30.4 in the go-dependencies group by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/566
+* chore: switch from mrsimonemms/golang-helpers/temporal to zigflow/helpers by @mrsimonemms in https://github.com/zigflow/zigflow/pull/567
+* fix(utils): honour io.Writer contract in LogWriter.Write by @YJ-928 in https://github.com/zigflow/zigflow/pull/568
+
+## New Contributors
+* @YJ-928 made their first contribution in https://github.com/zigflow/zigflow/pull/568
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.14.4...v0.14.5
+
 ## [v0.14.4](https://github.com/zigflow/zigflow/releases/tag/v0.14.4) - 2026-09-03
 
 ## What's Changed
