@@ -36,12 +36,16 @@ func (w LogWriter) AddFields(args []any) LogWriter {
 }
 
 func (w LogWriter) Write(p []byte) (n int, err error) {
-	// This may include multiline strings
-	line := string(p)
+	// io.Writer requires n == len(p) whenever err is nil, including when there
+	// is nothing worth logging. io.MultiWriter enforces this and fails the
+	// whole copy otherwise, so a whitespace-only chunk must not report a short
+	// write.
+	n = len(p)
 
-	line = strings.TrimSpace(line)
+	// This may include multiline strings
+	line := strings.TrimSpace(string(p))
 	if line == "" {
-		return
+		return n, nil
 	}
 
 	msg := "New line"
