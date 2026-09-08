@@ -84,7 +84,7 @@ func (t *ForTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		return nil, nil
 	}
 
-	t.childWorkflowName = utils.GenerateChildWorkflowName("for", t.GetTaskName())
+	t.childWorkflowName = utils.GenerateChildWorkflowName(t.doc, "for", t.GetTaskName())
 
 	// Build the inner DoTask with registration disabled so we can register our
 	// own wrapper that returns forChildResult instead of bare state.Output.
@@ -196,7 +196,7 @@ func (t *ForTaskBuilder) createBuilder() (TaskBuilder, error) {
 	}
 
 	// Register the ForTask's Do as a child workflow
-	t.childWorkflowName = utils.GenerateChildWorkflowName("for", t.GetTaskName())
+	t.childWorkflowName = utils.GenerateChildWorkflowName(t.doc, "for", t.GetTaskName())
 
 	builder, err := NewTaskBuilder(
 		t.childWorkflowName, &model.DoTask{Do: t.task.Do},
