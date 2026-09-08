@@ -17,6 +17,9 @@
 package mcp
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -27,4 +30,21 @@ func TestNew_ReturnsInitialisedMCP(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "test"}, nil)
 	m := New(server, "development")
 	assert.NotNil(t, m)
+}
+
+func TestHealthCheck(t *testing.T) {
+	handler := newHTTPHandler(testServer(t))
+
+	req := httptest.NewRequestWithContext(
+		context.Background(),
+		http.MethodGet,
+		"/healthz",
+		nil,
+	)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "ok", rec.Body.String())
 }
