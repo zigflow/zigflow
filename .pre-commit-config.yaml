@@ -52,7 +52,12 @@ repos:
     hooks:
       - id: helm-docs-built
         args:
-          - --template-files=./charts/zigflow/README.tpl
+          - --chart-search-root=./charts/zigflow
+          - --template-files=./README.tpl
+      - id: helm-docs-built
+        args:
+          - --chart-search-root=./charts/zigflow-mcp
+          - --template-files=./README.tpl
   - repo: https://github.com/gruntwork-io/pre-commit
     rev: v0.1.30
     hooks:
