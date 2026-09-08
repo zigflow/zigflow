@@ -2,6 +2,15 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.14.6](https://github.com/zigflow/zigflow/releases/tag/v0.14.6) - 2026-09-08
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/569
+* Add chart to deploy mcp server by @mrsimonemms in https://github.com/zigflow/zigflow/pull/570
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.14.5...v0.14.6
+
 ## [v0.14.5](https://github.com/zigflow/zigflow/releases/tag/v0.14.5) - 2026-09-08
 
 ## What's Changed
