@@ -1,0 +1,24 @@
+apiVersion: v2
+name: zigflow-mcp
+description: Zigflow's MCP server
+type: application
+version: 0.0.0
+icon: https://raw.githubusercontent.com/zigflow/zigflow/refs/heads/main/designs/z-logo.png
+home: https://zigflow.dev
+maintainers:
+  - name: Simon Emms
+    email: simon@simonemms.com
+    url: https://simonemms.com
+sources:
+  - https://github.com/zigflow/zigflow
+keywords:
+  - DSL
+  - Durable Execution
+  - MCP
+  - Open Workflow Specification
+  - Temporal
+  - Workflow Management System
+  - Workflows
+  - YAML
+annotations:
+  org.opencontainers.image.documentation: https://github.com/zigflow/zigflow/tree/main/charts/zigflow-mcp

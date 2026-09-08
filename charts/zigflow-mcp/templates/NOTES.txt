@@ -1,0 +1,5 @@
+Deployed
+========
+
+App: {{ include "zigflow-mcp.fullname" . }}
+Namespace: {{ .Release.Namespace }}

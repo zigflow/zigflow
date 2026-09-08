@@ -153,7 +153,42 @@ jobs:
       - name: Run tests
         run: task e2e
 
+  # Checks common to all charts
   helm:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chart:
+          - zigflow
+          - zigflow-mcp
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Helm
+        uses: azure/setup-helm@v5
+
+      - name: helm lint
+        run: helm lint charts/${{ matrix.chart }}
+
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: ./charts/${{ matrix.chart }}
+          format: sarif
+          output: trivy-${{ matrix.chart }}.sarif
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-${{ matrix.chart }}.sarif
+
+  # Checks the Zigflow charts works
+  helm_e2e:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -164,31 +199,11 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v5
 
-      - name: helm lint
-        run: helm lint charts/zigflow
-
       - name: Install helm-unittest
         run: helm plugin install --verify=false https://github.com/helm-unittest/helm-unittest
 
       - name: helm unittest
         run: helm unittest charts/zigflow
-
-      - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: config
-          scan-ref: ./charts/zigflow
-          format: sarif
-          output: trivy-helm.sarif
-          exit-code: "1"
-          severity: HIGH,CRITICAL
-          limit-severities-for-sarif: true
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-helm.sarif
 
       - name: Install Skaffold
         run: |
@@ -264,6 +279,7 @@ jobs:
       - commitlint
       - e2e
       - helm
+      - helm_e2e
       - pre-commit
       - race
       - test
@@ -513,6 +529,11 @@ jobs:
   helm_chart:
     runs-on: ubuntu-latest
     needs: metadata
+    strategy:
+      matrix:
+        chart:
+          - zigflow
+          - zigflow-mcp
     if: needs.metadata.outputs.is_tag == 'true'
     steps:
       - uses: actions/checkout@v7
@@ -525,9 +546,11 @@ jobs:
       - name: Prepare chart README
         run: |
           go install github.com/norwoodj/helm-docs/cmd/helm-docs@latest
-          helm-docs
-          yq -i '.version = "${{ needs.metadata.outputs.tag }}"' charts/zigflow/Chart.yaml
-          yq -i '.annotations."org.opencontainers.image.documentation" = "https://github.com/zigflow/zigflow/blob/${{ needs.metadata.outputs.tag }}/charts/zigflow/README.md"' charts/zigflow/Chart.yaml
+          helm-docs \
+            --chart-search-root charts/${{ matrix.chart }} \
+            --template-files=README.tpl
+          yq -i '.version = "${{ needs.metadata.outputs.tag }}"' charts/${{ matrix.chart }}/Chart.yaml
+          yq -i '.annotations."org.opencontainers.image.documentation" = "https://github.com/zigflow/zigflow/blob/${{ needs.metadata.outputs.tag }}/charts/${{ matrix.chart }}/README.md"' charts/${{ matrix.chart }}/Chart.yaml
 
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v7
@@ -546,7 +569,7 @@ jobs:
       - name: Publish Helm chart
         uses: appany/helm-oci-chart-releaser@v0.5.0
         with:
-          name: zigflow
+          name: ${{ matrix.chart }}
           registry: ghcr.io
           repository: ${{ github.repository_owner }}/charts
           tag: ${{ needs.metadata.outputs.tag }}
