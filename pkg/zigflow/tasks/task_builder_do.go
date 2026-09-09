@@ -209,7 +209,9 @@ func (t *DoTaskBuilder) workflowExecutor(tasks []workflowFunc) TemporalWorkflowF
 
 		if state == nil {
 			logger.Debug("Creating new state instance")
-			state = utils.NewState().AddWorkflowInfo(ctx)
+			state = utils.NewState().
+				AddWorkflowInfo(ctx).
+				AddContextPropagator(ctx)
 			state.Env = t.opts.Envvars
 			state.Input = input
 

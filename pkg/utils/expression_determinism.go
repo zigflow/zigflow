@@ -87,11 +87,12 @@ func IsExpressionDeterministic(expr string) bool {
 // evaluation from workflow State. Reading these values is always replay-safe
 // because they come from workflow history.
 var stateVars = map[string]struct{}{
-	"$context": {},
-	"$data":    {},
-	"$env":     {},
-	"$input":   {},
-	"$output":  {},
+	"$context":    {},
+	"$data":       {},
+	"$env":        {},
+	"$input":      {},
+	"$output":     {},
+	"$propagated": {},
 }
 
 // nonDeterministicReasons lists symbols that are explicitly non-deterministic

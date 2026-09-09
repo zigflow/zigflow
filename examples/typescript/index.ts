@@ -14,8 +14,35 @@
  * limitations under the License.
  */
 
-import { Connection, Client } from '@temporalio/client';
+import {
+  Connection,
+  Client,
+  WorkflowStartInput,
+  Next,
+  WorkflowClientInterceptor,
+  defaultPayloadConverter,
+} from '@temporalio/client';
 import { nanoid } from 'nanoid';
+
+class PropagationInterceptor implements WorkflowClientInterceptor {
+  async start(
+    input: WorkflowStartInput,
+    next: Next<WorkflowClientInterceptor, 'start'>,
+  ): Promise<string> {
+    return next({
+      ...input,
+      headers: {
+        ...input.headers,
+        'zigflow.propagated': defaultPayloadConverter.toPayload({
+          correlationId: nanoid(),
+          key: 'value',
+          number: 123,
+          hello: 'world',
+        })!,
+      },
+    });
+  }
+}
 
 async function bootstrap() {
   const connection = await Connection.connect({
@@ -27,6 +54,9 @@ async function bootstrap() {
   const client = new Client({
     connection,
     namespace: process.env.TEMPORAL_NAMESPACE ?? 'default',
+    interceptors: {
+      workflow: [new PropagationInterceptor()],
+    },
   });
 
   const handle = await client.workflow.start('basic-typescript', {

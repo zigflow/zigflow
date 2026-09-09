@@ -27,6 +27,8 @@ do:
         as:
           baseData: ${ . }
       set:
+        # $propagated comes from injectors set in client
+        correlationId: ${ $propagated.correlationId }
         # Set a variable from an envvar
         envvar: ${ $env.EXAMPLE_ENVVAR }
         uuid: ${ uuid }

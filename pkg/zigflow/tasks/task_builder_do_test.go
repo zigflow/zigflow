@@ -24,6 +24,8 @@ import (
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"github.com/zigflow/zigflow/pkg/ctxpropagator"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"go.temporal.io/sdk/activity"
@@ -727,4 +729,64 @@ func (m *WorkflowRegistryMock) Stop() {
 
 func (m *WorkflowRegistryMock) RegisterWorkflowWithOptions(w any, opts workflow.RegisterOptions) {
 	m.Called(w, opts)
+}
+
+// The do-task seeds new state from the workflow context, so values carried by
+// the context propagator must be visible to tasks as $propagated.
+func TestDoTaskBuilderWorkflowExecutorAddsContextPropagator(t *testing.T) {
+	tests := []struct {
+		name       string
+		propagated map[string]any
+		setValue   bool
+		want       map[string]any
+	}{
+		{
+			name:       "propagated values reach the task state",
+			propagated: map[string]any{ctxpropagator.CorrelationID: "corr-123"},
+			setValue:   true,
+			want:       map[string]any{ctxpropagator.CorrelationID: "corr-123"},
+		},
+		{
+			name:     "no propagated values leaves an empty map",
+			setValue: false,
+			want:     map[string]any{},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			builder := &DoTaskBuilder{
+				builder: builder[*model.DoTask]{
+					doc:          testWorkflow,
+					eventEmitter: testEvents,
+					name:         "test-workflow",
+					task:         &model.DoTask{},
+				},
+			}
+
+			var capturedState *utils.State
+			runOrder := make([]string, 0, 2)
+			wf := builder.workflowExecutor(newOutputWorkflowFuncs(&runOrder, &capturedState))
+
+			var s testsuite.WorkflowTestSuite
+			env := s.NewTestWorkflowEnvironment()
+
+			workflowName := "propagated-" + tc.name
+			env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+				if tc.setValue {
+					ctx = workflow.WithValue(ctx, ctxpropagator.PropagateKey, tc.propagated)
+				}
+
+				return wf(ctx, map[string]any{}, nil)
+			}, workflow.RegisterOptions{Name: workflowName})
+
+			env.ExecuteWorkflow(workflowName)
+
+			require.NoError(t, env.GetWorkflowError())
+			require.NotNil(t, capturedState)
+
+			assert.Equal(t, tc.want, capturedState.ContextPropagator)
+			assert.Equal(t, tc.want, capturedState.GetAsMap()["$propagated"])
+		})
+	}
 }
