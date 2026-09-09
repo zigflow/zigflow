@@ -23,6 +23,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zigflow/zigflow/pkg/ctxpropagator"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
@@ -171,4 +172,113 @@ func TestAddActivityInfo_SetsRFC3339Now(t *testing.T) {
 
 	_, err = time.Parse(time.RFC3339, now)
 	assert.NoError(t, err, "$data.activity.now must be RFC3339-formatted")
+}
+
+const testCorrelationID = "corr-123"
+
+func TestAddContextPropagator(t *testing.T) {
+	tests := []struct {
+		name       string
+		propagated any
+		setValue   bool
+		want       map[string]any
+	}{
+		{
+			name:       "copies propagated values onto the state",
+			propagated: map[string]any{ctxpropagator.CorrelationID: testCorrelationID, "tenant": "acme"},
+			setValue:   true,
+			want:       map[string]any{ctxpropagator.CorrelationID: testCorrelationID, "tenant": "acme"},
+		},
+		{
+			name:     "leaves an empty map when nothing was propagated",
+			setValue: false,
+			want:     map[string]any{},
+		},
+		{
+			name:       "ignores a propagated value that is not a map",
+			propagated: "not-a-map",
+			setValue:   true,
+			want:       map[string]any{},
+		},
+		{
+			name:       "ignores a propagated map of the wrong type",
+			propagated: map[string]string{ctxpropagator.CorrelationID: testCorrelationID},
+			setValue:   true,
+			want:       map[string]any{},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			workflowFn := func(ctx workflow.Context) (map[string]any, error) {
+				if tc.setValue {
+					ctx = workflow.WithValue(ctx, ctxpropagator.PropagateKey, tc.propagated)
+				}
+
+				// An unexpected value must neither panic nor leave the
+				// state unusable, so read it back through GetAsMap.
+				return NewState().AddContextPropagator(ctx).GetAsMap(), nil
+			}
+
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestWorkflowEnvironment()
+			env.ExecuteWorkflow(workflowFn)
+
+			require.True(t, env.IsWorkflowCompleted())
+			require.NoError(t, env.GetWorkflowError())
+
+			got := map[string]any{}
+			require.NoError(t, env.GetWorkflowResult(&got))
+
+			assert.Equal(t, tc.want, got["$propagated"])
+			assert.Equal(t, map[string]any{}, got["$data"])
+			assert.Equal(t, map[string]any{}, got["$env"])
+		})
+	}
+}
+
+func TestNewState_ContextPropagatorDefaultsToEmptyMap(t *testing.T) {
+	assert.Equal(t, map[string]any{}, NewState().ContextPropagator)
+}
+
+func TestState_GetAsMap_ExposesPropagated(t *testing.T) {
+	// Runtime expressions read propagated values as $propagated.
+	workflowFn := func(ctx workflow.Context) (map[string]any, error) {
+		ctx = workflow.WithValue(ctx, ctxpropagator.PropagateKey, map[string]any{
+			ctxpropagator.CorrelationID: testCorrelationID,
+		})
+
+		return NewState().AddContextPropagator(ctx).GetAsMap(), nil
+	}
+
+	testSuite := &testsuite.WorkflowTestSuite{}
+	env := testSuite.NewTestWorkflowEnvironment()
+	env.ExecuteWorkflow(workflowFn)
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError())
+
+	var asMap map[string]any
+	require.NoError(t, env.GetWorkflowResult(&asMap))
+
+	assert.Equal(t, map[string]any{ctxpropagator.CorrelationID: testCorrelationID}, asMap["$propagated"])
+}
+
+func TestState_GetAsMap_PropagatedIsEmptyWhenUnset(t *testing.T) {
+	assert.Equal(t, map[string]any{}, NewState().GetAsMap()["$propagated"])
+}
+
+func TestState_Clone_PreservesContextPropagator(t *testing.T) {
+	s := NewState()
+	s.ContextPropagator = map[string]any{ctxpropagator.CorrelationID: testCorrelationID}
+
+	clone := s.Clone()
+	require.Equal(t, s.ContextPropagator, clone.ContextPropagator)
+
+	// The clone owns its propagated values: mutating them must not reach
+	// back into the state it was cloned from.
+	clone.ContextPropagator[ctxpropagator.CorrelationID] = "corr-mutated"
+	clone.ContextPropagator["added"] = true
+
+	assert.Equal(t, map[string]any{ctxpropagator.CorrelationID: testCorrelationID}, s.ContextPropagator)
 }

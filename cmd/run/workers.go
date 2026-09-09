@@ -26,12 +26,14 @@ import (
 	"github.com/rs/zerolog/log"
 	temporal "github.com/zigflow/helpers"
 	"github.com/zigflow/zigflow/pkg/codec"
+	"github.com/zigflow/zigflow/pkg/ctxpropagator"
 	"github.com/zigflow/zigflow/pkg/zigflow"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
 	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/contrib/sysinfo"
 	"go.temporal.io/sdk/worker"
+	"go.temporal.io/sdk/workflow"
 )
 
 // newTemporalConnection is the function used to establish a Temporal client. It
@@ -268,6 +270,7 @@ func initTemporalClient(opts *runOptions) (client.Client, error) {
 		},
 		temporal.WithZerolog(&log.Logger),
 		temporal.WithPrometheusMetrics(opts.temporal.MetricsListenAddress, opts.temporal.MetricsPrefix, nil),
+		temporal.WithContextPropagators([]workflow.ContextPropagator{ctxpropagator.NewContextPropagator()}),
 	)
 	if err != nil {
 		return nil, gh.FatalError{Cause: err, Msg: "Unable to create client"}

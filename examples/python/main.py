@@ -23,7 +23,38 @@ import sys
 import uuid
 from typing import Any, Dict
 
-from temporalio.client import Client
+from temporalio.client import (
+    Client,
+    Interceptor,
+    OutboundInterceptor,
+    StartWorkflowInput,
+)
+from temporalio.converter import PayloadConverter
+
+
+class PropagationOutboundInterceptor(OutboundInterceptor):
+    async def start_workflow(self, input: StartWorkflowInput):
+        headers = dict(input.headers)
+        headers["zigflow.propagated"] = PayloadConverter.default.to_payload(
+            {
+                "key":    "value",
+                "number": 123,
+                "hello":  "world",
+                "correlationId": str(uuid.uuid4()),
+            }
+        )
+
+        input.headers = headers
+
+        return await self.next.start_workflow(input)
+
+
+class PropagationInterceptor(Interceptor):
+    def intercept_client(
+        self,
+        next: OutboundInterceptor,
+    ) -> OutboundInterceptor:
+        return PropagationOutboundInterceptor(next)
 
 
 async def main() -> None:
@@ -32,7 +63,10 @@ async def main() -> None:
     api_key = os.getenv("TEMPORAL_API_KEY")
     tls_enabled = os.getenv("TEMPORAL_TLS", "false").lower() == "true"
 
-    connect_kwargs: Dict[str, Any] = {"namespace": namespace}
+    connect_kwargs: Dict[str, Any] = {
+        "namespace": namespace,
+        "interceptors": [PropagationInterceptor()],
+      }
     if tls_enabled:
         # Passing True enables TLS using the platform defaults (e.g. system CAs).
         connect_kwargs["tls"] = True

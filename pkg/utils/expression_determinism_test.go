@@ -43,6 +43,7 @@ func TestAnalyseExpressionDeterminism_Deterministic(t *testing.T) {
 		{"identity", "${ . }"},
 		{"context access", "${ $context.user.id }"},
 		{"input access", "${ $input.name }"},
+		{"propagated access", "${ $propagated.correlationId }"},
 		{"map over state", "${ $data.items | map(. * 2) }"},
 		{"select over state", "${ $data.items[] | select(.active) }"},
 		{"object literal from state", `${ {name: $data.name, age: $data.age} }`},

@@ -22,16 +22,20 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/google/uuid"
 	gh "github.com/mrsimonemms/golang-helpers"
 	"github.com/rs/zerolog/log"
 	temporal "github.com/zigflow/helpers"
+	"github.com/zigflow/zigflow/pkg/ctxpropagator"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/workflow"
 )
 
 func exec() error {
 	// The client is a heavyweight object that should be created once per process.
 	c, err := temporal.NewConnectionWithEnvvars(
 		temporal.WithZerolog(&log.Logger),
+		temporal.WithContextPropagators([]workflow.ContextPropagator{ctxpropagator.NewContextPropagator()}),
 	)
 	if err != nil {
 		return gh.FatalError{
@@ -46,6 +50,13 @@ func exec() error {
 	}
 
 	ctx := context.Background()
+	ctx = context.WithValue(ctx, ctxpropagator.PropagateKey, map[string]any{
+		"key":                       "value",
+		"number":                    123,
+		"hello":                     "world",
+		ctxpropagator.CorrelationID: uuid.NewString(),
+	})
+
 	we, err := c.ExecuteWorkflow(ctx, workflowOptions, "basic", map[string]any{
 		"userId": 3,
 	})

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	swUtils "github.com/open-workflow-specification/sdk-go/v4/impl/utils"
+	"github.com/zigflow/zigflow/pkg/ctxpropagator"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/workflow"
 )
@@ -32,12 +33,13 @@ const (
 )
 
 type State struct {
-	CANStartFrom *string        `json:"canStartFrom,omitempty"` // Continue-as-new from here
-	Context      any            `json:"context"`                // Output data exported to later tasks output
-	Data         map[string]any `json:"data"`                   // Data stored along the way
-	Env          map[string]any `json:"env"`                    // Available environment variables
-	Input        any            `json:"input,omitempty"`        // The input given by the caller
-	Output       any            `json:"output"`                 // What will be output to the caller
+	CANStartFrom      *string        `json:"canStartFrom,omitempty"` // Continue-as-new from here
+	Context           any            `json:"context"`                // Output data exported to later tasks output
+	ContextPropagator map[string]any `json:"contextPropagator"`      // Data sent via the context propagator
+	Data              map[string]any `json:"data"`                   // Data stored along the way
+	Env               map[string]any `json:"env"`                    // Available environment variables
+	Input             any            `json:"input,omitempty"`        // The input given by the caller
+	Output            any            `json:"output"`                 // What will be output to the caller
 }
 
 func (s *State) init() *State {
@@ -47,7 +49,15 @@ func (s *State) init() *State {
 	if s.Data == nil {
 		s.Data = map[string]any{}
 	}
+	s.ContextPropagator = map[string]any{}
 
+	return s
+}
+
+func (s *State) AddContextPropagator(ctx workflow.Context) *State {
+	if val, ok := ctx.Value(ctxpropagator.PropagateKey).(map[string]any); ok {
+		s.ContextPropagator = val
+	}
 	return s
 }
 
@@ -150,6 +160,7 @@ func (s *State) Clone() *State {
 	s1 := NewState()
 
 	s1.Context = swUtils.DeepCloneValue(s.Context)
+	s1.ContextPropagator = swUtils.DeepClone(s.ContextPropagator)
 	s1.Data = swUtils.DeepClone(s.Data)
 	s1.Env = swUtils.DeepClone(s.Env)
 	s1.Input = swUtils.DeepCloneValue(s.Input)
@@ -163,11 +174,12 @@ func (s *State) GetAsMap() map[string]any {
 	s1 := s.Clone()
 
 	return map[string]any{
-		"$context": s1.Context,
-		"$data":    s1.Data,
-		"$env":     s1.Env,
-		"$input":   s1.Input,
-		"$output":  s1.Output,
+		"$context":    s1.Context,
+		"$data":       s1.Data,
+		"$env":        s1.Env,
+		"$input":      s1.Input,
+		"$output":     s1.Output,
+		"$propagated": s1.ContextPropagator,
 	}
 }
 
