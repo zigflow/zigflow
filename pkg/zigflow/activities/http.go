@@ -26,6 +26,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	neturl "net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -180,7 +181,18 @@ func (c *CallHTTP) callHTTPAction(ctx context.Context, task *model.CallHTTP, tim
 
 	method = strings.ToUpper(args.Method)
 	url = args.Endpoint.String()
-	body := args.Body
+
+	// Resolved before the body: the encoding depends on Content-Type
+	headers, err := objectOrRuntimeExprToMap("headers", args.Headers)
+	if err != nil {
+		return resp, method, url, reqHeaders, err
+	}
+	reqHeaders = map[string]string{}
+	for k, v := range headers {
+		reqHeaders[k] = fmt.Sprint(v)
+	}
+
+	body := encodeHTTPBody(args.Body, headerValue(reqHeaders, "Content-Type"))
 
 	logger.Debug("Making HTTP call", "method", method, "url", url)
 	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(body))
@@ -189,16 +201,8 @@ func (c *CallHTTP) callHTTPAction(ctx context.Context, task *model.CallHTTP, tim
 		return resp, method, url, reqHeaders, err
 	}
 
-	// Add in headers
-	headers, err := objectOrRuntimeExprToMap("headers", args.Headers)
-	if err != nil {
-		return resp, method, url, reqHeaders, err
-	}
-	reqHeaders = map[string]string{}
-	for k, v := range headers {
-		val := fmt.Sprint(v)
-		req.Header.Add(k, val)
-		reqHeaders[k] = val
+	for k, v := range reqHeaders {
+		req.Header.Add(k, v)
 	}
 
 	// Add in query strings
@@ -348,4 +352,91 @@ func ParseOutput(outputType string, httpResp HTTPResponse, raw []byte) any {
 	}
 
 	return output
+}
+
+const formMediaType = "application/x-www-form-urlencoded"
+
+// headerValue looks up a header case-insensitively, as HTTP header names are
+// not case-sensitive but Go maps are.
+func headerValue(headers map[string]string, name string) string {
+	for k, v := range headers {
+		if strings.EqualFold(k, name) {
+			return v
+		}
+	}
+	return ""
+}
+
+func isJSONMediaType(mediaType string) bool {
+	return mediaType == "application/json" || strings.HasSuffix(mediaType, "+json")
+}
+
+// encodeHTTPBody encodes the request body for the declared Content-Type.
+// Bodies are held as JSON, so form endpoints need re-encoding; every other
+// media type is returned unchanged.
+func encodeHTTPBody(body json.RawMessage, contentType string) []byte {
+	if len(body) == 0 {
+		return body
+	}
+
+	mediaType := strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0]))
+
+	// UseNumber keeps numeric literals exact
+	var v any
+	dec := json.NewDecoder(bytes.NewReader(body))
+	dec.UseNumber()
+	if err := dec.Decode(&v); err != nil {
+		return body // not JSON: already raw bytes
+	}
+
+	// A string under a non-JSON media type is already encoded: send it verbatim
+	// rather than JSON-quoted
+	if s, ok := v.(string); ok && mediaType != "" && !isJSONMediaType(mediaType) {
+		return []byte(s)
+	}
+
+	if mediaType == formMediaType {
+		obj, ok := v.(map[string]any)
+		if !ok {
+			return body
+		}
+		return []byte(formEncode(obj))
+	}
+
+	return body
+}
+
+// formEncode renders an object as application/x-www-form-urlencoded.
+// Values.Encode sorts keys, so the output is deterministic.
+func formEncode(obj map[string]any) string {
+	values := neturl.Values{}
+	for k, v := range obj {
+		if items, ok := v.([]any); ok {
+			for _, item := range items {
+				values.Add(k, formValue(item))
+			}
+			continue
+		}
+		values.Set(k, formValue(v))
+	}
+	return values.Encode()
+}
+
+func formValue(v any) string {
+	switch t := v.(type) {
+	case nil:
+		return ""
+	case string:
+		return t
+	case json.Number:
+		return t.String()
+	case bool:
+		return strconv.FormatBool(t)
+	default:
+		b, err := json.Marshal(t)
+		if err != nil {
+			return fmt.Sprint(t)
+		}
+		return string(b)
+	}
 }
