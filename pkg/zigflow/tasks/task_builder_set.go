@@ -35,14 +35,12 @@ func NewSetTaskBuilder(
 	taskOpts *TaskOpts,
 ) (*SetTaskBuilder, error) {
 	return &SetTaskBuilder{
-		builder: builder[*model.SetTask]{
-			doc:            doc,
-			eventEmitter:   emitter,
-			name:           taskName,
-			task:           task,
-			taskOpts:       taskOpts,
-			temporalWorker: temporalWorker,
-		},
+		doc:            doc,
+		eventEmitter:   emitter,
+		name:           taskName,
+		task:           task,
+		taskOpts:       taskOpts,
+		temporalWorker: temporalWorker,
 	}, nil
 }
 

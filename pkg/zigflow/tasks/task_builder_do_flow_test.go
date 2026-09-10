@@ -464,12 +464,10 @@ func TestDoTaskBuilderSwitchEmitsTaskCompletedForControlDirective(t *testing.T) 
 	events, readEventTypes := newRecordingEvents(t)
 
 	builder := &DoTaskBuilder{
-		builder: builder[*model.DoTask]{
-			doc:          testWorkflow,
-			eventEmitter: events,
-			name:         "switch-events",
-			task:         &model.DoTask{},
-		},
+		doc:          testWorkflow,
+		eventEmitter: events,
+		name:         "switch-events",
+		task:         &model.DoTask{},
 	}
 
 	runOrder := make([]string, 0, 1)
@@ -779,12 +777,10 @@ func TestDoTaskBuilderTaskCompletedUsesProcessedOutput(t *testing.T) {
 	events, readEventPayloads := newRecordingEventsWithPayload(t)
 
 	builder := &DoTaskBuilder{
-		builder: builder[*model.DoTask]{
-			doc:          testWorkflow,
-			eventEmitter: events,
-			name:         "task-completed-processed-output",
-			task:         &model.DoTask{},
-		},
+		doc:          testWorkflow,
+		eventEmitter: events,
+		name:         "task-completed-processed-output",
+		task:         &model.DoTask{},
 	}
 
 	processed := map[string]any{testConstValue: "processed-output"}
@@ -906,12 +902,10 @@ func TestDoTaskBuilderCancelledTaskSkipsCompletionPipeline(t *testing.T) {
 	events, readEvents := newRecordingEventsWithPayload(t)
 
 	builder := &DoTaskBuilder{
-		builder: builder[*model.DoTask]{
-			doc:          testWorkflow,
-			eventEmitter: events,
-			name:         "cancellation-skip-pipeline",
-			task:         &model.DoTask{},
-		},
+		doc:          testWorkflow,
+		eventEmitter: events,
+		name:         "cancellation-skip-pipeline",
+		task:         &model.DoTask{},
 	}
 
 	priorOutput := map[string]any{testConstValue: testConstTaskPrior}

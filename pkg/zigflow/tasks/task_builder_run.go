@@ -46,14 +46,12 @@ func NewRunTaskBuilder(
 	taskOpts *TaskOpts,
 ) (*RunTaskBuilder, error) {
 	return &RunTaskBuilder{
-		builder: builder[*model.RunTask]{
-			doc:            doc,
-			eventEmitter:   emitter,
-			name:           taskName,
-			task:           task,
-			taskOpts:       taskOpts,
-			temporalWorker: temporalWorker,
-		},
+		doc:            doc,
+		eventEmitter:   emitter,
+		name:           taskName,
+		task:           task,
+		taskOpts:       taskOpts,
+		temporalWorker: temporalWorker,
 	}, nil
 }
 

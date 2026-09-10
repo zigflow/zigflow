@@ -150,18 +150,16 @@ func reactJobCreate(t *testing.T, c *fake.Clientset, opts jobReactorOpts) {
 
 		if opts.seedPod {
 			pod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      job.Name + "-pod",
-					Namespace: job.Namespace,
-					Labels:    job.Spec.Template.Labels,
-					OwnerReferences: []metav1.OwnerReference{{
-						APIVersion: testJobAPIVersion,
-						Kind:       testJobKind,
-						Name:       job.Name,
-						UID:        job.UID,
-						Controller: new(true),
-					}},
-				},
+				Name:      job.Name + "-pod",
+				Namespace: job.Namespace,
+				Labels:    job.Spec.Template.Labels,
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion: testJobAPIVersion,
+					Kind:       testJobKind,
+					Name:       job.Name,
+					UID:        job.UID,
+					Controller: new(true),
+				}},
 			}
 			if err := c.Tracker().Add(pod); err != nil {
 				return true, nil, err
@@ -1063,18 +1061,16 @@ func TestCallContainerActivity_RuntimeSelection_DockerDoesNotTouchKubernetes(t *
 // keeps each test focused on the scenario instead of OwnerReference plumbing.
 func makeOwnedPod(name string, jobUID types.UID, created time.Time, controller bool) corev1.Pod {
 	return corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              name,
-			Namespace:         testKubeNamespace,
-			CreationTimestamp: metav1.NewTime(created),
-			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: testJobAPIVersion,
-				Kind:       testJobKind,
-				Name:       "owner",
-				UID:        jobUID,
-				Controller: new(controller),
-			}},
-		},
+		Name:              name,
+		Namespace:         testKubeNamespace,
+		CreationTimestamp: metav1.NewTime(created),
+		OwnerReferences: []metav1.OwnerReference{{
+			APIVersion: testJobAPIVersion,
+			Kind:       testJobKind,
+			Name:       "owner",
+			UID:        jobUID,
+			Controller: new(controller),
+		}},
 	}
 }
 
@@ -1087,11 +1083,9 @@ func TestNewestPodControlledBy(t *testing.T) {
 	run := &Run{}
 
 	job := &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "this-job",
-			Namespace: testKubeNamespace,
-			UID:       types.UID("this-job-uid"),
-		},
+		Name:      "this-job",
+		Namespace: testKubeNamespace,
+		UID:       types.UID("this-job-uid"),
 	}
 	otherJobUID := types.UID("other-job-uid")
 
@@ -1106,7 +1100,7 @@ func TestNewestPodControlledBy(t *testing.T) {
 		t.Parallel()
 		pods := []corev1.Pod{
 			makeOwnedPod("stale", otherJobUID, t0, true),
-			{ObjectMeta: metav1.ObjectMeta{Name: "orphan"}}, // no owners
+			{Name: "orphan"}, // no owners
 		}
 		assert.Nil(t, run.newestPodControlledBy(pods, job))
 	})
@@ -1177,24 +1171,22 @@ func TestGetJobLogs_StalePodFromEarlierJobIsIgnored(t *testing.T) {
 
 	run := &Run{}
 	stalePod := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "stale-pod",
-			Namespace: testKubeNamespace,
-			// Same correlation labels the current activity will emit;
-			// the test env supplies fixed IDs, so the selector alone
-			// cannot tell this pod apart.
-			Labels: map[string]string{
-				labelKeyRunID:      run.sanitiseLabelValue("default-test-run-id"),
-				labelKeyActivityID: run.sanitiseLabelValue("0"),
-			},
-			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: testJobAPIVersion,
-				Kind:       testJobKind,
-				Name:       "ancient-job",
-				UID:        types.UID("ancient-job-uid"), // not our Job's UID
-				Controller: new(true),
-			}},
+		Name:      "stale-pod",
+		Namespace: testKubeNamespace,
+		// Same correlation labels the current activity will emit;
+		// the test env supplies fixed IDs, so the selector alone
+		// cannot tell this pod apart.
+		Labels: map[string]string{
+			labelKeyRunID:      run.sanitiseLabelValue("default-test-run-id"),
+			labelKeyActivityID: run.sanitiseLabelValue("0"),
 		},
+		OwnerReferences: []metav1.OwnerReference{{
+			APIVersion: testJobAPIVersion,
+			Kind:       testJobKind,
+			Name:       "ancient-job",
+			UID:        types.UID("ancient-job-uid"), // not our Job's UID
+			Controller: new(true),
+		}},
 	}
 
 	reactJobCreate(t, fakeClient, jobReactorOpts{
@@ -1222,31 +1214,27 @@ func TestGetJobLogs_PodWithMatchingLabelsButWrongOwnerSurfacesAsNoPods(t *testin
 
 	run := &Run{}
 	orphan := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "orphan-pod",
-			Namespace: testKubeNamespace,
-			Labels: map[string]string{
-				labelKeyRunID:      run.sanitiseLabelValue("default-test-run-id"),
-				labelKeyActivityID: run.sanitiseLabelValue("0"),
-			},
+		Name:      "orphan-pod",
+		Namespace: testKubeNamespace,
+		Labels: map[string]string{
+			labelKeyRunID:      run.sanitiseLabelValue("default-test-run-id"),
+			labelKeyActivityID: run.sanitiseLabelValue("0"),
 		},
 	}
 	stale := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "stale-pod",
-			Namespace: testKubeNamespace,
-			Labels: map[string]string{
-				labelKeyRunID:      run.sanitiseLabelValue("default-test-run-id"),
-				labelKeyActivityID: run.sanitiseLabelValue("0"),
-			},
-			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: testJobAPIVersion,
-				Kind:       testJobKind,
-				Name:       "ancient-job",
-				UID:        types.UID("ancient-job-uid"),
-				Controller: new(true),
-			}},
+		Name:      "stale-pod",
+		Namespace: testKubeNamespace,
+		Labels: map[string]string{
+			labelKeyRunID:      run.sanitiseLabelValue("default-test-run-id"),
+			labelKeyActivityID: run.sanitiseLabelValue("0"),
 		},
+		OwnerReferences: []metav1.OwnerReference{{
+			APIVersion: testJobAPIVersion,
+			Kind:       testJobKind,
+			Name:       "ancient-job",
+			UID:        types.UID("ancient-job-uid"),
+			Controller: new(true),
+		}},
 	}
 
 	reactJobCreate(t, fakeClient, jobReactorOpts{

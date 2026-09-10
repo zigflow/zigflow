@@ -109,10 +109,8 @@ func TestListenTaskBuilderListEvents(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			builder := &ListenTaskBuilder{
-				builder: builder[*model.ListenTask]{
-					name: "listen",
-					task: tc.task,
-				},
+				name: "listen",
+				task: tc.task,
 			}
 
 			events, isAll, err := builder.listEvents()
@@ -131,10 +129,8 @@ func TestListenTaskBuilderListEvents(t *testing.T) {
 
 func TestListenTaskBuilderProcessReply(t *testing.T) {
 	builder := &ListenTaskBuilder{
-		builder: builder[*model.ListenTask]{
-			name: "listen",
-			task: &model.ListenTask{},
-		},
+		name: "listen",
+		task: &model.ListenTask{},
 	}
 
 	event := &model.EventFilter{

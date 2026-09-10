@@ -43,9 +43,7 @@ func TestTryTaskBuilderGetTasks(t *testing.T) {
 	}
 
 	builder := &TryTaskBuilder{
-		builder: builder[*model.TryTask]{
-			task: task,
-		},
+		task: task,
 	}
 
 	got := builder.getTasks()
@@ -55,13 +53,11 @@ func TestTryTaskBuilderGetTasks(t *testing.T) {
 
 func TestTryTaskBuilderExecRunsCatchOnError(t *testing.T) {
 	builder := &TryTaskBuilder{
-		builder: builder[*model.TryTask]{
-			name: "try-task",
-			task: &model.TryTask{
-				Try: &model.TaskList{},
-				Catch: &model.TryTaskCatch{
-					Do: &model.TaskList{},
-				},
+		name: "try-task",
+		task: &model.TryTask{
+			Try: &model.TaskList{},
+			Catch: &model.TryTaskCatch{
+				Do: &model.TaskList{},
 			},
 		},
 		tryChildWorkflowName:   "try-child",
@@ -105,13 +101,11 @@ func TestTryTaskBuilderExecRunsCatchOnError(t *testing.T) {
 // overall workflow ends cleanly, not run the catch handler.
 func TestTryTaskBuilderExecPropagatesEndFromTryChild(t *testing.T) {
 	builder := &TryTaskBuilder{
-		builder: builder[*model.TryTask]{
-			name: "try-task-end",
-			task: &model.TryTask{
-				Try: &model.TaskList{},
-				Catch: &model.TryTaskCatch{
-					Do: &model.TaskList{},
-				},
+		name: "try-task-end",
+		task: &model.TryTask{
+			Try: &model.TaskList{},
+			Catch: &model.TryTaskCatch{
+				Do: &model.TaskList{},
 			},
 		},
 		tryChildWorkflowName:   "try-child-end",
@@ -157,13 +151,11 @@ func TestTryTaskBuilderExecPropagatesEndFromTryChild(t *testing.T) {
 // failure.
 func TestTryTaskBuilderExecPropagatesEndFromCatchChild(t *testing.T) {
 	builder := &TryTaskBuilder{
-		builder: builder[*model.TryTask]{
-			name: "try-task-catch-end",
-			task: &model.TryTask{
-				Try: &model.TaskList{},
-				Catch: &model.TryTaskCatch{
-					Do: &model.TaskList{},
-				},
+		name: "try-task-catch-end",
+		task: &model.TryTask{
+			Try: &model.TaskList{},
+			Catch: &model.TryTaskCatch{
+				Do: &model.TaskList{},
 			},
 		},
 		tryChildWorkflowName:   "try-child-real-fail",
@@ -209,14 +201,12 @@ func runCatchAndCaptureState(t *testing.T, catchAs string, tryErr error) (caught
 	t.Helper()
 
 	builder := &TryTaskBuilder{
-		builder: builder[*model.TryTask]{
-			name: "try-task-capture",
-			task: &model.TryTask{
-				Try: &model.TaskList{},
-				Catch: &model.TryTaskCatch{
-					As: catchAs,
-					Do: &model.TaskList{},
-				},
+		name: "try-task-capture",
+		task: &model.TryTask{
+			Try: &model.TaskList{},
+			Catch: &model.TryTaskCatch{
+				As: catchAs,
+				Do: &model.TaskList{},
 			},
 		},
 		tryChildWorkflowName:   "try-child-capture",

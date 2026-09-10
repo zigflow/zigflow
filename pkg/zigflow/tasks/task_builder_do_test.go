@@ -66,12 +66,10 @@ func TestDoTaskBuilderWorkflowExecutor(t *testing.T) {
 			t.Helper()
 
 			builder := &DoTaskBuilder{
-				builder: builder[*model.DoTask]{
-					doc:          testWorkflow,
-					eventEmitter: testEvents,
-					name:         "test-workflow",
-					task:         &model.DoTask{},
-				},
+				doc:          testWorkflow,
+				eventEmitter: testEvents,
+				name:         "test-workflow",
+				task:         &model.DoTask{},
 				opts: DoTaskOpts{
 					Envvars: map[string]any{
 						"APP_ENV": "test",
@@ -222,12 +220,10 @@ func TestDoTaskBuilderIterateTasksFlowControl(t *testing.T) {
 			t.Helper()
 
 			builder := &DoTaskBuilder{
-				builder: builder[*model.DoTask]{
-					doc:          testWorkflow,
-					eventEmitter: testEvents,
-					name:         "iterate-workflow",
-					task:         &model.DoTask{},
-				},
+				doc:          testWorkflow,
+				eventEmitter: testEvents,
+				name:         "iterate-workflow",
+				task:         &model.DoTask{},
 			}
 
 			runOrder := make([]string, 0)
@@ -668,13 +664,11 @@ func newTestDoTaskBuilder(name string, opts ...DoTaskOpts) *DoTaskBuilder {
 	}
 
 	return &DoTaskBuilder{
-		builder: builder[*model.DoTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         name,
-			task:         &model.DoTask{},
-		},
-		opts: doOpts,
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         name,
+		task:         &model.DoTask{},
+		opts:         doOpts,
 	}
 }
 
@@ -756,12 +750,10 @@ func TestDoTaskBuilderWorkflowExecutorAddsContextPropagator(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			builder := &DoTaskBuilder{
-				builder: builder[*model.DoTask]{
-					doc:          testWorkflow,
-					eventEmitter: testEvents,
-					name:         "test-workflow",
-					task:         &model.DoTask{},
-				},
+				doc:          testWorkflow,
+				eventEmitter: testEvents,
+				name:         "test-workflow",
+				task:         &model.DoTask{},
 			}
 
 			var capturedState *utils.State

@@ -70,13 +70,11 @@ func TestRaiseTaskBuilderBuild(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			builder := &RaiseTaskBuilder{
-				builder: builder[*model.RaiseTask]{
-					name: "raise-task",
-					task: &model.RaiseTask{
-						Raise: model.RaiseTaskConfiguration{
-							Error: model.RaiseTaskError{
-								Definition: tc.errorDef,
-							},
+				name: "raise-task",
+				task: &model.RaiseTask{
+					Raise: model.RaiseTaskConfiguration{
+						Error: model.RaiseTaskError{
+							Definition: tc.errorDef,
 						},
 					},
 				},

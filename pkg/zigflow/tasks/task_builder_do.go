@@ -61,16 +61,14 @@ func NewDoTaskBuilder(
 	}
 
 	return &DoTaskBuilder{
-		builder: builder[*model.DoTask]{
-			doc:            doc,
-			eventEmitter:   emitter,
-			name:           workflowName,
-			neverSkipCAN:   true,
-			task:           task,
-			taskOpts:       taskOpts,
-			temporalWorker: temporalWorker,
-		},
-		opts: doOpts,
+		doc:            doc,
+		eventEmitter:   emitter,
+		name:           workflowName,
+		neverSkipCAN:   true,
+		task:           task,
+		taskOpts:       taskOpts,
+		temporalWorker: temporalWorker,
+		opts:           doOpts,
 	}, nil
 }
 

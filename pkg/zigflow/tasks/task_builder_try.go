@@ -39,14 +39,12 @@ func NewTryTaskBuilder(
 	taskOpts *TaskOpts,
 ) (*TryTaskBuilder, error) {
 	return &TryTaskBuilder{
-		builder: builder[*model.TryTask]{
-			doc:            doc,
-			eventEmitter:   emitter,
-			name:           taskName,
-			task:           task,
-			taskOpts:       taskOpts,
-			temporalWorker: temporalWorker,
-		},
+		doc:            doc,
+		eventEmitter:   emitter,
+		name:           taskName,
+		task:           task,
+		taskOpts:       taskOpts,
+		temporalWorker: temporalWorker,
 	}, nil
 }
 
