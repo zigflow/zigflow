@@ -27,11 +27,13 @@ import (
 	temporal "github.com/zigflow/helpers"
 	"github.com/zigflow/zigflow/pkg/codec"
 	"github.com/zigflow/zigflow/pkg/ctxpropagator"
+	"github.com/zigflow/zigflow/pkg/interceptors"
 	"github.com/zigflow/zigflow/pkg/zigflow"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
 	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/contrib/sysinfo"
+	sdkinterceptor "go.temporal.io/sdk/interceptor"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 )
@@ -171,6 +173,9 @@ func buildWorkersByTaskQueue(
 				TaskQueueActivitiesPerSecond:           opts.TaskQueueActivitiesPerSecond,
 				DeploymentOptions:                      deploymentOptions,
 				SysInfoProvider:                        sysinfo.SysInfoProvider(),
+				Interceptors: []sdkinterceptor.WorkerInterceptor{
+					interceptors.NewLoggerInterceptor(),
+				},
 			})
 			workers[reg.TaskQueue] = w
 			log.Debug().Str("task-queue", reg.TaskQueue).Msg("Created worker for task queue")
