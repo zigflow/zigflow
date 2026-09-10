@@ -114,12 +114,10 @@ func runForkExec(
 	}
 
 	builder := &ForkTaskBuilder{
-		builder: builder[*model.ForkTask]{
-			name: "fork-task-end",
-			task: &model.ForkTask{
-				Fork: model.ForkTaskConfiguration{
-					Compete: compete,
-				},
+		name: "fork-task-end",
+		task: &model.ForkTask{
+			Fork: model.ForkTaskConfiguration{
+				Compete: compete,
 			},
 		},
 	}
@@ -216,14 +214,12 @@ func TestForkSingleTaskBranchAliasUsesOriginalBranchKey(t *testing.T) {
 	}
 
 	b := &ForkTaskBuilder{
-		builder: builder[*model.ForkTask]{
-			doc:            doc,
-			eventEmitter:   testEvents,
-			name:           testForkTaskName,
-			taskPath:       []string{testForkTaskName},
-			task:           forkTask,
-			temporalWorker: w,
-		},
+		doc:            doc,
+		eventEmitter:   testEvents,
+		name:           testForkTaskName,
+		taskPath:       []string{testForkTaskName},
+		task:           forkTask,
+		temporalWorker: w,
 	}
 
 	_, err := b.Build()
@@ -262,14 +258,12 @@ func TestForkMultiTaskBranchAliasNestsUnderBranchKey(t *testing.T) {
 	}
 
 	b := &ForkTaskBuilder{
-		builder: builder[*model.ForkTask]{
-			doc:            doc,
-			eventEmitter:   testEvents,
-			name:           testForkTaskName,
-			taskPath:       []string{testForkTaskName},
-			task:           forkTask,
-			temporalWorker: w,
-		},
+		doc:            doc,
+		eventEmitter:   testEvents,
+		name:           testForkTaskName,
+		taskPath:       []string{testForkTaskName},
+		task:           forkTask,
+		temporalWorker: w,
 	}
 
 	_, err := b.Build()

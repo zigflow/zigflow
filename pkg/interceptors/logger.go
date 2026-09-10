@@ -53,9 +53,7 @@ func (w *loggerInterceptor) InterceptActivity(
 	ctx context.Context, next interceptor.ActivityInboundInterceptor,
 ) interceptor.ActivityInboundInterceptor {
 	return &activityInboundInterceptor{
-		ActivityInboundInterceptorBase: interceptor.ActivityInboundInterceptorBase{
-			Next: next,
-		},
+		Next: next,
 	}
 }
 
@@ -63,9 +61,7 @@ func (w *loggerInterceptor) InterceptWorkflow(
 	ctx workflow.Context, next interceptor.WorkflowInboundInterceptor,
 ) interceptor.WorkflowInboundInterceptor {
 	return &workflowInboundInterceptor{
-		WorkflowInboundInterceptorBase: interceptor.WorkflowInboundInterceptorBase{
-			Next: next,
-		},
+		Next: next,
 	}
 }
 

@@ -47,15 +47,13 @@ func NewListenTaskBuilder(
 	taskOpts *TaskOpts,
 ) (*ListenTaskBuilder, error) {
 	return &ListenTaskBuilder{
-		builder: builder[*model.ListenTask]{
-			doc:            doc,
-			eventEmitter:   emitter,
-			name:           taskName,
-			neverSkipCAN:   true,
-			task:           task,
-			taskOpts:       taskOpts,
-			temporalWorker: temporalWorker,
-		},
+		doc:            doc,
+		eventEmitter:   emitter,
+		name:           taskName,
+		neverSkipCAN:   true,
+		task:           task,
+		taskOpts:       taskOpts,
+		temporalWorker: temporalWorker,
 	}, nil
 }
 

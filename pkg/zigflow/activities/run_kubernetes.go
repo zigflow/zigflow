@@ -321,12 +321,10 @@ func (r *Run) buildJobSpec(
 	}
 
 	job := &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: jobNamePrefix,
-			Namespace:    namespace,
-			Labels:       l,
-			Annotations:  a,
-		},
+		GenerateName: jobNamePrefix,
+		Namespace:    namespace,
+		Labels:       l,
+		Annotations:  a,
 		Spec: batchv1.JobSpec{
 			Completions:  utils.Ptr[int32](1),
 			Parallelism:  utils.Ptr[int32](1),

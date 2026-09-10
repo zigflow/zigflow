@@ -40,14 +40,12 @@ func NewForkTaskBuilder(
 	taskOpts *TaskOpts,
 ) (*ForkTaskBuilder, error) {
 	return &ForkTaskBuilder{
-		builder: builder[*model.ForkTask]{
-			doc:            doc,
-			eventEmitter:   emitter,
-			name:           taskName,
-			task:           task,
-			taskOpts:       taskOpts,
-			temporalWorker: temporalWorker,
-		},
+		doc:            doc,
+		eventEmitter:   emitter,
+		name:           taskName,
+		task:           task,
+		taskOpts:       taskOpts,
+		temporalWorker: temporalWorker,
 	}, nil
 }
 

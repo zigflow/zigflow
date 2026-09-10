@@ -32,8 +32,6 @@ func (w *workflowInboundInterceptor) Init(
 	outbound interceptor.WorkflowOutboundInterceptor,
 ) error {
 	return w.Next.Init(&workflowOutboundInterceptor{
-		WorkflowOutboundInterceptorBase: interceptor.WorkflowOutboundInterceptorBase{
-			Next: outbound,
-		},
+		Next: outbound,
 	})
 }

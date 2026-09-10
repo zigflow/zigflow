@@ -152,17 +152,15 @@ func TestForBuildPropagatesTaskPathToInnerBody(t *testing.T) {
 		Once()
 
 	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:            doc,
-			eventEmitter:   testEvents,
-			name:           "outer_loop",
-			taskPath:       []string{"outer_loop"},
-			temporalWorker: w,
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{In: "[]"},
-				Do: &model.TaskList{
-					&model.TaskItem{Key: testConstStep, Task: newTestHTTPTask()},
-				},
+		doc:            doc,
+		eventEmitter:   testEvents,
+		name:           "outer_loop",
+		taskPath:       []string{"outer_loop"},
+		temporalWorker: w,
+		task: &model.ForTask{
+			For: model.ForTaskConfiguration{In: "[]"},
+			Do: &model.TaskList{
+				&model.TaskItem{Key: testConstStep, Task: newTestHTTPTask()},
 			},
 		},
 	}

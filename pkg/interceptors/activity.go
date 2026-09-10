@@ -30,8 +30,6 @@ type activityOutboundInterceptor struct {
 
 func (a *activityInboundInterceptor) Init(outbound interceptor.ActivityOutboundInterceptor) error {
 	return a.Next.Init(&activityOutboundInterceptor{
-		ActivityOutboundInterceptorBase: interceptor.ActivityOutboundInterceptorBase{
-			Next: outbound,
-		},
+		Next: outbound,
 	})
 }

@@ -44,14 +44,12 @@ func NewCallActivityTaskBuilder(
 	}
 
 	return &CallActivityTaskBuilder{
-		builder: builder[*model.CallFunction]{
-			doc:            doc,
-			eventEmitter:   emitter,
-			name:           taskName,
-			task:           task,
-			taskOpts:       taskOpts,
-			temporalWorker: temporalWorker,
-		},
+		doc:            doc,
+		eventEmitter:   emitter,
+		name:           taskName,
+		task:           task,
+		taskOpts:       taskOpts,
+		temporalWorker: temporalWorker,
 	}, nil
 }
 

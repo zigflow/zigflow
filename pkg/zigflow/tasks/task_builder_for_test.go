@@ -59,14 +59,12 @@ func TestForTaskBuilderAddIterationResult(t *testing.T) {
 			state := utils.NewState()
 
 			b := &ForTaskBuilder{
-				builder: builder[*model.ForTask]{
-					doc:          testWorkflow,
-					eventEmitter: testEvents,
-					name:         tc.taskName,
-					task: &model.ForTask{
-						For: model.ForTaskConfiguration{In: testConstForDataItems},
-						Do:  &model.TaskList{},
-					},
+				doc:          testWorkflow,
+				eventEmitter: testEvents,
+				name:         tc.taskName,
+				task: &model.ForTask{
+					For: model.ForTaskConfiguration{In: testConstForDataItems},
+					Do:  &model.TaskList{},
 				},
 			}
 
@@ -136,14 +134,12 @@ func TestForTaskBuilderCheckWhile(t *testing.T) {
 			state.AddData(tc.stateData)
 
 			builder := &ForTaskBuilder{
-				builder: builder[*model.ForTask]{
-					eventEmitter: testEvents,
-					name:         "for-task",
-					task: &model.ForTask{
-						For:   model.ForTaskConfiguration{In: testConstForDataItems},
-						While: tc.while,
-						Do:    &model.TaskList{},
-					},
+				eventEmitter: testEvents,
+				name:         "for-task",
+				task: &model.ForTask{
+					For:   model.ForTaskConfiguration{In: testConstForDataItems},
+					While: tc.while,
+					Do:    &model.TaskList{},
 				},
 			}
 
@@ -269,19 +265,17 @@ func TestForTaskBuilderIterator(t *testing.T) {
 	}
 
 	builder := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "iterate",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: testConstValue,
-					At:   testConstIdx,
-					In:   testConstForDataItems,
-				},
-				Do: &model.TaskList{
-					&model.TaskItem{Key: "first", Task: &model.DoTask{}},
-				},
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "iterate",
+		task: &model.ForTask{
+			For: model.ForTaskConfiguration{
+				Each: testConstValue,
+				At:   testConstIdx,
+				In:   testConstForDataItems,
+			},
+			Do: &model.TaskList{
+				&model.TaskItem{Key: "first", Task: &model.DoTask{}},
 			},
 		},
 		childWorkflowName: utils.GenerateChildWorkflowName("for", "iterate"),
@@ -327,14 +321,12 @@ func TestForIteratorContextPropagates(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "ctx-prop")
 
 	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "ctx-prop",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{Each: constDefaultItemVar, At: testConstIdx, In: testConstForDataItems},
-				Do:  &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
-			},
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "ctx-prop",
+		task: &model.ForTask{
+			For: model.ForTaskConfiguration{Each: constDefaultItemVar, At: testConstIdx, In: testConstForDataItems},
+			Do:  &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 		},
 		childWorkflowName: childWorkflowName,
 	}
@@ -386,16 +378,14 @@ func TestForIteratorWhileSeesOutput(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "while-out")
 
 	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "while-out",
-			task: &model.ForTask{
-				// Continue while $output.continue is true.
-				While: "${ $output.continue }",
-				For:   model.ForTaskConfiguration{Each: constDefaultItemVar, At: testConstIdx, In: testConstForDataItems},
-				Do:    &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
-			},
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "while-out",
+		task: &model.ForTask{
+			// Continue while $output.continue is true.
+			While: "${ $output.continue }",
+			For:   model.ForTaskConfiguration{Each: constDefaultItemVar, At: testConstIdx, In: testConstForDataItems},
+			Do:    &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 		},
 		childWorkflowName: childWorkflowName,
 	}
@@ -459,18 +449,16 @@ func TestForExecArrayAccumulatesResults(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "accum")
 
 	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "accum",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: constDefaultItemVar,
-					At:   testConstIdx,
-					In:   testConstForRefDataItems,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "accum",
+		task: &model.ForTask{
+			For: model.ForTaskConfiguration{
+				Each: constDefaultItemVar,
+				At:   testConstIdx,
+				In:   testConstForRefDataItems,
 			},
+			Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 		},
 		childWorkflowName: childWorkflowName,
 	}
@@ -517,18 +505,16 @@ func TestForExecObjectAccumulatesResults(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "obj-accum")
 
 	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "obj-accum",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: testConstVal,
-					At:   "key",
-					In:   testConstForRefDataItems,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "obj-accum",
+		task: &model.ForTask{
+			For: model.ForTaskConfiguration{
+				Each: testConstVal,
+				At:   "key",
+				In:   testConstForRefDataItems,
 			},
+			Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 		},
 		childWorkflowName: childWorkflowName,
 	}
@@ -572,18 +558,16 @@ func TestForExecNumericAccumulatesResults(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-accum")
 
 	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "num-accum",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: testConstVal,
-					At:   testConstIdx,
-					In:   testConstForRefDataCount,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "num-accum",
+		task: &model.ForTask{
+			For: model.ForTaskConfiguration{
+				Each: testConstVal,
+				At:   testConstIdx,
+				In:   testConstForRefDataCount,
 			},
+			Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 		},
 		childWorkflowName: childWorkflowName,
 	}
@@ -627,18 +611,16 @@ func TestForExecNumericFloat64Whole(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-float64-whole")
 
 	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "num-float64-whole",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: testConstVal,
-					At:   testConstIdx,
-					In:   testConstForRefDataCount,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "num-float64-whole",
+		task: &model.ForTask{
+			For: model.ForTaskConfiguration{
+				Each: testConstVal,
+				At:   testConstIdx,
+				In:   testConstForRefDataCount,
 			},
+			Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 		},
 		childWorkflowName: childWorkflowName,
 	}
@@ -684,18 +666,16 @@ func TestForExecNumericFloat64Zero(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-float64-zero")
 
 	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "num-float64-zero",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: testConstVal,
-					At:   testConstIdx,
-					In:   testConstForRefDataCount,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "num-float64-zero",
+		task: &model.ForTask{
+			For: model.ForTaskConfiguration{
+				Each: testConstVal,
+				At:   testConstIdx,
+				In:   testConstForRefDataCount,
 			},
+			Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 		},
 		childWorkflowName: childWorkflowName,
 	}
@@ -740,18 +720,16 @@ func TestForExecNumericFloat64Fractional(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "num-float64-frac")
 
 	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "num-float64-frac",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: testConstVal,
-					At:   testConstIdx,
-					In:   testConstForRefDataCount,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "num-float64-frac",
+		task: &model.ForTask{
+			For: model.ForTaskConfiguration{
+				Each: testConstVal,
+				At:   testConstIdx,
+				In:   testConstForRefDataCount,
 			},
+			Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 		},
 		childWorkflowName: childWorkflowName,
 	}
@@ -794,18 +772,16 @@ func TestForExecLoopVarsDoNotLeakToParent(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "leak-check")
 
 	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "leak-check",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: constDefaultItemVar,
-					At:   testConstIdx,
-					In:   testConstForRefDataItems,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "leak-check",
+		task: &model.ForTask{
+			For: model.ForTaskConfiguration{
+				Each: constDefaultItemVar,
+				At:   testConstIdx,
+				In:   testConstForRefDataItems,
 			},
+			Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 		},
 		childWorkflowName: childWorkflowName,
 	}
@@ -848,18 +824,16 @@ func TestForExecContextDoesNotLeakToParent(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "ctx-leak")
 
 	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "ctx-leak",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: constDefaultItemVar,
-					At:   testConstIdx,
-					In:   testConstForRefDataItems,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "ctx-leak",
+		task: &model.ForTask{
+			For: model.ForTaskConfiguration{
+				Each: constDefaultItemVar,
+				At:   testConstIdx,
+				In:   testConstForRefDataItems,
 			},
+			Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 		},
 		childWorkflowName: childWorkflowName,
 	}
@@ -905,18 +879,16 @@ func TestForExecOutputIsAggregatedResult(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "no-out-leak")
 
 	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "no-out-leak",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: constDefaultItemVar,
-					At:   testConstIdx,
-					In:   testConstForRefDataItems,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "no-out-leak",
+		task: &model.ForTask{
+			For: model.ForTaskConfiguration{
+				Each: constDefaultItemVar,
+				At:   testConstIdx,
+				In:   testConstForRefDataItems,
 			},
+			Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 		},
 		childWorkflowName: childWorkflowName,
 	}
@@ -959,18 +931,16 @@ func TestForExecErrorLeavesParentStateUnchanged(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "err-unchanged")
 
 	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "err-unchanged",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: constDefaultItemVar,
-					At:   testConstIdx,
-					In:   testConstForRefDataItems,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "err-unchanged",
+		task: &model.ForTask{
+			For: model.ForTaskConfiguration{
+				Each: constDefaultItemVar,
+				At:   testConstIdx,
+				In:   testConstForRefDataItems,
 			},
+			Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 		},
 		childWorkflowName: childWorkflowName,
 	}
@@ -1027,18 +997,16 @@ func TestForIteratorChildEndsPropagatesErrEnd(t *testing.T) {
 	childWorkflowName := utils.GenerateChildWorkflowName("for", "iter-end")
 
 	b := &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:          testWorkflow,
-			eventEmitter: testEvents,
-			name:         "iter-end",
-			task: &model.ForTask{
-				For: model.ForTaskConfiguration{
-					Each: constDefaultItemVar,
-					At:   testConstIdx,
-					In:   testConstForRefDataItems,
-				},
-				Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "iter-end",
+		task: &model.ForTask{
+			For: model.ForTaskConfiguration{
+				Each: constDefaultItemVar,
+				At:   testConstIdx,
+				In:   testConstForRefDataItems,
 			},
+			Do: &model.TaskList{&model.TaskItem{Key: testConstStep, Task: &model.DoTask{}}},
 		},
 		childWorkflowName: childWorkflowName,
 	}

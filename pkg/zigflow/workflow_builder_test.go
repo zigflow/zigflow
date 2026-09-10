@@ -121,11 +121,9 @@ func TestNewWorkflowRunsPostLoadBeforeBuild_GRPCEmptyHostPort(t *testing.T) {
 // smuggle a non-deterministic expression (e.g. ${ uuid }) outside a Set task.
 func TestNewWorkflowRejectsNonDeterministicExpression(t *testing.T) {
 	task := &model.RunTask{
-		TaskBase: model.TaskBase{
-			// ${ uuid } is non-deterministic and lives outside a Set task body,
-			// so it must be rejected.
-			If: &model.RuntimeExpression{Value: "${ uuid }"},
-		},
+		// ${ uuid } is non-deterministic and lives outside a Set task body,
+		// so it must be rejected.
+		If: &model.RuntimeExpression{Value: "${ uuid }"},
 		Run: model.RunTaskConfiguration{
 			Script: &model.Script{
 				Language:   "python",

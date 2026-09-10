@@ -349,8 +349,8 @@ func TestMermaid_ConditionalTask(t *testing.T) {
 	wf := makeWF(
 		"mywf",
 		taskItem("maybe", &model.SetTask{
-			TaskBase: model.TaskBase{If: ifExpr},
-			Set:      model.NewObjectOrRuntimeExpr(map[string]any{"x": 1}),
+			If:  ifExpr,
+			Set: model.NewObjectOrRuntimeExpr(map[string]any{"x": 1}),
 		}),
 	)
 	out, err := gen.Generate(wf)

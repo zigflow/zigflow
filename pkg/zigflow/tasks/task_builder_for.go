@@ -41,14 +41,12 @@ func NewForTaskBuilder(
 	taskOpts *TaskOpts,
 ) (*ForTaskBuilder, error) {
 	return &ForTaskBuilder{
-		builder: builder[*model.ForTask]{
-			doc:            doc,
-			eventEmitter:   emitter,
-			name:           taskName,
-			task:           task,
-			taskOpts:       taskOpts,
-			temporalWorker: temporalWorker,
-		},
+		doc:            doc,
+		eventEmitter:   emitter,
+		name:           taskName,
+		task:           task,
+		taskOpts:       taskOpts,
+		temporalWorker: temporalWorker,
 	}, nil
 }
 
