@@ -22,7 +22,7 @@ import globals from 'globals';
 
 export default defineConfig([
   {
-    ignores: ['.docusaurus'],
+    ignores: ['.docusaurus', 'build'],
   },
   eslintPluginPrettierRecommended,
   {
