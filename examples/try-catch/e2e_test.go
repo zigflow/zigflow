@@ -66,6 +66,7 @@ func TestTryCatchE2E(t *testing.T) {
 	var got map[string]any
 	require.NoError(t, we.Get(runCtx, &got), "get workflow result")
 	t.Logf("workflow output: %v", got)
+	e2etest.AssertNoChildWorkflowStarts(runCtx, t, c, we)
 
 	assert.Equal(t, "some error", got["err"], "catch block should set err")
 }

@@ -65,6 +65,7 @@ func TestForLoopE2E(t *testing.T) {
 	var got map[string]any
 	require.NoError(t, we.Get(runCtx, &got), "get workflow result")
 	t.Logf("workflow output: %v", got)
+	e2etest.AssertNoChildWorkflowStarts(runCtx, t, c, we)
 
 	// Each loop exports its result under its own key; assert all are present.
 	for _, key := range []string{"forTaskMap", "forTaskArray", "forTaskNumber", "forTaskStateCarryOver"} {

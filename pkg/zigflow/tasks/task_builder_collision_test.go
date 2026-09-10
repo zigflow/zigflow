@@ -135,11 +135,11 @@ func TestDeeplyNestedPathProducesFullyQualifiedName(t *testing.T) {
 	w.AssertExpectations(t)
 }
 
-// Regression guard: ForTaskBuilder.Build constructs its inner DoBuilder via
-// NewDoTaskBuilder directly (to pass DoTaskOpts{DisableRegisterWorkflow:true}),
-// bypassing the factory. Without an explicit setTaskPath on that inner builder,
-// the body's tasks register under collision-prone names — exactly the bug an
-// e2e run with two sibling For loops uncovered.
+// Regression guard: ForTaskBuilder.Build constructs its inline DoBuilder via
+// NewDoTaskBuilder directly, bypassing the factory. Without an explicit
+// setTaskPath on that inner builder, the body's tasks register under
+// collision-prone names, exactly the bug an e2e run with two sibling For loops
+// uncovered.
 func TestForBuildPropagatesTaskPathToInnerBody(t *testing.T) {
 	doc := &model.Workflow{Document: model.Document{Name: "wf-for-build"}}
 

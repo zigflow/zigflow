@@ -70,20 +70,30 @@ Set `maximumAttempts: 1` to disable retries entirely for a task.
 
 Use the `try` task to catch failures and handle them gracefully.
 
-The `try` block runs as a child workflow. If any task inside it fails, the
-`catch` block runs instead.
+The `try` and `catch` blocks run inline in the parent workflow. If any task
+inside `try` fails, the `catch` block runs instead.
 
-When a task in the `try` block fails, Zigflow executes the `catch` workflow. The
-caught error is injected into the catch workflow's `$data` state. By default it
-is available as `$data.error`, or under a custom key when `catch.as` is
-specified.
+Each activity inside `try` keeps its own retry policy. Zigflow runs `catch` only
+after the failing activity exhausts its retries. The inline `try` block does not
+have an additional workflow-level retry policy.
 
-The output of the `try` task is whatever the `catch` block returns.
+When a task in the `try` block fails, Zigflow executes the `catch` block. The
+caught error is injected into the catch block's `$data` state. By default it is
+available as `$data.error`, or under a custom key when `catch.as` is specified.
+
+On success, the output of the `try` task is whatever the `try` block returns.
+If `catch` runs, its result becomes the output instead.
+
+An inner `then: end` directive is control flow rather than a failure. In `try`
+it bypasses `catch`, and in either block it propagates out to end the enclosing
+workflow.
 
 ### Accessing the error
 
-The catch workflow runs with its normal workflow state. Zigflow adds the caught
-error to `$data` under the key defined by `catch.as`, which defaults to `error`.
+The catch block starts with a fresh clone of the parent state. Zigflow adds the
+caught error to `$data` under the key defined by `catch.as`, which defaults to
+`error`. The failed try block uses a separate clone, so partial state changes
+from `try` are not visible in `catch`.
 
 ```yaml
 - tryHttp:
@@ -139,9 +149,9 @@ $data.err
 
 When a custom key is used, `$data.error` is not populated.
 
-The error is scoped to the catch workflow. It is not automatically propagated
-into the parent workflow state after the catch block completes. To carry it
-forward, output or export it from a task in the catch block.
+The error is scoped to the catch block. It is not automatically propagated into
+the parent workflow state after the catch block completes. To carry it forward,
+output or export it from a task in the catch block.
 
 ### The error object
 
@@ -158,12 +168,18 @@ activity:
 childWorkflow:
 ```
 
-The exact fields depend on the underlying Temporal error, so do not rely on any
-single field always being present.
+Caught errors include `message` and `nonRetryable`. The `type` field is included
+when the underlying error provides a named type. Other fields depend on the
+underlying Temporal error.
+
+The `childWorkflow` field appears only when the failure came from an actual
+child workflow, such as an explicit `run.workflow` task. A failure from an
+ordinary task in the inline `try` block does not include child workflow
+metadata.
 
 :::warning Migration note
-Prior versions described the caught error as being passed to the catch workflow
-as input. The current behaviour stores the error in `$data` under the key
+Prior versions described the caught error as being passed to the catch block as
+input. The current behaviour stores the error in `$data` under the key
 defined by `catch.as`, defaulting to `error`.
 :::
 

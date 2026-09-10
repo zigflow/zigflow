@@ -13,7 +13,7 @@ calls and handling external service errors.
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
-| try | [`map[string, task]`](/docs/dsl/tasks/intro) | `yes` | The task(s) to perform. This will be run as a [child workflow](https://docs.temporal.io/child-workflows). |
+| try | [`map[string, task]`](/docs/dsl/tasks/intro) | `yes` | The task(s) to perform inline in the parent workflow. |
 | catch | [`catch`](#catch) | `yes` | Configures the errors to catch and how to handle them. |
 
 ## Example
@@ -62,14 +62,13 @@ This outputs:
 
 ### Catch
 
-Defines the configuration of a catch clause, which a concept used to catch
-errors.
+Defines the configuration of a catch clause used to handle errors.
 
 #### Properties {/*#catch-properties*/}
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
-| do | [`map[string, task]`](/docs/dsl/tasks/intro) | `yes` | The definition of the task(s) to run when catching an error. This will be run as a [child workflow](https://docs.temporal.io/child-workflows). |
+| do | [`map[string, task]`](/docs/dsl/tasks/intro) | `yes` | The task(s) to run inline in the parent workflow when catching an error. |
 | as | `string` | `no` | The key under `$data` where the caught error is stored. Defaults to `error`. |
 
 ## Gotchas
@@ -78,9 +77,27 @@ errors.
 To handle different error types differently, inspect the error object inside
 the `catch` block.
 
-**The `try` block runs as a child workflow.** Its history and retries are
-independent from the parent workflow. The retry policy configured on inner
-tasks still applies before the `catch` block runs.
+**The `try` and `catch` blocks run inline in the parent workflow.** Their
+commands contribute to the parent's Temporal history. They do not have
+independent child workflow histories or retry policies. Zigflow does not
+attempt Continue-As-New while it is inside either block. Inner tasks still emit
+task lifecycle events, but the blocks do not emit `workflow.started` or
+`workflow.completed` events.
+
+**Inner tasks keep their own retry settings.** An activity inside `try` uses its
+own activity options and document defaults. The `catch` block runs only after
+those retries are exhausted.
+
+**Both blocks use isolated state.** The `try` and `catch` blocks each start from
+a fresh clone of the parent state. Partial state changes from a failed `try`
+block are not visible in `catch`. Zigflow adds the caught error to the catch
+clone, under `$data.error` by default. Inner state changes do not leak directly
+to the parent. The Try task's result, `output` and `export` control what the
+parent receives.
+
+**`then: end` is not a caught error.** An end directive in `try` bypasses
+`catch` and terminates the enclosing workflow. An end directive in `catch`
+propagates in the same way.
 
 ## Related pages
 
