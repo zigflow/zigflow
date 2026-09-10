@@ -38,6 +38,11 @@ whiteboard unless you explicitly merge the existing contents.
 The workflow returns the baton. The whiteboard is for passing values between
 tasks along the way.
 
+A third variable, `$propagated`, is read-only and is not a channel. It carries
+values supplied by the caller through Temporal context propagation and never
+changes during the run. See
+[Context Propagation](/docs/concepts/context-propagation).
+
 ---
 
 ## How a task processes data
@@ -272,5 +277,7 @@ it.
 ## Related pages
 
 - [Data and Expressions](/docs/concepts/data-and-expressions): jq expressions
+- [Context Propagation](/docs/concepts/context-propagation): the read-only
+  `$propagated` object
 - [Set task](/docs/dsl/tasks/set): storing data in `$data`
 - [DSL reference](/docs/dsl/intro): `input`, `output` and `export` properties

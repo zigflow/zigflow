@@ -70,6 +70,7 @@ Variables able to be referenced within runtime expressions.
 | `$env` | Any environment variable prefixed with `ZIGGY_`. The prefix is _NOT_ used in this object. This can be set with the [`--env-prefix` flag](/docs/cli/commands/zigflow#options) | `${ $env.EXAMPLE_ENVVAR }` |
 | `$input` | Any input received when the workflow was triggered | `${ $input.val1 }` |
 | `$output` | Any output exported from a task - see [output](/docs/dsl/intro#output) | `${ $output }` |
+| `$propagated` | Read-only values received through [context propagation](/docs/concepts/context-propagation). Empty if the caller propagated nothing | `${ $propagated.tenantId }` |
 
 ### Functions
 

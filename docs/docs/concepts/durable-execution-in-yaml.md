@@ -1,6 +1,6 @@
 ---
 title: "Durable execution in YAML"
-sidebar_position: 10
+sidebar_position: 11
 description: "How Zigflow expresses durable execution in YAML by compiling declarative workflow definitions onto Temporal."
 ---
 

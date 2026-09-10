@@ -10,6 +10,7 @@ sidebar_position: 5
 - How to scrape Prometheus metrics from a running worker
 - How to emit CloudEvents during workflow execution
 - How to control log verbosity
+- How `correlationId` is added to logs automatically
 
 ## Health checks
 
@@ -159,6 +160,66 @@ takes precedence.
 
 Logs are structured JSON, written to stderr.
 
+### Correlation IDs in logs
+
+:::tip
+For how propagated values reach the workflow in the first place, see
+[Context Propagation](/docs/concepts/context-propagation).
+:::
+
+Zigflow gives one propagated value special treatment. If the caller propagates
+a key named `correlationId` and its value is a string, Zigflow adds it as a
+structured `correlationId` field to every workflow and activity log entry.
+
+You do not need to add it to individual log statements.
+
+Given a caller that propagates:
+
+```json
+{
+  "correlationId": "abc-123",
+  "tenantId": "acme"
+}
+```
+
+Log entries from that workflow execution carry `correlationId=abc-123`
+automatically. The `tenantId` value is still available to the workflow as
+`${ $propagated.tenantId }`, but it is not added to log entries. Read it like
+any other value:
+
+```yaml
+- recordTenant:
+    set:
+      tenantId: ${ $propagated.tenantId }
+```
+
+#### Rules
+
+| Condition | Result |
+| --- | --- |
+| `correlationId` is present and is a string | Added to every log entry as `correlationId` |
+| `correlationId` is absent | No correlation field is added |
+| `correlationId` is present but is not a string | No correlation field is added |
+
+`correlationId` is optional. A workflow runs normally without it.
+
+Zigflow does not convert a non-string `correlationId` to a string. If you want
+the automatic field, propagate a string. If you propagate a number, the value
+remains readable as `${ $propagated.correlationId }` but is not logged
+automatically.
+
+#### Why only `correlationId`
+
+Only `correlationId` is auto-logged because it is the one value whose purpose
+is to be correlated across log lines. Logging arbitrary propagated data by
+default would risk writing sensitive values into logs and adding high
+cardinality fields to every entry.
+
+All propagated values remain available through `$propagated` whether or not
+they are logged. To surface another one, read it into the workflow with `set`
+or `export`, where it becomes visible in Temporal history and in
+[CloudEvents](/docs/dsl/debugging).
+
 ---
 
 ## Related pages
@@ -167,3 +228,5 @@ Logs are structured JSON, written to stderr.
 - [Docker](/docs/deployment/docker): Docker and Compose configuration
 - [Kubernetes](/docs/deployment/kubernetes): Helm chart deployment
 - [Debugging workflows](/docs/dsl/debugging): CloudEvents in detail
+- [Context Propagation](/docs/concepts/context-propagation): the `$propagated`
+  object and how callers supply it

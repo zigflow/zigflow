@@ -54,6 +54,7 @@ endpoint: ${ "https://api.example.com/users/" + ($data.userId | tostring) }
 | `$env` | Environment variables available to the worker |
 | `$input` | The original workflow input supplied by the caller. This value does not change as tasks execute. |
 | `$output` | The output of the most recent task |
+| `$propagated` | Read-only values received through Temporal context propagation |
 
 ### `$input`
 
@@ -133,6 +134,29 @@ Set `--env-prefix` to change the prefix (default is `ZIGGY`).
 
 The output of the most recently completed task. Use it to chain task results
 without storing them explicitly.
+
+### `$propagated`
+
+:::tip
+For the caller-side contract and how values are supplied, see
+[Context Propagation](/docs/concepts/context-propagation).
+:::
+
+Values received through Temporal context propagation, supplied by the
+application that started the workflow. It is read-only and is fixed for the
+whole run.
+
+```yaml
+- recordCaller:
+    set:
+      tenantId: ${ $propagated.tenantId }
+```
+
+`$propagated` is always an object. If nothing was propagated it is empty, and
+reading a key returns `null`.
+
+Do not confuse it with `$context`. `$propagated` comes from the caller and never
+changes. `$context` is written by your own tasks through `export`.
 
 ---
 
@@ -217,6 +241,10 @@ A `$data` key is only available after the task that wrote it has run. A `set`
 task merges its keys directly, and an activity-backed task such as an HTTP call
 stores its result under the task name. Access them in a later task.
 
+**Trying to write to `$propagated`.**
+`$propagated` is read-only. Use `set` to write `$data`, or `export` to write
+`$context`.
+
 **Confusing `$output` with `$data`.**
 `$output` is the output of the last task only. `$data` accumulates workflow data
 from task execution, keyed by name, and unlike `$context` is never replaced by
@@ -227,6 +255,8 @@ from task execution, keyed by name, and unlike `$context` is never replaced by
 ## Related pages
 
 - [Data Flow](/docs/concepts/data-flow): how data moves between tasks
+- [Context Propagation](/docs/concepts/context-propagation): the `$propagated`
+  object and where its values come from
 - [Set task](/docs/dsl/tasks/set): storing data
 - [DSL reference](/docs/dsl/intro): full expression context
 - [How Zigflow runs](/docs/concepts/how-zigflow-runs): determinism and replay

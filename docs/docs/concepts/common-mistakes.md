@@ -1,5 +1,5 @@
 ---
-sidebar_position: 6
+sidebar_position: 7
 description: "The recurring mistakes that break Zigflow workflows: invalid task types, expression syntax, runtime variables, durations, determinism and document structure, with the correct construct for each."
 ---
 
@@ -124,9 +124,9 @@ set:
 
 ### Invented runtime variables
 
-Only five variables exist in an expression: `$context`, `$data`, `$env`,
-`$input` and `$output`. Names such as `$workflow`, `$task`, `$steps`, `$vars`
-or `$now` do not exist and fail at evaluation.
+Only six variables exist in an expression: `$context`, `$data`, `$env`,
+`$input`, `$output` and `$propagated`. Names such as `$workflow`, `$task`,
+`$steps`, `$vars` or `$now` do not exist and fail at evaluation.
 
 :::warning
 There is no `$now`. Use `${ timestamp }` or `${ timestamp_iso8601 }`, and only
@@ -359,6 +359,8 @@ taskQueue: my-queue-v2
   `output`
 - [Data and Expressions](/docs/concepts/data-and-expressions): expression
   syntax, variables and determinism
+- [Context Propagation](/docs/concepts/context-propagation): the read-only
+  `$propagated` object
 - [Tasks: introduction](/docs/dsl/tasks/intro): the eleven task types
 - [Call task](/docs/dsl/tasks/call): HTTP, gRPC and activity calls
 - [Wait task](/docs/dsl/tasks/wait): durations and the `until` form
