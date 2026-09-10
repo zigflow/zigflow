@@ -1,5 +1,5 @@
 ---
-sidebar_position: 8
+sidebar_position: 9
 ---
 
 # Glossary
@@ -28,6 +28,17 @@ can be awaited by the parent. Used internally by `fork`, `try` and certain
 `run` modes.
 
 See also: [Temporal docs: child workflows](https://docs.temporal.io/child-workflows)
+
+---
+
+## Context propagation
+
+A Temporal mechanism for carrying caller-supplied values alongside a workflow
+execution, in Temporal headers rather than in the workflow input. Zigflow
+exposes the values it receives to the workflow as the read-only `$propagated`
+object.
+
+See also: [Context Propagation](/docs/concepts/context-propagation)
 
 ---
 

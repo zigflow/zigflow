@@ -149,7 +149,7 @@ task-level `timeout` field.
 
 ## Runtime variables
 
-Inside `${ ... }`, exactly five workflow-state variables are available. No
+Inside `${ ... }`, exactly six workflow-state variables are available. No
 others exist, and referencing any other `$`-variable fails to compile:
 
 | Variable   | Contents                                                                                                                                                     |
@@ -159,9 +159,17 @@ others exist, and referencing any other `$`-variable fails to compile:
 | `$env`     | Environment variables (see below).                                                                                                                           |
 | `$input`   | The input given by the caller. This value does not change as tasks execute.                                                                                  |
 | `$output`  | The current output value.                                                                                                                                    |
+| `$propagated` | Read-only values received through Temporal context propagation. An empty object if the caller propagated nothing. |
 
 Variables such as `$workflow`, `$task`, `$secret`, `$secrets`, `$vars`, `$self`,
 `$now` or `$steps` do not exist.
+
+`$propagated` is read-only. Nothing in the DSL writes to it. Its values are
+supplied by the client that starts the workflow, in the Temporal header field
+`zigflow.propagated`, and are fixed for the whole run. If the client propagates
+a string under the key `correlationId`, Zigflow adds it automatically as a
+`correlationId` field on workflow and activity log entries. No other propagated
+value is logged automatically.
 
 `$env` exposes only environment variables that start with a configured prefix,
 which is `ZIGGY_` by default, with the prefix stripped. For example,
