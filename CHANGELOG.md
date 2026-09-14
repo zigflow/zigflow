@@ -2,6 +2,20 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.15.0](https://github.com/zigflow/zigflow/releases/tag/v0.15.0) - 2026-09-14
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/571
+* ci: remove mcp deployment to northflank by @mrsimonemms in https://github.com/zigflow/zigflow/pull/572
+* Update mcp inspector by @mrsimonemms in https://github.com/zigflow/zigflow/pull/573
+* fix(http): encode the request body for the declared Content-Type by @YJ-928 in https://github.com/zigflow/zigflow/pull/574
+* Implement context propagation by @mrsimonemms in https://github.com/zigflow/zigflow/pull/575
+* Update Go version and dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/576
+* feat: configure external storage support with s3 by @mrsimonemms in https://github.com/zigflow/zigflow/pull/577
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.14.6...v0.15.0
+
 ## [v0.14.6](https://github.com/zigflow/zigflow/releases/tag/v0.14.6) - 2026-09-08
 
 ## What's Changed
