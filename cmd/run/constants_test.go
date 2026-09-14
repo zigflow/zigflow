@@ -27,4 +27,13 @@ const (
 	testSourceFileB          = "b.yaml"
 	testWorkflowType         = "wf"
 	testRemoteCodecEndpoint  = "http://localhost:8080"
+	testAWSRegion            = "us-east-1"
+	testS3Bucket             = "zigflow"
+	testS3AccessKeyID        = "test-access-key"
+	testS3SecretAccessKey    = "test-secret-key"
+	testExternalStorageS3    = "s3"
+
+	testFlagS3AccessKeyID     = "external-storage-s3-access-key-id"
+	testFlagS3SecretAccessKey = "external-storage-s3-secret-access-key"
+	testFlagS3SessionToken    = "external-storage-s3-session-token"
 )

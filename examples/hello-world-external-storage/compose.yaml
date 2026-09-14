@@ -1,0 +1,83 @@
+services:
+  s3:
+    image: rustfs/rustfs:latest
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      RUSTFS_ACCESS_KEY: test
+      RUSTFS_SECRET_KEY: test
+
+  s3-init:
+    image: rustfs/rc:latest
+    depends_on:
+      - s3
+    environment:
+      RUSTFS_ACCESS_KEY: test
+      RUSTFS_SECRET_KEY: test
+      BUCKET_NAME: zigflow
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until /usr/bin/rc alias set rustfs http://s3:9000 "$${RUSTFS_ACCESS_KEY}" "$${RUSTFS_SECRET_KEY}"; do
+          echo "Waiting for RustFS..."
+          sleep 2
+        done
+        /usr/bin/rc ls "rustfs/$${BUCKET_NAME}" >/dev/null 2>&1 || /usr/bin/rc mb "rustfs/$${BUCKET_NAME}"
+
+  temporal:
+    image: temporalio/temporal
+    ports:
+      - 8080:8233
+    command: server start-dev --ip 0.0.0.0 --search-attribute Step=text
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator cluster health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+
+  workflow: &workflow
+    build:
+      context: ../../
+      target: builder
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      CONVERT_FAILURE_DATA: false
+      EXTERNAL_STORAGE: s3
+      EXTERNAL_STORAGE_PAYLOAD_SIZE_THRESHOLD: 1 # Send everything to S3 - defaults to 256kb if not set
+      EXTERNAL_STORAGE_S3_BUCKET: zigflow
+      EXTERNAL_STORAGE_S3_REGION: us-east-1
+      EXTERNAL_STORAGE_S3_ENDPOINT: http://s3:9000
+      EXTERNAL_STORAGE_S3_USE_PATH_STYLE: true
+      LOG_LEVEL: "${LOG_LEVEL:-debug}"
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      TEMPORAL_API_KEY: ${TEMPORAL_API_KEY:-}
+      TEMPORAL_TLS: ${TEMPORAL_TLS:-false}
+      WORKFLOW_FILE: ./examples/hello-world-external-storage/workflow.yaml
+    volumes:
+      - ../../:/go/app
+    command:
+      - run
+    links:
+      - s3
+      - temporal
+    depends_on:
+      s3-init:
+        condition: service_completed_successfully
+      temporal:
+        condition: service_healthy
+
+  trigger:
+    <<: *workflow
+    depends_on:
+      workflow:
+        condition: service_started
+    working_dir: /go/app/examples/hello-world-external-storage
+    entrypoint: ""
+    command:
+      - go
+      - run
+      - .

@@ -1,6 +1,6 @@
-# Hello World Encrypted Remote
+# Hello World External Storage
 
-Hello world with Zigflow, but remotely encrypted
+Hello world with Zigflow, but with the data stored externally
 
 <!-- toc -->
 
@@ -26,8 +26,8 @@ docker compose up trigger
 ```
 
 This will trigger the workflow and print everything to the console. When you look
-in the [Temporal UI](http://localhost:8080), all the data will be stored in a
-local Redis store meaning your data is never sent to the Temporal server.
+in the [Temporal UI](http://localhost:8080), all the data will be stored in the
+local S3 store meaning your data is never sent to the Temporal server.
 
 ## Diagram
 

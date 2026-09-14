@@ -18,6 +18,7 @@ package run
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	gh "github.com/mrsimonemms/golang-helpers"
@@ -52,6 +53,77 @@ func registerWorkflowSourceFlags(cmd *cobra.Command, opts *runOptions) {
 		&opts.DirectoryGlob, "glob",
 		viper.GetString("workflow_directory_glob"), "Glob pattern when using --dir",
 	)
+}
+
+func registerExternalStorageFlags(cmd *cobra.Command, opts *runOptions) {
+	cmd.Flags().StringVar(
+		&opts.ExternalStorage, "external-storage",
+		viper.GetString("external_storage"), "External storage type",
+	)
+
+	cmd.Flags().IntVar(
+		&opts.ExternalStoragePayloadSizeThreshold, "external-storage-payload-size-threshold",
+		viper.GetInt("external_storage_payload_size_threshold"), "Configure size threshold to send to external storage. Defaults to 256KB",
+	)
+
+	registerAWSExternalStorageFlags(cmd, opts)
+}
+
+func registerAWSExternalStorageFlags(cmd *cobra.Command, opts *runOptions) {
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageS3Bucket, "external-storage-s3-bucket",
+		viper.GetString("external_storage_s3_bucket"), "Name of the bucket if using external storage with S3",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageS3Region, "external-storage-s3-region",
+		viper.GetString("external_storage_s3_region"), "Region if using external storage with S3",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageS3DriverName, "external-storage-s3-driver-name",
+		viper.GetString("external_storage_s3_driver_name"), "Driver name if using external storage with S3",
+	)
+
+	cmd.Flags().IntVar(
+		&opts.ExternalStorageS3MaxPayloadSize, "external-storage-s3-max_payload_size",
+		viper.GetInt("external_storage_s3_max_payload_size"), "Maximum payload size if using external storage with S3",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageS3Endpoint, "external-storage-s3-endpoint",
+		viper.GetString("external_storage_s3_endpoint"), "Endpoint if using external storage with S3",
+	)
+
+	cmd.Flags().BoolVar(
+		&opts.ExternalStorageS3UsePathStyle, "external-storage-s3-use-path-style",
+		viper.GetBool("external_storage_s3_use_path_style"), "Use path style if using external storage with S3",
+	)
+
+	// Also support the idiomatic AWS key for access credentials
+	accessKeyID := "external_storage_s3_access_key_id"
+	_ = viper.BindEnv(append([]string{accessKeyID}, []string{strings.ToUpper(accessKeyID), "AWS_ACCESS_KEY_ID"}...)...)
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageS3AccessKeyID, "external-storage-s3-access-key-id",
+		viper.GetString(accessKeyID), "Access key ID if using external storage with S3",
+	)
+	gh.HideCommandOutput(cmd, "external-storage-s3-access-key-id")
+
+	secretAccessKey := "external_storage_s3_secret_access_key"
+	_ = viper.BindEnv(append([]string{secretAccessKey}, []string{strings.ToUpper(secretAccessKey), "AWS_SECRET_ACCESS_KEY"}...)...)
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageS3SecretAccessKey, "external-storage-s3-secret-access-key",
+		viper.GetString(secretAccessKey), "Secret access key if using external storage with S3",
+	)
+	gh.HideCommandOutput(cmd, "external-storage-s3-secret-access-key")
+
+	sessionToken := "external_storage_s3_session_token"
+	_ = viper.BindEnv(append([]string{sessionToken}, []string{strings.ToUpper(sessionToken), "AWS_SESSION_TOKEN"}...)...)
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageS3SessionToken, "external-storage-s3-session-token",
+		viper.GetString(sessionToken), "Session token if using external storage with S3",
+	)
+	gh.HideCommandOutput(cmd, "external-storage-s3-session-token")
 }
 
 func registerVersioningFlags(cmd *cobra.Command, opts *runOptions) {
@@ -109,6 +181,7 @@ func registerRunFlags(cmd *cobra.Command, opts *runOptions) {
 	temporal.NewCobraOpts(cmd, opts.temporal)
 	registerVersioningFlags(cmd, opts)
 	registerContainerRuntimeFlags(cmd, opts)
+	registerExternalStorageFlags(cmd, opts)
 
 	cmd.Flags().StringVar(
 		&opts.CodecEndpoint, "codec-endpoint",

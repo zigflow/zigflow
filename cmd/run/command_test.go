@@ -26,41 +26,24 @@ import (
 	"github.com/zigflow/zigflow/pkg/telemetry"
 )
 
-// ---- PreRunE: container runtime validation ----
+// preRunEFlagCase is a single PreRunE validation case for a setting that is
+// configured through one flag.
+type preRunEFlagCase struct {
+	name        string
+	value       string
+	wantErr     bool
+	errContains string
+}
 
-func TestPreRunE_ContainerRuntimeValidation(t *testing.T) {
-	tests := []struct {
-		name        string
-		runtime     string
-		wantErr     bool
-		errContains string
-	}{
-		{
-			name:    "default (docker) succeeds",
-			runtime: "docker",
-		},
-		{
-			name:    "kubernetes succeeds",
-			runtime: "kubernetes",
-		},
-		{
-			name:        "unknown runtime returns error",
-			runtime:     "podman",
-			wantErr:     true,
-			errContains: "invalid container-runtime",
-		},
-		{
-			name:        "empty runtime returns error",
-			runtime:     "",
-			wantErr:     true,
-			errContains: "invalid container-runtime",
-		},
-	}
+// assertPreRunEFlagValidation sets flag to each case's value on a freshly built
+// command and asserts PreRunE's verdict.
+func assertPreRunEFlagValidation(t *testing.T, flag string, tests []preRunEFlagCase) {
+	t.Helper()
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			cmd := New(func() *telemetry.Telemetry { return nil })
-			require.NoError(t, cmd.Flags().Set("container-runtime", tc.runtime))
+			require.NoError(t, cmd.Flags().Set(flag, tc.value))
 
 			err := cmd.PreRunE(cmd, []string{})
 			if tc.wantErr {
@@ -71,6 +54,61 @@ func TestPreRunE_ContainerRuntimeValidation(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ---- PreRunE: container runtime validation ----
+
+func TestPreRunE_ContainerRuntimeValidation(t *testing.T) {
+	assertPreRunEFlagValidation(t, "container-runtime", []preRunEFlagCase{
+		{
+			name:  "default (docker) succeeds",
+			value: "docker",
+		},
+		{
+			name:  "kubernetes succeeds",
+			value: "kubernetes",
+		},
+		{
+			name:        "unknown runtime returns error",
+			value:       "podman",
+			wantErr:     true,
+			errContains: "invalid container-runtime",
+		},
+		{
+			name:        "empty runtime returns error",
+			value:       "",
+			wantErr:     true,
+			errContains: "invalid container-runtime",
+		},
+	})
+}
+
+// ---- PreRunE: external storage validation ----
+
+func TestPreRunE_ExternalStorageValidation(t *testing.T) {
+	assertPreRunEFlagValidation(t, "external-storage", []preRunEFlagCase{
+		{
+			// Empty leaves external storage off, which must stay valid.
+			name:  "default (empty) succeeds",
+			value: "",
+		},
+		{
+			name:  "s3 succeeds",
+			value: testExternalStorageS3,
+		},
+		{
+			name:        "unknown storage type returns error",
+			value:       "gcs",
+			wantErr:     true,
+			errContains: "invalid external storage type",
+		},
+		{
+			name:        "validation is case sensitive",
+			value:       "S3",
+			wantErr:     true,
+			errContains: "invalid external storage type",
+		},
+	})
 }
 
 // ---- PreRunE: versioning validation ----

@@ -61,6 +61,30 @@ func stubTemporalConnection(captured *client.Options, called *bool) func() {
 	return func() { newTemporalConnection = original }
 }
 
+// stubStrictTemporalConnection replaces newTemporalConnection with a test
+// double that returns the first error produced while applying the options.
+// stubTemporalConnection deliberately swallows those errors so it can capture
+// the resulting client.Options, but validation failures need to surface. It
+// returns a restore function that must be deferred by the caller.
+func stubStrictTemporalConnection() func() {
+	original := newTemporalConnection
+	newTemporalConnection = func(options ...temporal.Option) (client.Client, error) {
+		opts := &client.Options{}
+		for _, o := range options {
+			var err error
+			func() {
+				defer func() { _ = recover() }()
+				err = o(opts)
+			}()
+			if err != nil {
+				return nil, err
+			}
+		}
+		return nil, nil
+	}
+	return func() { newTemporalConnection = original }
+}
+
 // ---- initTemporalClient: TLS server name propagation ----
 
 func TestInitTemporalClient_ServerNamePropagation(t *testing.T) {
@@ -106,7 +130,7 @@ func TestInitTemporalClient_ServerNamePropagation(t *testing.T) {
 				},
 			}
 
-			_, err := initTemporalClient(opts)
+			_, err := initTemporalClient(t.Context(), opts)
 			require.NoError(t, err)
 			require.True(t, called, "newTemporalConnection was not invoked")
 
@@ -174,7 +198,7 @@ func TestInitTemporalClient_ConvertFailureData(t *testing.T) {
 				temporal:           &temporal.TemporalOpts{},
 			}
 
-			_, err := initTemporalClient(opts)
+			_, err := initTemporalClient(t.Context(), opts)
 			require.NoError(t, err)
 			require.True(t, called, "newTemporalConnection was not invoked")
 
@@ -191,6 +215,122 @@ func TestInitTemporalClient_ConvertFailureData(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ---- initTemporalClient: external storage wiring ----
+
+func TestInitTemporalClient_ExternalStorage(t *testing.T) {
+	tests := []struct {
+		name                 string
+		externalStorage      string
+		payloadSizeThreshold int
+		expectDrivers        int
+	}{
+		{
+			name: "no external storage configures no drivers",
+			// Left off by default so payloads continue to travel inline.
+			externalStorage: "",
+			expectDrivers:   0,
+		},
+		{
+			name:                 "s3 configures a single driver",
+			externalStorage:      testExternalStorageS3,
+			payloadSizeThreshold: 1,
+			expectDrivers:        1,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var captured client.Options
+			called := false
+			defer stubTemporalConnection(&captured, &called)()
+
+			opts := &runOptions{
+				ExternalStorage:                     test.externalStorage,
+				ExternalStoragePayloadSizeThreshold: test.payloadSizeThreshold,
+				ExternalStorageS3Bucket:             testS3Bucket,
+				ExternalStorageS3Region:             testAWSRegion,
+				ExternalStorageS3AccessKeyID:        testS3AccessKeyID,
+				ExternalStorageS3SecretAccessKey:    testS3SecretAccessKey,
+				temporal:                            &temporal.TemporalOpts{},
+			}
+
+			_, err := initTemporalClient(t.Context(), opts)
+			require.NoError(t, err)
+			require.True(t, called, "newTemporalConnection was not invoked")
+
+			assert.Len(t, captured.ExternalStorage.Drivers, test.expectDrivers)
+			assert.Equal(t, test.payloadSizeThreshold, captured.ExternalStorage.PayloadSizeThreshold)
+		})
+	}
+}
+
+// An unparseable storage type fails the client build rather than quietly
+// leaving external storage switched off. PreRunE rejects it first on the CLI
+// path, so this guards the callers that do not go through Cobra.
+func TestInitTemporalClient_ExternalStorageInvalidType(t *testing.T) {
+	var captured client.Options
+	called := false
+	defer stubTemporalConnection(&captured, &called)()
+
+	opts := &runOptions{
+		ExternalStorage: "not-a-storage-type",
+		temporal:        &temporal.TemporalOpts{},
+	}
+
+	tc, err := initTemporalClient(t.Context(), opts)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "invalid external storage type")
+	assert.Nil(t, tc)
+	assert.False(t, called, "expected no attempt to connect to Temporal")
+}
+
+// The S3 settings must reach the driver factory, otherwise a worker pointed at
+// S3-compatible storage silently talks to AWS instead.
+func TestInitTemporalClient_ExternalStorageS3Options(t *testing.T) {
+	var captured client.Options
+	called := false
+	defer stubTemporalConnection(&captured, &called)()
+
+	opts := &runOptions{
+		ExternalStorage:                     testExternalStorageS3,
+		ExternalStoragePayloadSizeThreshold: 1,
+		ExternalStorageS3Bucket:             testS3Bucket,
+		ExternalStorageS3Region:             testAWSRegion,
+		ExternalStorageS3DriverName:         "my-driver",
+		ExternalStorageS3MaxPayloadSize:     2048,
+		ExternalStorageS3Endpoint:           "http://s3:9000",
+		ExternalStorageS3AccessKeyID:        testS3AccessKeyID,
+		ExternalStorageS3SecretAccessKey:    testS3SecretAccessKey,
+		ExternalStorageS3UsePathStyle:       true,
+		temporal:                            &temporal.TemporalOpts{},
+	}
+
+	_, err := initTemporalClient(t.Context(), opts)
+	require.NoError(t, err)
+	require.True(t, called, "newTemporalConnection was not invoked")
+
+	require.Len(t, captured.ExternalStorage.Drivers, 1)
+	assert.Equal(t, "my-driver", captured.ExternalStorage.Drivers[0].Name())
+}
+
+// A session token without the matching key pair is rejected by the driver
+// factory, so the client is never created.
+func TestInitTemporalClient_ExternalStorageS3InvalidCredentials(t *testing.T) {
+	defer stubStrictTemporalConnection()()
+
+	opts := &runOptions{
+		ExternalStorage:               testExternalStorageS3,
+		ExternalStorageS3Bucket:       testS3Bucket,
+		ExternalStorageS3Region:       testAWSRegion,
+		ExternalStorageS3SessionToken: "session-token-without-a-key-pair",
+		temporal:                      &temporal.TemporalOpts{},
+	}
+
+	_, err := initTemporalClient(t.Context(), opts)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "SessionToken requires AccessKeyID and SecretAccessKey")
 }
 
 // capturedWorker records the arguments passed to newWorker by a single call.

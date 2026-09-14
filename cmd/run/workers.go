@@ -27,6 +27,7 @@ import (
 	temporal "github.com/zigflow/helpers"
 	"github.com/zigflow/zigflow/pkg/codec"
 	"github.com/zigflow/zigflow/pkg/ctxpropagator"
+	"github.com/zigflow/zigflow/pkg/externalstorage"
 	"github.com/zigflow/zigflow/pkg/interceptors"
 	"github.com/zigflow/zigflow/pkg/zigflow"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
@@ -249,9 +250,31 @@ func stopWorkerList(workers []worker.Worker) {
 
 // initTemporalClient creates the codec data converter and the Temporal client.
 // The caller is responsible for closing the returned client.
-func initTemporalClient(opts *runOptions) (client.Client, error) {
+func initTemporalClient(ctx context.Context, opts *runOptions) (client.Client, error) {
 	codecType, _ := codec.ParseCodecType(opts.ConvertData)
 	dataConverter, err := codec.NewDataConverter(codecType, opts.CodecEndpoint, opts.ConvertKeyPath, opts.CodecHeaders)
+	if err != nil {
+		return nil, err
+	}
+
+	storageType, err := externalstorage.ParseStorageType(opts.ExternalStorage)
+	if err != nil {
+		return nil, err
+	}
+	externalStorage, err := externalstorage.New(ctx, storageType, &externalstorage.Config{
+		PayloadSizeThreshold: opts.ExternalStoragePayloadSizeThreshold,
+		S3Confg: &temporal.S3Config{
+			Bucket:          opts.ExternalStorageS3Bucket,
+			Region:          opts.ExternalStorageS3Region,
+			DriverName:      opts.ExternalStorageS3DriverName,
+			MaxPayloadSize:  opts.ExternalStorageS3MaxPayloadSize,
+			Endpoint:        opts.ExternalStorageS3Endpoint,
+			AccessKeyID:     opts.ExternalStorageS3AccessKeyID,
+			SecretAccessKey: opts.ExternalStorageS3SecretAccessKey,
+			SessionToken:    opts.ExternalStorageS3SessionToken,
+			UsePathStyle:    opts.ExternalStorageS3UsePathStyle,
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -267,6 +290,7 @@ func initTemporalClient(opts *runOptions) (client.Client, error) {
 			opts.temporal.MTLSKeyPath,
 		),
 		temporal.WithDataConverter(dataConverter),
+		temporal.WithExternalStorageFactory(*externalStorage),
 		func(o *client.Options) error {
 			if opts.ConvertFailureData {
 				return temporal.WithFailureConverter(dataConverter)(o)

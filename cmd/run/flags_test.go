@@ -53,6 +53,17 @@ func TestNewRunCmd_Flags(t *testing.T) {
 	assert.NotNil(t, cmd.Flags().Lookup("container-runtime"))
 	assert.NotNil(t, cmd.Flags().Lookup("container-runtime-namespace"))
 	assert.NotNil(t, cmd.Flags().Lookup("container-runtime-service-account"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-payload-size-threshold"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-s3-bucket"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-s3-region"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-s3-driver-name"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-s3-max_payload_size"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-s3-endpoint"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-s3-use-path-style"))
+	assert.NotNil(t, cmd.Flags().Lookup(testFlagS3AccessKeyID))
+	assert.NotNil(t, cmd.Flags().Lookup(testFlagS3SecretAccessKey))
+	assert.NotNil(t, cmd.Flags().Lookup(testFlagS3SessionToken))
 }
 
 // ---- --temporal-server-name flag ----
@@ -249,4 +260,136 @@ func TestNewRunCmd_VersioningFlagsBoundToOpts(t *testing.T) {
 	assert.Equal(t, "pinned", cmd.Flags().Lookup("default-versioning-type").Value.String())
 	assert.Equal(t, "my-build-id", cmd.Flags().Lookup("temporal-worker-build-id").Value.String())
 	assert.Equal(t, "my-deploy", cmd.Flags().Lookup("temporal-deployment-name").Value.String())
+}
+
+// ---- external storage flags ----
+
+func TestNewRunCmd_ExternalStorageFlagDefaults(t *testing.T) {
+	// Clear the AWS fallback variables so the defaults are not inherited from
+	// the ambient environment of whoever runs the suite.
+	t.Setenv("AWS_ACCESS_KEY_ID", "")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "")
+	t.Setenv("AWS_SESSION_TOKEN", "")
+
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	tests := []struct {
+		flag     string
+		defValue string
+	}{
+		// Empty means external storage is off, so existing behaviour is
+		// preserved unless it is explicitly opted into.
+		{flag: "external-storage", defValue: ""},
+		{flag: "external-storage-payload-size-threshold", defValue: "0"},
+		{flag: "external-storage-s3-bucket", defValue: ""},
+		{flag: "external-storage-s3-region", defValue: ""},
+		{flag: "external-storage-s3-driver-name", defValue: ""},
+		{flag: "external-storage-s3-max_payload_size", defValue: "0"},
+		{flag: "external-storage-s3-endpoint", defValue: ""},
+		{flag: "external-storage-s3-use-path-style", defValue: "false"},
+		{flag: testFlagS3AccessKeyID, defValue: ""},
+		{flag: testFlagS3SecretAccessKey, defValue: ""},
+		{flag: testFlagS3SessionToken, defValue: ""},
+	}
+
+	for _, test := range tests {
+		t.Run(test.flag, func(t *testing.T) {
+			flag := cmd.Flags().Lookup(test.flag)
+			require.NotNil(t, flag)
+			assert.Equal(t, test.defValue, flag.DefValue)
+			assert.Equal(t, test.defValue, flag.Value.String())
+		})
+	}
+}
+
+func TestNewRunCmd_ExternalStorageFlagsBoundToOpts(t *testing.T) {
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	values := map[string]string{
+		"external-storage":                        testExternalStorageS3,
+		"external-storage-payload-size-threshold": "1",
+		"external-storage-s3-bucket":              "zigflow",
+		"external-storage-s3-region":              testAWSRegion,
+		"external-storage-s3-driver-name":         "my-driver",
+		"external-storage-s3-max_payload_size":    "2048",
+		"external-storage-s3-endpoint":            "http://s3:9000",
+		"external-storage-s3-use-path-style":      "true",
+		testFlagS3AccessKeyID:                     "access-key",
+		testFlagS3SecretAccessKey:                 "secret-key",
+		testFlagS3SessionToken:                    "session-token",
+	}
+
+	for flag, value := range values {
+		require.NoError(t, cmd.Flags().Set(flag, value))
+	}
+
+	for flag, value := range values {
+		assert.Equal(t, value, cmd.Flags().Lookup(flag).Value.String(), flag)
+	}
+}
+
+// The AWS_* variables are accepted as aliases so a worker can pick up the
+// credentials it would already have in its environment.
+func TestNewRunCmd_ExternalStorageS3CredentialsFallBackToAWSEnvvars(t *testing.T) {
+	t.Setenv("AWS_ACCESS_KEY_ID", "aws-access-key")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "aws-secret-key")
+	t.Setenv("AWS_SESSION_TOKEN", "aws-session-token")
+
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	assert.Equal(t, "aws-access-key", cmd.Flags().Lookup(testFlagS3AccessKeyID).Value.String())
+	assert.Equal(t, "aws-secret-key", cmd.Flags().Lookup(testFlagS3SecretAccessKey).Value.String())
+	assert.Equal(t, "aws-session-token", cmd.Flags().Lookup(testFlagS3SessionToken).Value.String())
+}
+
+// The prefixed variables take precedence over the AWS_* aliases.
+func TestNewRunCmd_ExternalStorageS3CredentialsPreferPrefixedEnvvars(t *testing.T) {
+	t.Setenv("EXTERNAL_STORAGE_S3_ACCESS_KEY_ID", "zigflow-access-key")
+	t.Setenv("AWS_ACCESS_KEY_ID", "aws-access-key")
+
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	assert.Equal(t, "zigflow-access-key", cmd.Flags().Lookup(testFlagS3AccessKeyID).Value.String())
+}
+
+// Credentials resolved from the environment must not be echoed back in the
+// command's help output.
+func TestNewRunCmd_ExternalStorageS3CredentialDefaultsAreMasked(t *testing.T) {
+	t.Setenv("AWS_ACCESS_KEY_ID", "aws-access-key")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "aws-secret-key")
+	t.Setenv("AWS_SESSION_TOKEN", "aws-session-token")
+
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	for _, flag := range []string{
+		testFlagS3AccessKeyID,
+		testFlagS3SecretAccessKey,
+		testFlagS3SessionToken,
+	} {
+		t.Run(flag, func(t *testing.T) {
+			assert.Equal(t, "***", cmd.Flags().Lookup(flag).DefValue)
+		})
+	}
+
+	assert.NotContains(t, cmd.UsageString(), "aws-access-key")
+	assert.NotContains(t, cmd.UsageString(), "aws-secret-key")
+	assert.NotContains(t, cmd.UsageString(), "aws-session-token")
+}
+
+func TestNewRunCmd_ExternalStorageS3CredentialDefaultsAreNotMaskedWhenUnset(t *testing.T) {
+	t.Setenv("AWS_ACCESS_KEY_ID", "")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "")
+	t.Setenv("AWS_SESSION_TOKEN", "")
+
+	cmd := New(func() *telemetry.Telemetry { return nil })
+
+	for _, flag := range []string{
+		testFlagS3AccessKeyID,
+		testFlagS3SecretAccessKey,
+		testFlagS3SessionToken,
+	} {
+		t.Run(flag, func(t *testing.T) {
+			assert.Equal(t, "", cmd.Flags().Lookup(flag).DefValue)
+		})
+	}
 }
