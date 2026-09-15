@@ -97,6 +97,10 @@ func TestPreRunE_ExternalStorageValidation(t *testing.T) {
 			value: testExternalStorageS3,
 		},
 		{
+			name:  "redis succeeds",
+			value: testExternalStorageRedis,
+		},
+		{
 			name:        "unknown storage type returns error",
 			value:       "gcs",
 			wantErr:     true,

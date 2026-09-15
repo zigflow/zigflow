@@ -17,8 +17,11 @@
 package run
 
 import (
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +31,9 @@ import (
 	"github.com/zigflow/zigflow/pkg/telemetry"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
 	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
+	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/converter"
 	sdkworker "go.temporal.io/sdk/worker"
 )
 
@@ -626,4 +631,206 @@ func TestBuildDataConverter(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ---- initTemporalClient: Redis external storage wiring ----
+
+// storeThroughRedisDriver writes a payload through driver and returns the
+// Redis key the driver recorded the claim under.
+func storeThroughRedisDriver(t *testing.T, driver converter.StorageDriver) string {
+	t.Helper()
+
+	claims, err := driver.Store(
+		converter.StorageDriverStoreContext{Context: t.Context()},
+		[]*commonpb.Payload{{Data: []byte("payload")}},
+	)
+	require.NoError(t, err)
+	require.Len(t, claims, 1)
+
+	key := claims[0].ClaimData["key"]
+	require.NotEmpty(t, key)
+
+	return key
+}
+
+// Every Redis setting must reach the client and driver, otherwise a worker
+// configured for one server, database or key prefix quietly uses another.
+func TestInitTemporalClient_ExternalStorageRedisOptions(t *testing.T) {
+	server := miniredis.RunT(t)
+
+	var captured client.Options
+	called := false
+	defer stubTemporalConnection(&captured, &called)()
+
+	opts := &runOptions{
+		ExternalStorage:                     testExternalStorageRedis,
+		ExternalStoragePayloadSizeThreshold: 1,
+		ExternalStorageRedisAddress:         server.Addr(),
+		ExternalStorageRedisDriverName:      "my-redis-driver",
+		ExternalStorageRedisKeyPrefix:       "tenant-a:payloads",
+		ExternalStorageRedisDB:              3,
+		ExternalStorageRedisTTL:             time.Hour,
+		temporal:                            &temporal.TemporalOpts{},
+	}
+
+	_, err := initTemporalClient(t.Context(), opts)
+	require.NoError(t, err)
+	require.True(t, called, "newTemporalConnection was not invoked")
+
+	require.Len(t, captured.ExternalStorage.Drivers, 1)
+	assert.Equal(t, 1, captured.ExternalStorage.PayloadSizeThreshold)
+	assert.Equal(t, "my-redis-driver", captured.ExternalStorage.Drivers[0].Name())
+
+	key := storeThroughRedisDriver(t, captured.ExternalStorage.Drivers[0])
+	assert.True(
+		t,
+		strings.HasPrefix(key, "tenant-a:payloads:"),
+		"expected key %q to use the configured prefix", key,
+	)
+	assert.Equal(t, []string{key}, server.DB(3).Keys(), "expected the payload in the configured database")
+	assert.Empty(t, server.DB(0).Keys(), "expected nothing in the default database")
+	assert.Equal(t, time.Hour, server.DB(3).TTL(key))
+}
+
+// The username and password must reach the Redis client, otherwise a worker
+// cannot authenticate against a secured server.
+func TestInitTemporalClient_ExternalStorageRedisCredentials(t *testing.T) {
+	tests := []struct {
+		name     string
+		username string
+		password string
+		wantErr  bool
+	}{
+		{
+			name:     "matching credentials connect",
+			username: testRedisUsername,
+			password: testRedisPassword,
+		},
+		{
+			name:     "wrong password is rejected",
+			username: testRedisUsername,
+			password: "wrong",
+			wantErr:  true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			server := miniredis.RunT(t)
+			server.RequireUserAuth(testRedisUsername, testRedisPassword)
+
+			defer stubStrictTemporalConnection()()
+
+			opts := &runOptions{
+				ExternalStorage:              testExternalStorageRedis,
+				ExternalStorageRedisAddress:  server.Addr(),
+				ExternalStorageRedisUsername: test.username,
+				ExternalStorageRedisPassword: test.password,
+				temporal:                     &temporal.TemporalOpts{},
+			}
+
+			_, err := initTemporalClient(t.Context(), opts)
+			if test.wantErr {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, "failed to connect to redis")
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}
+
+// An unreachable Redis server fails the client build, so the worker reports
+// the misconfiguration at startup rather than when the first payload is
+// offloaded.
+func TestInitTemporalClient_ExternalStorageRedisConnectionFailure(t *testing.T) {
+	server := miniredis.RunT(t)
+	addr := server.Addr()
+	server.Close()
+
+	defer stubStrictTemporalConnection()()
+
+	opts := &runOptions{
+		ExternalStorage:             testExternalStorageRedis,
+		ExternalStorageRedisAddress: addr,
+		temporal:                    &temporal.TemporalOpts{},
+	}
+
+	tc, err := initTemporalClient(t.Context(), opts)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "failed to connect to redis")
+	assert.Nil(t, tc)
+}
+
+// A TLS configuration that cannot be built fails the client rather than
+// silently connecting without TLS.
+func TestInitTemporalClient_ExternalStorageRedisTLSErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		tlsCA       string
+		tlsCert     string
+		tlsKey      string
+		errContains string
+	}{
+		{
+			name:        "certificate without a key",
+			tlsCert:     "/tls/cert.pem",
+			errContains: "certificate and key must both be configured",
+		},
+		{
+			name:        "key without a certificate",
+			tlsKey:      "/tls/key.pem",
+			errContains: "certificate and key must both be configured",
+		},
+		{
+			name:        "unreadable CA file",
+			tlsCA:       "/tls/does-not-exist.pem",
+			errContains: "read Redis TLS CA file",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var captured client.Options
+			called := false
+			defer stubTemporalConnection(&captured, &called)()
+
+			opts := &runOptions{
+				ExternalStorage:                testExternalStorageRedis,
+				ExternalStorageRedisTLSEnabled: true,
+				ExternalStorageRedisTLSCA:      test.tlsCA,
+				ExternalStorageRedisTLSCert:    test.tlsCert,
+				ExternalStorageRedisTLSKey:     test.tlsKey,
+				temporal:                       &temporal.TemporalOpts{},
+			}
+
+			tc, err := initTemporalClient(t.Context(), opts)
+			require.Error(t, err)
+			assert.ErrorContains(t, err, "error parsing redis tls config")
+			assert.ErrorContains(t, err, test.errContains)
+			assert.Nil(t, tc)
+			assert.False(t, called, "expected no attempt to connect to Temporal")
+		})
+	}
+}
+
+// With TLS switched off no TLS handshake is attempted, so a worker pointed at
+// a plain Redis server connects as configured.
+func TestInitTemporalClient_ExternalStorageRedisTLSDisabled(t *testing.T) {
+	server := miniredis.RunT(t)
+
+	defer stubStrictTemporalConnection()()
+
+	opts := &runOptions{
+		ExternalStorage:             testExternalStorageRedis,
+		ExternalStorageRedisAddress: server.Addr(),
+		// Set but inert: the TLS settings are only applied once TLS is enabled.
+		ExternalStorageRedisTLSServerName:         "redis.example.com",
+		ExternalStorageRedisTLSInsecureSkipVerify: true,
+		temporal: &temporal.TemporalOpts{},
+	}
+
+	_, err := initTemporalClient(t.Context(), opts)
+	require.NoError(t, err)
 }

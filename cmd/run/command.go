@@ -48,24 +48,39 @@ var versioningBehaviours = map[versioningBehaviour]workflow.VersioningBehavior{
 }
 
 type runOptions struct {
-	CloudEventsConfig                      string
-	CodecEndpoint                          string
-	CodecHeaders                           map[string]string
-	ContainerRuntime                       string
-	ContainerRuntimeNamespace              string
-	ContainerRuntimeServiceAccount         string
-	ConvertData                            string
-	ConvertFailureData                     bool
-	ConvertKeyPath                         string
-	DefaultVersioningBehaviour             string
-	DeploymentBuildID                      string
-	DeploymentName                         string
-	EnableVersioning                       bool
-	EnvPrefix                              string
-	DirectoryGlob                          string
-	DirectoryPath                          string
-	ExternalStorage                        string
-	ExternalStoragePayloadSizeThreshold    int
+	CloudEventsConfig                   string
+	CodecEndpoint                       string
+	CodecHeaders                        map[string]string
+	ContainerRuntime                    string
+	ContainerRuntimeNamespace           string
+	ContainerRuntimeServiceAccount      string
+	ConvertData                         string
+	ConvertFailureData                  bool
+	ConvertKeyPath                      string
+	DefaultVersioningBehaviour          string
+	DeploymentBuildID                   string
+	DeploymentName                      string
+	EnableVersioning                    bool
+	EnvPrefix                           string
+	DirectoryGlob                       string
+	DirectoryPath                       string
+	ExternalStorage                     string
+	ExternalStoragePayloadSizeThreshold int
+
+	ExternalStorageRedisDriverName            string
+	ExternalStorageRedisKeyPrefix             string
+	ExternalStorageRedisAddress               string
+	ExternalStorageRedisUsername              string
+	ExternalStorageRedisPassword              string
+	ExternalStorageRedisDB                    int
+	ExternalStorageRedisTTL                   time.Duration
+	ExternalStorageRedisTLSEnabled            bool
+	ExternalStorageRedisTLSCA                 string
+	ExternalStorageRedisTLSCert               string
+	ExternalStorageRedisTLSKey                string
+	ExternalStorageRedisTLSServerName         string
+	ExternalStorageRedisTLSInsecureSkipVerify bool
+
 	ExternalStorageS3Bucket                string
 	ExternalStorageS3Region                string
 	ExternalStorageS3DriverName            string
