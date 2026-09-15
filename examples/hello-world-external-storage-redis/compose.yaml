@@ -1,0 +1,64 @@
+services:
+  redis:
+    image: redis:alpine
+
+  redis-commander:
+    image: rediscommander/redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - 8081:8081
+    depends_on:
+      - redis
+
+  temporal:
+    image: temporalio/temporal
+    ports:
+      - 8080:8233
+    command: server start-dev --ip 0.0.0.0 --search-attribute Step=text
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator cluster health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+
+  workflow: &workflow
+    build:
+      context: ../../
+      target: builder
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      CONVERT_FAILURE_DATA: false
+      EXTERNAL_STORAGE: redis
+      EXTERNAL_STORAGE_PAYLOAD_SIZE_THRESHOLD: 1 # Send everything to Redis - defaults to 256kb if not set
+      EXTERNAL_STORAGE_REDIS_ADDRESS: redis:6379
+      LOG_LEVEL: "${LOG_LEVEL:-debug}"
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      TEMPORAL_API_KEY: ${TEMPORAL_API_KEY:-}
+      TEMPORAL_TLS: ${TEMPORAL_TLS:-false}
+      WORKFLOW_FILE: ./examples/hello-world-external-storage-redis/workflow.yaml
+    volumes:
+      - ../../:/go/app
+    command:
+      - run
+    links:
+      - redis
+      - redis-commander
+      - temporal
+    depends_on:
+      temporal:
+        condition: service_healthy
+
+  trigger:
+    <<: *workflow
+    depends_on:
+      workflow:
+        condition: service_started
+    working_dir: /go/app/examples/hello-world-external-storage-redis
+    entrypoint: ""
+    command:
+      - go
+      - run
+      - .

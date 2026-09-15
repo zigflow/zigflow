@@ -19,26 +19,32 @@ package externalstorage
 import (
 	"context"
 	"fmt"
+	"time"
 
+	goredis "github.com/redis/go-redis/v9"
 	temporal "github.com/zigflow/helpers"
+	"github.com/zigflow/helpers/externalstorage/redis"
 	"go.temporal.io/sdk/converter"
 )
 
 type StorageType string
 
 const (
-	StorageTypeNone StorageType = ""
-	StorageTypeS3   StorageType = "s3"
+	StorageTypeNone  StorageType = ""
+	StorageTypeRedis StorageType = "redis"
+	StorageTypeS3    StorageType = "s3"
 )
 
 var storages = map[StorageType]struct{}{
-	StorageTypeNone: {},
-	StorageTypeS3:   {},
+	StorageTypeNone:  {},
+	StorageTypeRedis: {},
+	StorageTypeS3:    {},
 }
 
 type Config struct {
 	PayloadSizeThreshold  int
 	StorageDriverSelector converter.StorageDriverSelector
+	RedisConfig           *RedisConfig
 	S3Confg               *temporal.S3Config
 }
 
@@ -56,9 +62,10 @@ func ParseStorageType(t string) (StorageType, error) {
 	}
 
 	return "", fmt.Errorf(
-		"invalid external storage type %q (must be %q or %q)",
+		"invalid external storage type %q (must be %q, %q or %q)",
 		t,
 		StorageTypeNone,
+		StorageTypeRedis,
 		StorageTypeS3,
 	)
 }
@@ -72,6 +79,8 @@ func New(ctx context.Context, t StorageType, config *Config) (*temporal.External
 	switch t {
 	case StorageTypeNone:
 		factory = newNoopFactory()
+	case StorageTypeRedis:
+		factory = ExternalConfigRedisFactory(ctx, config.RedisConfig)
 	case StorageTypeS3:
 		factory = temporal.ExternalConfigS3Factory(ctx, config.S3Confg)
 	default:
@@ -83,4 +92,43 @@ func New(ctx context.Context, t StorageType, config *Config) (*temporal.External
 		PayloadSizeThreshold:  config.PayloadSizeThreshold,
 		StorageDriverSelector: config.StorageDriverSelector,
 	}, nil
+}
+
+func ExternalConfigRedisFactory(ctx context.Context, cfg *RedisConfig) temporal.ExternalConfigFactory {
+	return func() ([]converter.StorageDriver, error) {
+		if cfg == nil {
+			return nil, fmt.Errorf("redisfactory: config missing as second argument")
+		}
+
+		client := goredis.NewClient(cfg.Options)
+
+		// Manages the defer in this context
+		context.AfterFunc(ctx, func() {
+			_ = client.Close()
+		})
+
+		// Check the connection
+		if err := client.Ping(ctx).Err(); err != nil {
+			return nil, fmt.Errorf("failed to connect to redis: %w", err)
+		}
+
+		driver, err := redis.New(&redis.Options{
+			Client:     client,
+			DriverName: cfg.DriverName,
+			KeyPrefix:  cfg.KeyPrefix,
+			TTL:        cfg.TTL,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return []converter.StorageDriver{driver}, nil
+	}
+}
+
+type RedisConfig struct {
+	DriverName string
+	KeyPrefix  string
+	Options    *goredis.Options
+	TTL        time.Duration
 }
