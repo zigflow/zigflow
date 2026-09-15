@@ -86,7 +86,7 @@ func registerAWSExternalStorageFlags(cmd *cobra.Command, opts *runOptions) {
 	)
 
 	cmd.Flags().IntVar(
-		&opts.ExternalStorageS3MaxPayloadSize, "external-storage-s3-max_payload_size",
+		&opts.ExternalStorageS3MaxPayloadSize, "external-storage-s3-max-payload-size",
 		viper.GetInt("external_storage_s3_max_payload_size"), "Maximum payload size if using external storage with S3",
 	)
 

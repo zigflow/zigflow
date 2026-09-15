@@ -58,7 +58,7 @@ func TestNewRunCmd_Flags(t *testing.T) {
 	assert.NotNil(t, cmd.Flags().Lookup("external-storage-s3-bucket"))
 	assert.NotNil(t, cmd.Flags().Lookup("external-storage-s3-region"))
 	assert.NotNil(t, cmd.Flags().Lookup("external-storage-s3-driver-name"))
-	assert.NotNil(t, cmd.Flags().Lookup("external-storage-s3-max_payload_size"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-s3-max-payload-size"))
 	assert.NotNil(t, cmd.Flags().Lookup("external-storage-s3-endpoint"))
 	assert.NotNil(t, cmd.Flags().Lookup("external-storage-s3-use-path-style"))
 	assert.NotNil(t, cmd.Flags().Lookup(testFlagS3AccessKeyID))
@@ -284,7 +284,7 @@ func TestNewRunCmd_ExternalStorageFlagDefaults(t *testing.T) {
 		{flag: "external-storage-s3-bucket", defValue: ""},
 		{flag: "external-storage-s3-region", defValue: ""},
 		{flag: "external-storage-s3-driver-name", defValue: ""},
-		{flag: "external-storage-s3-max_payload_size", defValue: "0"},
+		{flag: "external-storage-s3-max-payload-size", defValue: "0"},
 		{flag: "external-storage-s3-endpoint", defValue: ""},
 		{flag: "external-storage-s3-use-path-style", defValue: "false"},
 		{flag: testFlagS3AccessKeyID, defValue: ""},
@@ -311,7 +311,7 @@ func TestNewRunCmd_ExternalStorageFlagsBoundToOpts(t *testing.T) {
 		"external-storage-s3-bucket":              "zigflow",
 		"external-storage-s3-region":              testAWSRegion,
 		"external-storage-s3-driver-name":         "my-driver",
-		"external-storage-s3-max_payload_size":    "2048",
+		"external-storage-s3-max-payload-size":    "2048",
 		"external-storage-s3-endpoint":            "http://s3:9000",
 		"external-storage-s3-use-path-style":      "true",
 		testFlagS3AccessKeyID:                     "access-key",

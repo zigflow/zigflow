@@ -127,17 +127,12 @@ variable instead. See
 | `--external-storage-s3-bucket` | `EXTERNAL_STORAGE_S3_BUCKET` | (none) | Bucket that payloads are written to. Required |
 | `--external-storage-s3-region` | `EXTERNAL_STORAGE_S3_REGION` | (none) | AWS region the bucket is in |
 | `--external-storage-s3-driver-name` | `EXTERNAL_STORAGE_S3_DRIVER_NAME` | `aws.s3driver` | Identifier recorded in the history alongside each reference |
-| `--external-storage-s3-max_payload_size` | `EXTERNAL_STORAGE_S3_MAX_PAYLOAD_SIZE` | 50 MiB | Largest payload in bytes the driver will accept |
+| `--external-storage-s3-max-payload-size` | `EXTERNAL_STORAGE_S3_MAX_PAYLOAD_SIZE` | 50 MiB | Largest payload in bytes the driver will accept |
 | `--external-storage-s3-endpoint` | `EXTERNAL_STORAGE_S3_ENDPOINT` | (none) | Override the endpoint to target an S3-compatible store |
 | `--external-storage-s3-use-path-style` | `EXTERNAL_STORAGE_S3_USE_PATH_STYLE` | `false` | Address the bucket in the request path rather than the hostname |
 | `--external-storage-s3-access-key-id` | `EXTERNAL_STORAGE_S3_ACCESS_KEY_ID` | (none) | Access key ID |
 | `--external-storage-s3-secret-access-key` | `EXTERNAL_STORAGE_S3_SECRET_ACCESS_KEY` | (none) | Secret access key |
 | `--external-storage-s3-session-token` | `EXTERNAL_STORAGE_S3_SESSION_TOKEN` | (none) | Session token for temporary credentials |
-
-:::info
-`--external-storage-s3-max_payload_size` uses underscores rather than hyphens
-in its final segment. The environment variable follows the usual convention.
-:::
 
 A payload larger than the maximum payload size is rejected by the driver
 rather than truncated or sent inline, so the operation that produced it
@@ -280,7 +275,7 @@ A session token was supplied on its own. Provide all three credential values
 or none of them.
 
 **`payload size N exceeds maximum M`.** The payload is larger than
-`--external-storage-s3-max_payload_size`, which defaults to 50 MiB. The
+`--external-storage-s3-max-payload-size`, which defaults to 50 MiB. The
 payload is not sent inline as a fallback, so raise the limit if the value is
 legitimate.
 
