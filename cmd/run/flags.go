@@ -66,10 +66,79 @@ func registerExternalStorageFlags(cmd *cobra.Command, opts *runOptions) {
 		viper.GetInt("external_storage_payload_size_threshold"), "Configure size threshold to send to external storage. Defaults to 256KB",
 	)
 
-	registerAWSExternalStorageFlags(cmd, opts)
+	registerS3ExternalStorageFlags(cmd, opts)
+	registerRedisExternalStorageFlags(cmd, opts)
 }
 
-func registerAWSExternalStorageFlags(cmd *cobra.Command, opts *runOptions) {
+func registerRedisExternalStorageFlags(cmd *cobra.Command, opts *runOptions) {
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageRedisDriverName, "external-storage-redis-driver-name",
+		viper.GetString("external_storage_redis_driver_name"), "Driver name if using external storage with Redis",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageRedisKeyPrefix, "external-storage-redis-key-prefix",
+		viper.GetString("external_storage_redis_key_prefix"), "Record key prefix if using external storage with Redis",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageRedisAddress, "external-storage-redis-address",
+		viper.GetString("external_storage_redis_address"), "Server address if using external storage with Redis",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageRedisUsername, "external-storage-redis-username",
+		viper.GetString("external_storage_redis_username"), "Server username if using external storage with Redis",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageRedisPassword, "external-storage-redis-password",
+		viper.GetString("external_storage_redis_password"), "Server password if using external storage with Redis",
+	)
+	gh.HideCommandOutput(cmd, "external-storage-redis-password")
+
+	cmd.Flags().IntVar(
+		&opts.ExternalStorageRedisDB, "external-storage-redis-database",
+		viper.GetInt("external_storage_redis_database"), "Database if using external storage with Redis",
+	)
+
+	cmd.Flags().DurationVar(
+		&opts.ExternalStorageRedisTTL, "external-storage-redis-ttl",
+		viper.GetDuration("external_storage_redis_ttl"), "Record TTL if using external storage with Redis",
+	)
+
+	cmd.Flags().BoolVar(
+		&opts.ExternalStorageRedisTLSEnabled, "external-storage-redis-tls-enabled",
+		viper.GetBool("external_storage_redis_tls_enabled"), "Use TLS on the connection if using external storage with Redis",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageRedisTLSCA, "external-storage-redis-tls-ca",
+		viper.GetString("external_storage_redis_tls_ca"), "TLS CA if using external storage with Redis",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageRedisTLSCert, "external-storage-redis-tls-cert",
+		viper.GetString("external_storage_redis_tls_cert"), "TLS certificate if using external storage with Redis",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageRedisTLSKey, "external-storage-redis-tls-key",
+		viper.GetString("external_storage_redis_tls_key"), "TLS key if using external storage with Redis",
+	)
+
+	cmd.Flags().StringVar(
+		&opts.ExternalStorageRedisTLSServerName, "external-storage-redis-tls-server-name",
+		viper.GetString("external_storage_redis_tls_server_name"), "TLS server name if using external storage with Redis",
+	)
+
+	cmd.Flags().BoolVar(
+		&opts.ExternalStorageRedisTLSInsecureSkipVerify, "external-storage-redis-tls-insecure-skip-verify",
+		viper.GetBool("external_storage_redis_tls_insecure_skip_verify"), "TLS skip verify if using external storage with Redis",
+	)
+}
+
+func registerS3ExternalStorageFlags(cmd *cobra.Command, opts *runOptions) {
 	cmd.Flags().StringVar(
 		&opts.ExternalStorageS3Bucket, "external-storage-s3-bucket",
 		viper.GetString("external_storage_s3_bucket"), "Name of the bucket if using external storage with S3",

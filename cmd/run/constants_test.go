@@ -32,8 +32,15 @@ const (
 	testS3AccessKeyID        = "test-access-key"
 	testS3SecretAccessKey    = "test-secret-key"
 	testExternalStorageS3    = "s3"
+	testExternalStorageRedis = "redis"
 
 	testFlagS3AccessKeyID     = "external-storage-s3-access-key-id"
 	testFlagS3SecretAccessKey = "external-storage-s3-secret-access-key"
 	testFlagS3SessionToken    = "external-storage-s3-session-token"
+
+	testFlagRedisAddress  = "external-storage-redis-address"
+	testFlagRedisPassword = "external-storage-redis-password"
+
+	testRedisUsername = "ziggy"
+	testRedisPassword = "correct-horse"
 )

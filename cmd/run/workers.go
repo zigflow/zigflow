@@ -22,9 +22,11 @@ import (
 	"sort"
 
 	gh "github.com/mrsimonemms/golang-helpers"
+	goredis "github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	temporal "github.com/zigflow/helpers"
+	"github.com/zigflow/helpers/externalstorage/redis"
 	"github.com/zigflow/zigflow/pkg/codec"
 	"github.com/zigflow/zigflow/pkg/ctxpropagator"
 	"github.com/zigflow/zigflow/pkg/externalstorage"
@@ -261,8 +263,32 @@ func initTemporalClient(ctx context.Context, opts *runOptions) (client.Client, e
 	if err != nil {
 		return nil, err
 	}
+	redisTLSConfig, err := redis.BuildTLSConfig(
+		opts.ExternalStorageRedisTLSEnabled,
+		opts.ExternalStorageRedisTLSCA,
+		opts.ExternalStorageRedisTLSCert,
+		opts.ExternalStorageRedisTLSKey,
+		opts.ExternalStorageRedisTLSServerName,
+		opts.ExternalStorageRedisTLSInsecureSkipVerify,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing redis tls config: %w", err)
+	}
 	externalStorage, err := externalstorage.New(ctx, storageType, &externalstorage.Config{
 		PayloadSizeThreshold: opts.ExternalStoragePayloadSizeThreshold,
+		RedisConfig: &externalstorage.RedisConfig{
+			DriverName: opts.ExternalStorageRedisDriverName,
+			KeyPrefix:  opts.ExternalStorageRedisKeyPrefix,
+			Options: &goredis.Options{
+				ClientName: "zigflow",
+				Addr:       opts.ExternalStorageRedisAddress,
+				DB:         opts.ExternalStorageRedisDB,
+				Username:   opts.ExternalStorageRedisUsername,
+				Password:   opts.ExternalStorageRedisPassword,
+				TLSConfig:  redisTLSConfig,
+			},
+			TTL: opts.ExternalStorageRedisTTL,
+		},
 		S3Confg: &temporal.S3Config{
 			Bucket:          opts.ExternalStorageS3Bucket,
 			Region:          opts.ExternalStorageS3Region,
