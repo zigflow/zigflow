@@ -2,6 +2,12 @@
 
 Hello world with Zigflow, but with the data stored externally
 
+This example demonstrates the Claim Check pattern. Both the worker and the
+trigger set a payload size threshold of 1, so every payload is offloaded to a
+local S3-compatible store and only a reference passes through Temporal. For
+the configuration reference, see
+[External storage](https://zigflow.dev/docs/deployment/external-storage).
+
 <!-- toc -->
 
 * [Getting started](#getting-started)
@@ -25,9 +31,17 @@ In another terminal, run:
 docker compose up trigger
 ```
 
-This will trigger the workflow and print everything to the console. When you look
-in the [Temporal UI](http://localhost:8080), all the data will be stored in the
-local S3 store meaning your data is never sent to the Temporal server.
+This will trigger the workflow and print everything to the console. When you
+look in the [Temporal UI](http://localhost:8080), the history holds references
+rather than values. Because the threshold is set to 1 on both the worker and
+the trigger, every payload goes to the local S3 store instead of being sent to
+the Temporal server.
+
+The S3 container has no volume, so its contents are discarded when you run
+`docker compose down`. That is a convenience of this throwaway stack rather
+than anything the external storage mechanism does: offloaded objects have no
+managed lifecycle, so a real deployment needs its own
+[lifecycle policy](https://zigflow.dev/docs/deployment/external-storage#operational-considerations).
 
 ## Diagram
 

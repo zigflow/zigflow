@@ -26,7 +26,9 @@ files or a directory. Workflows that share a task queue (defined by
 its own worker.
 
 There is no separate API server, no database and no persistent storage.
-All workflow state is held by Temporal.
+All workflow state is held by Temporal, except for the payloads you configure
+[external storage](/docs/deployment/external-storage) to offload to a store of
+your own.
 
 Your infrastructure requirements are:
 
@@ -245,3 +247,4 @@ DISABLE_TELEMETRY=true
 - [Kubernetes](/docs/deployment/kubernetes): deploying with the official Helm chart
 - [Dedicated image](/docs/deployment/dedicated-image): workflow at build time
 - [Observability](/docs/deployment/observability): health checks, metrics and CloudEvents
+- [External storage](/docs/deployment/external-storage): offloading payloads
