@@ -2,6 +2,11 @@
 
 Hello world with Zigflow, but with the data stored externally
 
+This example runs a worker that offloads its payloads to a local
+S3-compatible store instead of sending them to Temporal. For the configuration
+reference, see
+[External storage](https://zigflow.dev/docs/deployment/external-storage).
+
 <!-- toc -->
 
 * [Getting started](#getting-started)
