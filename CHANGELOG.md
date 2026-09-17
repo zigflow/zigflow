@@ -2,6 +2,16 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.15.2](https://github.com/zigflow/zigflow/releases/tag/v0.15.2) - 2026-09-17
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/581
+* fix(listen): report a listen timeout as the Zigflow timeout error by @YJ-928 in https://github.com/zigflow/zigflow/pull/586
+* fix: fix issue where cancellations didn't promulgate fully by @mrsimonemms in https://github.com/zigflow/zigflow/pull/588
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.15.1...v0.15.2
+
 ## [v0.15.1](https://github.com/zigflow/zigflow/releases/tag/v0.15.1) - 2026-09-15
 
 ## What's Changed
