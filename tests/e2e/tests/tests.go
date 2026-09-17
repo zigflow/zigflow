@@ -18,6 +18,7 @@ package tests
 
 import (
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/callHTTP"
+	_ "github.com/zigflow/zigflow/tests/e2e/tests/cancel"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/catch-as"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/complete"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/continue-as-new"

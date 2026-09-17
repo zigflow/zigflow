@@ -894,10 +894,13 @@ func recordedEventTypes(events []recordedEvent) []string {
 //   - NOT emit task.completed
 //   - NOT process output (state.Output remains the previous task's value)
 //   - NOT process export (state.Context remains the previous value)
+//   - surface the cancellation to the caller of iterateTasks
 //
 // A cancelled task is not a successful completion and must not be
-// treated as one. Iteration still continues (cancellation is not a
-// flow directive) so any later task in the same scope runs normally.
+// treated as one. The cancellation is returned so it reaches the
+// workflow boundary; TestDoTaskBuilderCancellationStopsIteration and
+// TestDoTaskBuilderCancellationReachesWorkflowBoundary cover the
+// iteration and boundary behaviour.
 func TestDoTaskBuilderCancelledTaskSkipsCompletionPipeline(t *testing.T) {
 	events, readEvents := newRecordingEventsWithPayload(t)
 
@@ -944,10 +947,10 @@ func TestDoTaskBuilderCancelledTaskSkipsCompletionPipeline(t *testing.T) {
 		},
 	}
 	cancelled := workflowFunc{
-		TaskBuilder: newFakeTaskBuilder("cancelled", cancelledBase),
-		Name:        "cancelled",
+		TaskBuilder: newFakeTaskBuilder(testConstTaskCancelled, cancelledBase),
+		Name:        testConstTaskCancelled,
 		Func: func(ctx workflow.Context, input any, st *utils.State) (any, error) {
-			runOrder = append(runOrder, "cancelled")
+			runOrder = append(runOrder, testConstTaskCancelled)
 			return nil, temporal.NewCanceledError()
 		},
 	}
@@ -961,7 +964,11 @@ func TestDoTaskBuilderCancelledTaskSkipsCompletionPipeline(t *testing.T) {
 	}, workflow.RegisterOptions{Name: builder.GetTaskName()})
 
 	env.ExecuteWorkflow(builder.GetTaskName())
-	require.NoError(t, env.GetWorkflowError())
+
+	werr := env.GetWorkflowError()
+	require.Error(t, werr, "cancellation must be returned, not swallowed as success")
+	assert.True(t, temporal.IsCanceledError(werr),
+		"cancellation must reach the workflow boundary as a cancellation error")
 
 	// state.Output and state.Context must be the prior values: neither
 	// the default state.Output assignment nor the explicit output/export
@@ -970,7 +977,7 @@ func TestDoTaskBuilderCancelledTaskSkipsCompletionPipeline(t *testing.T) {
 		"cancelled task must not overwrite state.Output")
 	assert.Equal(t, priorContext, state.Context,
 		"cancelled task must not overwrite state.Context")
-	assert.Equal(t, []string{testConstTaskPrior, "cancelled"}, runOrder)
+	assert.Equal(t, []string{testConstTaskPrior, testConstTaskCancelled}, runOrder)
 
 	// Events: task.cancelled fires; task.completed for the cancelled
 	// task does NOT. (The prior task emits its own task.completed, which

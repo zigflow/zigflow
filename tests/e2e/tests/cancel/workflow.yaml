@@ -1,0 +1,15 @@
+document:
+  dsl: 1.0.0
+  taskQueue: cancel
+  workflowType: workflow
+  version: 0.0.1
+do:
+  - before:
+      set:
+        stage: before
+  - sleep:
+      wait:
+        minutes: 10
+  - after:
+      set:
+        stage: after_wait_ran

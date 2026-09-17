@@ -117,6 +117,12 @@ func (t *ListenTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 			}
 		}
 
+		// The listener runs on a cancellable child context so a signal
+		// handler can abort the await. workflowCtx keeps a handle on the
+		// original context so await can tell an internal abort apart
+		// from a genuine workflow cancellation.
+		workflowCtx := ctx
+
 		var cancel workflow.CancelFunc
 		ctx, cancel = workflow.WithCancel(ctx)
 		defer cancel()
@@ -145,7 +151,7 @@ func (t *ListenTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		}
 
 		if await {
-			if err := t.await(ctx, timeout, isAll, areAnyComplete, areAllComplete); err != nil {
+			if err := t.await(ctx, workflowCtx, timeout, isAll, areAnyComplete, areAllComplete); err != nil {
 				return nil, err
 			}
 		}
@@ -154,8 +160,19 @@ func (t *ListenTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	}, nil
 }
 
+// await blocks until the listener's completion condition is met, the
+// timeout fires, or the context is cancelled.
+//
+// ctx is the listener's own cancellable context; workflowCtx is the
+// context it was derived from. Cancelling ctx is how this task's signal
+// handler aborts the await, and that abort is indistinguishable from a
+// cancellation of the workflow itself when only ctx is inspected.
+// workflowCtx is what separates the two: it is only cancelled when the
+// workflow is, and in that case the cancellation error is returned so
+// the do-task pipeline stops and Temporal records the execution as
+// CANCELED. An internal abort keeps its existing behaviour.
 func (t *ListenTaskBuilder) await(
-	ctx workflow.Context, timeout time.Duration, isAll, areAnyComplete bool, areAllComplete []bool,
+	ctx, workflowCtx workflow.Context, timeout time.Duration, isAll, areAnyComplete bool, areAllComplete []bool,
 ) error {
 	logger := workflow.GetLogger(ctx)
 
@@ -175,11 +192,22 @@ func (t *ListenTaskBuilder) await(
 	})
 	if err != nil {
 		if temporal.IsCanceledError(err) {
+			if cancelErr := workflowCtx.Err(); cancelErr != nil {
+				logger.Debug("Listener cancelled by workflow", "task", t.GetTaskName())
+				return cancelErr
+			}
 			logger.Debug("Listener cancelled", "task", t.GetTaskName())
 			return nil
 		}
 		logger.Error("Error creating listener await", "error", err, "task", t.GetTaskName())
 		return err
+	}
+	// The await condition treats a cancelled ctx as "finished", so a
+	// cancellation usually arrives here as a satisfied await rather than
+	// as an error from AwaitWithTimeout.
+	if cancelErr := workflowCtx.Err(); cancelErr != nil {
+		logger.Debug("Listener cancelled by workflow", "task", t.GetTaskName())
+		return cancelErr
 	}
 	if ctx.Err() != nil {
 		logger.Error("Context error", "error", ctx.Err())

@@ -314,8 +314,25 @@ func (t *ForkTaskBuilder) handleBranchError(
 		return false
 	}
 
+	// A cancelled branch has terminated and will never reply, so it must
+	// short-circuit the await: leaving it as an un-replied branch would
+	// make awaitCondition wait for a reply that can never arrive and the
+	// parent would block indefinitely. The cancellation is recorded as
+	// the reply error so it propagates out of the fork with Temporal
+	// cancellation semantics intact.
+	//
+	// Intentional cancellation of losing branches in a competing fork
+	// needs no special case here. CancelOthers only runs once a winner
+	// has already satisfied the await, so exec has read fs and returned
+	// before any loser observes its cancellation; what this records for
+	// a loser is never read. Returning true also keeps a cancelled
+	// branch out of recordReply, so it cannot contribute to (or mutate)
+	// the output the fork has already returned.
 	if temporal.IsCanceledError(err) {
 		logger.Debug("Forked task cancelled", "task", taskName)
+		if fs.replyErr == nil {
+			fs.replyErr = err
+		}
 		return true
 	}
 

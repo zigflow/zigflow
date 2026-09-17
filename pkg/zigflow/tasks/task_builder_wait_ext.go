@@ -104,8 +104,11 @@ func (t *WaitExtTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 		logger.Debug("Sleeping", "duration", dur.String())
 		if err := workflow.Sleep(ctx, dur); err != nil {
+			// See the note in task_builder_wait.go: cancellation must
+			// propagate rather than read as a completed wait.
 			if temporal.IsCanceledError(err) {
-				return nil, nil
+				logger.Debug("Wait cancelled", "task", t.GetTaskName())
+				return nil, err
 			}
 			logger.Error("Error creating sleep instruction", "error", err)
 			return nil, fmt.Errorf("error creating sleep: %w", err)
@@ -147,8 +150,11 @@ func (t *WaitExtTaskBuilder) sleepUntil(ctx workflow.Context, untilStr string) e
 
 	logger.Debug("Sleeping until", keyUntil, untilStr, "duration", delta.String())
 	if err := workflow.Sleep(ctx, delta); err != nil {
+		// See the note in task_builder_wait.go: cancellation must
+		// propagate rather than read as a completed wait.
 		if temporal.IsCanceledError(err) {
-			return nil
+			logger.Debug("Wait cancelled", "task", t.GetTaskName())
+			return err
 		}
 		logger.Error("Error creating sleep instruction", "error", err)
 		return fmt.Errorf("error creating sleep: %w", err)

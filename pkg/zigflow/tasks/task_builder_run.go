@@ -191,8 +191,12 @@ func (t *RunTaskBuilder) executeCommand(ctx workflow.Context, activityFn, input 
 
 	var res any
 	if err := workflow.ExecuteActivity(ctx, activityFn, args...).Get(ctx, &res); err != nil {
+		// A cancelled command means the workflow is being cancelled, so
+		// the cancellation is returned rather than reported as an empty
+		// but successful command result.
 		if temporal.IsCanceledError(err) {
-			return nil, nil
+			logger.Debug("Command cancelled", "task", t.GetTaskName())
+			return nil, err
 		}
 
 		logger.Error("Error calling executing command task", "name", t.name, "error", err)

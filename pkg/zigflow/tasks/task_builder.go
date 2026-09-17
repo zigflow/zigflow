@@ -170,8 +170,12 @@ func (d *builder[T]) executeActivity(ctx workflow.Context, activity, input any, 
 
 	var res any
 	if err := workflow.ExecuteActivity(ctx, activity, d.task, input, state).Get(ctx, &res); err != nil {
+		// A cancelled activity means the workflow is being cancelled.
+		// Return the cancellation so the do-task pipeline stops and
+		// Temporal records the execution as CANCELED.
 		if temporal.IsCanceledError(err) {
-			return nil, nil
+			logger.Debug("Activity cancelled", "name", d.name)
+			return nil, err
 		}
 
 		logger.Error("Error calling activity", "name", d.name, "error", err)

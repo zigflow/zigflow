@@ -96,7 +96,7 @@ func (t *CallActivityTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		if err := future.Get(ctx, &res); err != nil {
 			if temporal.IsCanceledError(err) {
 				logger.Debug("Activity cancelled", "activity", t.activity.Name)
-				return nil, nil
+				return nil, err
 			}
 			logger.Error("Error executing activity", "activity", t.activity.Name, "error", err)
 			return nil, fmt.Errorf("error executing activity %s: %w", t.activity.Name, err)

@@ -403,16 +403,6 @@ func (t *DoTaskBuilder) runTaskAndHandleFlow(
 		return false, rerr
 	}
 
-	// A cancelled task has already had task.cancelled emitted by
-	// runTask. It must not be treated as successful completion: no
-	// output processing, no export processing, no task.completed event,
-	// and state.Output is preserved so the previous task's output stays
-	// visible. Iteration continues normally to the next task because
-	// cancellation is not modelled as a flow directive.
-	if res.Cancelled {
-		return false, nil
-	}
-
 	// Decide which directive (if any) to dispatch. A directive emitted
 	// by the task itself (e.g. switch) takes precedence over taskBase.Then.
 	directive, fromTaskLevel := effectiveDirective(res.Directive, taskBase)
@@ -668,20 +658,19 @@ func (t *DoTaskBuilder) processTaskOutput(task workflowFunc, taskOutput any, sta
 // taskRunResult is the structured outcome of running a single task.
 //
 // Exactly one of the fields is meaningful per result:
-//   - Cancelled: Temporal cancelled the task. The cancellation event has
-//     already been emitted; the caller must skip the completion
-//     pipeline (no output, no export, no task.completed) so a cancelled
-//     task is never indistinguishable from a successful one.
 //   - Directive: a flow-control directive emitted by the task (switch
 //     continue/exit/end or a RedirectError). The caller still runs the
 //     completion pipeline because flow-directive-emitting tasks are
 //     real, successful task executions that happen to also route.
 //   - Output: a regular successful result. The caller processes
 //     output/export and emits task.completed normally.
+//
+// Cancellation is not represented here. Temporal cancellation is
+// returned as an error so it propagates to the workflow boundary; see
+// runTask.
 type taskRunResult struct {
 	Output    any
 	Directive error
-	Cancelled bool
 }
 
 // runTask executes the task function and reports its outcome. It emits
@@ -691,10 +680,11 @@ type taskRunResult struct {
 // the same code path covers both regular and flow-directive-emitting
 // tasks.
 //
-// The returned err is a genuine task failure: real Go-level errors
-// that should be surfaced as workflow failures. Cancellation and flow
-// directives are reported through taskRunResult instead so the caller
-// can branch on them without conflating them with failures.
+// The returned err is either a genuine task failure (a real Go-level
+// error that should be surfaced as a workflow failure) or a Temporal
+// cancellation. Flow directives are reported through taskRunResult
+// instead so the caller can branch on them without conflating them
+// with failures.
 func (t *DoTaskBuilder) runTask(
 	ctx workflow.Context, task workflowFunc, input any, state *utils.State,
 ) (taskRunResult, error) {
@@ -733,12 +723,16 @@ func (t *DoTaskBuilder) runTask(
 				e.SetID(workflowID)
 				e.SetSubject(task.Name)
 			})
-			// Cancellation is reported explicitly so the caller can
-			// skip the completion pipeline. Returning {} with a real
-			// error here would be wrong because cancellation isn't a
-			// task failure; returning success would be wrong because
-			// the task did not actually complete.
-			return taskRunResult{Cancelled: true}, nil
+			// Cancellation is returned as an error, which stops the
+			// iteration and carries the CanceledError out through
+			// workflowExecutor to the workflow boundary, where Temporal
+			// records the execution as CANCELED. Returning it as a
+			// result instead would let the completion pipeline be
+			// skipped but still allow the remaining tasks to run, so
+			// the workflow would close as COMPLETED despite having been
+			// cancelled. The caller skips the completion pipeline
+			// because it never sees a successful result.
+			return taskRunResult{}, fnErr
 		}
 
 		// Flow control errors are internal signals, not user-facing

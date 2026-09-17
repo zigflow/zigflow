@@ -58,8 +58,13 @@ func (t *WaitTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		logger.Debug("Sleeping", "duration", duration.String())
 
 		if err := workflow.Sleep(ctx, duration); err != nil {
+			// Cancellation is returned unwrapped so the do-task pipeline
+			// stops and Temporal records the execution as CANCELED.
+			// Reporting it as a successful wait would let the remaining
+			// tasks run and the workflow close as COMPLETED.
 			if temporal.IsCanceledError(err) {
-				return nil, nil
+				logger.Debug("Wait cancelled", "task", t.GetTaskName())
+				return nil, err
 			}
 
 			logger.Error("Error creating sleep instruction", "error", err)

@@ -52,6 +52,17 @@ const (
 	// testConstTaskPrior is the task name "prior" used in tests where one task
 	// primes state before a later task is examined.
 	testConstTaskPrior = "prior"
+	// testConstTaskCancelled is the task name "cancelled" used in
+	// cancellation tests for the task that reports a cancellation.
+	testConstTaskCancelled = "cancelled"
+	// testConstTaskBefore is the task name "before" used in cancellation
+	// tests for the task that runs before the cancelled one.
+	testConstTaskBefore = "before"
+	// testConstTaskAfter is the task name "after" used in cancellation
+	// tests for the task that must not run after a cancellation.
+	testConstTaskAfter = "after"
+	// testConstStage is the map key "stage" used in cancellation test payloads.
+	testConstStage = "stage"
 	// testConstHandledKey is the map key "handled" used in try/catch tests
 	// to flag that the catch handler ran.
 	testConstHandledKey = "handled"
