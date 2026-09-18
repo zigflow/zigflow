@@ -22,4 +22,6 @@ const (
 	testOutputFlowchartTD     = "flowchart TD"
 	testNameUnsupportedFormat = "unsupported output format"
 	testPlaceholderWorkflow   = "PLACEHOLDER_WORKFLOW"
+	testTrue                  = "true"
+	testRedisUsername         = "ziggy"
 )

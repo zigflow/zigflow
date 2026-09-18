@@ -1,0 +1,16 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: hello-world
+  version: 0.0.1
+  title: Hello World with Redis External Storage
+  summary: Hello world with Zigflow using Redis-backed external payload storage
+  metadata:
+    display: false
+do:
+  - set:
+      output:
+        as:
+          data: ${ . }
+      set:
+        message: Hello from Ziggy
