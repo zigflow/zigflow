@@ -29,6 +29,13 @@ Exits with code `0` if valid. Prints a human-readable error and
 exits with a non-zero code if invalid. No Temporal connection is
 required.
 
+It also prints warnings for workflows that are valid but probably do not do
+what was meant, such as a `do` task in a task list that also contains other
+tasks, when no `then:` jumps to it (`WARN_NESTED_DO_DEFINITION`). Zigflow treats
+that `do` as a separate workflow definition: it runs inline only if it comes
+before the first other task, and is skipped if it comes after one. Warnings do
+not change the exit code, and appear under `warnings` in the JSON output.
+
 Use `--output-json` for machine-readable output:
 
 ```sh

@@ -253,3 +253,48 @@ func TestValidateWorkflow_StructValidationFailure_StructStage(t *testing.T) {
 	assert.Equal(t, "struct", out.Errors[0].Stage)
 	assert.NotEmpty(t, out.Errors[0].Message, "translated validator message must be present")
 }
+
+// --- warnings ---
+
+const nestedDoAfterTaskYAML = `document:
+  dsl: 1.0.0
+  taskQueue: default
+  workflowType: test
+  version: 0.0.1
+do:
+  - initData:
+      set:
+        version: "1.0.0"
+  - handleError:
+      do:
+        - fault:
+            set:
+              failed: true
+`
+
+func TestValidateWorkflow_NestedDoAfterTask_ReturnsWarning(t *testing.T) {
+	m := newTestMCP()
+	_, out, err := m.ValidateWorkflow(context.Background(), nil, ValidateWorkflowInput{
+		YAML: nestedDoAfterTaskYAML,
+	})
+	require.NoError(t, err)
+	assert.True(t, out.Valid, "a warning must not make the workflow invalid")
+	assert.Empty(t, out.Errors)
+	require.Len(t, out.Warnings, 1)
+
+	got := out.Warnings[0]
+	assert.Equal(t, "workflow", got.Stage)
+	assert.Equal(t, "$.do[1]", got.Path)
+	assert.Equal(t, "WARN_NESTED_DO_DEFINITION", got.Code)
+	assert.Contains(t, got.Message, `"handleError"`)
+	assert.Empty(t, got.Documentation)
+}
+
+func TestValidateWorkflow_ValidYAML_NoWarnings(t *testing.T) {
+	m := newTestMCP()
+	_, out, err := m.ValidateWorkflow(context.Background(), nil, ValidateWorkflowInput{
+		YAML: validWorkflowYAML,
+	})
+	require.NoError(t, err)
+	assert.Empty(t, out.Warnings)
+}

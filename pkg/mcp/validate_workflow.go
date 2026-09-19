@@ -44,6 +44,8 @@ type ValidateWorkflowError struct {
 type ValidateWorkflowOutput struct {
 	Valid  bool                    `json:"valid"`
 	Errors []ValidateWorkflowError `json:"errors,omitempty"`
+	// Warnings do not make the workflow invalid.
+	Warnings []ValidateWorkflowError `json:"warnings,omitempty"`
 }
 
 // validateBytesStage maps an error returned by zigflow.ValidateBytes onto the
@@ -145,5 +147,23 @@ func (m *MCP) ValidateWorkflow(
 		return nil, ValidateWorkflowOutput{Errors: errs}, nil
 	}
 
-	return nil, ValidateWorkflowOutput{Valid: true}, nil
+	return nil, ValidateWorkflowOutput{Valid: true, Warnings: workflowWarnings(zigflow.NestedDoWarnings(wf))}, nil
+}
+
+func workflowWarnings(res []utils.ValidationErrors) []ValidateWorkflowError {
+	if len(res) == 0 {
+		return nil
+	}
+
+	warnings := make([]ValidateWorkflowError, len(res))
+	for i, w := range res {
+		warnings[i] = ValidateWorkflowError{
+			Stage:   stageWorkflow,
+			Path:    w.Path,
+			Code:    w.Code,
+			Message: w.Message,
+		}
+	}
+
+	return warnings
 }

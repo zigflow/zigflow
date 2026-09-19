@@ -35,6 +35,8 @@ type ValidationResult struct {
 	Valid  bool               `json:"valid"`
 	File   string             `json:"file"`
 	Errors []ValidationErrors `json:"errors,omitempty"`
+	// Warnings do not make the file invalid.
+	Warnings []ValidationErrors `json:"warnings,omitempty"`
 }
 
 type ValidationErrors struct {
@@ -136,6 +138,7 @@ func validateTaskItem(sl validator.StructLevel) {
 func RenderHuman(w io.Writer, result ValidationResult) {
 	if result.Valid {
 		_, _ = fmt.Fprintf(w, "✅ %s is valid\n", result.File)
+		renderWarnings(w, result.Warnings)
 		return
 	}
 
@@ -144,6 +147,17 @@ func RenderHuman(w io.Writer, result ValidationResult) {
 
 	for i, err := range result.Errors {
 		_, _ = fmt.Fprintf(w, "%d. %s: %s\n", i+1, err.Path, humanMessage(err.Error))
+	}
+}
+
+func renderWarnings(w io.Writer, warnings []ValidationErrors) {
+	if len(warnings) == 0 {
+		return
+	}
+
+	_, _ = fmt.Fprintf(w, "\n⚠️  %d warning(s):\n\n", len(warnings))
+	for i, warning := range warnings {
+		_, _ = fmt.Fprintf(w, "%d. %s: %s\n", i+1, warning.Path, warning.Message)
 	}
 }
 
