@@ -151,6 +151,7 @@ func runValidateCmd(cmd *cobra.Command, filePath string, outputJSON bool) error 
 		result.Errors = res
 	} else {
 		result.Valid = true
+		result.Warnings = zigflow.NestedDoWarnings(workflowDefinition)
 	}
 
 	if outputJSON {

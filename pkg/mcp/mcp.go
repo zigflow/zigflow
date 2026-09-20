@@ -28,6 +28,9 @@ import (
 
 const stageInput = "input"
 
+// stageWorkflow marks a warning about a valid workflow's structure.
+const stageWorkflow = "workflow"
+
 // maxBytes caps both the request body (via http.MaxBytesHandler) and the
 // request headers (via http.Server.MaxHeaderBytes). MCP tool calls for Zigflow
 // are small, so 1 MiB is generous while still bounding memory per request.

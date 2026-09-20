@@ -311,10 +311,17 @@ validating and fixing until it passes:
      failure.
    - Over MCP: call `validate_workflow` with `{ "yaml": "<workflow YAML>" }`.
 4. Fix iteratively. `validate_workflow` returns
-   `{ "valid": <bool>, "errors": [ { "stage", "path", "rule", "param", "message" } ] }`.
+   `{ "valid": <bool>, "errors": [ { "stage", "path", "rule", "param", "message" } ], "warnings": [ ... ] }`.
    Each error's `stage` is one of `input`, `parse`, `schema`, `expression`,
    `load` or `struct`. Read the `path` and `message`, correct the workflow, then
    re-validate until `valid` is `true`.
+5. Treat every warning as an error. A warning marks structure that is valid but
+   probably does not do what was meant, so the workflow may not run as written.
+   Warnings use the same fields as errors, with the `workflow` stage and a `code`
+   such as `WARN_NESTED_DO_DEFINITION`, and they do not change `valid` or the CLI
+   exit code. Fix the workflow and re-validate until `valid` is `true` and there
+   are no `warnings`. The CLI prints the same warnings and lists them under
+   `warnings` with `--output-json`.
 
 The CLI and the MCP `validate_workflow` tool use the same validation engine, so
 their results agree.
@@ -339,7 +346,7 @@ Tools:
 - `list_examples` lists the bundled example workflows.
 - `get_example` retrieves a bundled example workflow by name.
 - `validate_workflow` validates a workflow YAML string and returns structured,
-  per-stage errors.
+  per-stage errors and warnings.
 
 ## Further documentation
 

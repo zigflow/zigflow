@@ -430,3 +430,44 @@ func TestNewValidateCmd(t *testing.T) {
 		})
 	}
 }
+
+const workflowNestedDoAfterTask = `document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: nested
+  version: 0.0.1
+do:
+  - initData:
+      set:
+        version: "1.0.0"
+  - handleError:
+      do:
+        - fault:
+            set:
+              failed: true`
+
+// TestValidateCmdNestedDoWarning verifies a nested do definition is reported
+// as a warning without making the file invalid.
+func TestValidateCmdNestedDoWarning(t *testing.T) {
+	t.Run("human", func(t *testing.T) {
+		out, err := runValidate(t, workflowNestedDoAfterTask)
+		require.NoError(t, err)
+
+		assert.Contains(t, out, "is valid")
+		assert.Contains(t, out, "1 warning(s)")
+		assert.Contains(t, out, "$.do[1]")
+		assert.Contains(t, out, `"handleError"`)
+	})
+
+	t.Run("json", func(t *testing.T) {
+		out, err := runValidate(t, workflowNestedDoAfterTask, "--output-json")
+		require.NoError(t, err)
+
+		var result utils.ValidationResult
+		require.NoError(t, json.Unmarshal([]byte(out), &result))
+		assert.True(t, result.Valid)
+		require.Len(t, result.Warnings, 1)
+		assert.Equal(t, "handleError", result.Warnings[0].Key)
+		assert.Equal(t, "WARN_NESTED_DO_DEFINITION", result.Warnings[0].Code)
+	})
+}

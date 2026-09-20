@@ -118,6 +118,13 @@ additionally include a `path` that pinpoints the failing field. `struct` stage
 errors also include `rule` and `param` fields describing the failing rule. A
 successful response includes `"valid": true` and no errors.
 
+A valid workflow can still return `warnings` for structure that is valid but
+probably does not do what was meant. Warnings use the same fields with the
+`workflow` stage, and do not change `valid`. The only warning today is
+`WARN_NESTED_DO_DEFINITION`: a `do` task in a task list that also contains other
+tasks, when no `switch` case redirects to it. Zigflow treats that `do` as a
+separate workflow definition rather than an inline group.
+
 Recognised validation errors carry two further fields:
 
 | Field | Meaning |
