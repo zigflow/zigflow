@@ -266,7 +266,7 @@ func (t *TryTaskBuilder) createBuilder(
 		return
 	}
 
-	childWorkflowName = utils.GenerateChildWorkflowName(taskType, t.GetTaskName())
+	childWorkflowName = utils.GenerateChildWorkflowName(t.doc, taskType, t.GetTaskName())
 
 	childPath := t.childTaskPath(taskType)
 	b, err := NewTaskBuilder(

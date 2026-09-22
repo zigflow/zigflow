@@ -19,10 +19,19 @@ package utils
 import (
 	"fmt"
 	"strings"
+
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 )
 
-func GenerateChildWorkflowName(prefix string, prefixes ...string) string {
-	prefixes = append([]string{prefix}, prefixes...)
+func GenerateChildWorkflowName(workflow *model.Workflow, prefix string, prefixes ...string) string {
+	prefixes = append([]string{
+		workflow.Document.Name,
+		workflow.Document.Version,
+		prefix,
+	}, prefixes...)
 
-	return fmt.Sprintf("workflow_%s", strings.Join(prefixes, "_"))
+	s := fmt.Sprintf("workflow_%s", strings.Join(prefixes, "_"))
+	s = strings.ReplaceAll(s, "-", "_")
+	s = strings.ReplaceAll(s, ".", "_")
+	return s
 }
