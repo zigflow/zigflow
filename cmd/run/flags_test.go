@@ -64,6 +64,19 @@ func TestNewRunCmd_Flags(t *testing.T) {
 	assert.NotNil(t, cmd.Flags().Lookup(testFlagS3AccessKeyID))
 	assert.NotNil(t, cmd.Flags().Lookup(testFlagS3SecretAccessKey))
 	assert.NotNil(t, cmd.Flags().Lookup(testFlagS3SessionToken))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-redis-driver-name"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-redis-key-prefix"))
+	assert.NotNil(t, cmd.Flags().Lookup(testFlagRedisAddress))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-redis-username"))
+	assert.NotNil(t, cmd.Flags().Lookup(testFlagRedisPassword))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-redis-database"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-redis-ttl"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-redis-tls-enabled"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-redis-tls-ca"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-redis-tls-cert"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-redis-tls-key"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-redis-tls-server-name"))
+	assert.NotNil(t, cmd.Flags().Lookup("external-storage-redis-tls-insecure-skip-verify"))
 }
 
 // ---- --temporal-server-name flag ----
@@ -290,6 +303,22 @@ func TestNewRunCmd_ExternalStorageFlagDefaults(t *testing.T) {
 		{flag: testFlagS3AccessKeyID, defValue: ""},
 		{flag: testFlagS3SecretAccessKey, defValue: ""},
 		{flag: testFlagS3SessionToken, defValue: ""},
+		// The Redis settings have no defaults of their own: an unset driver
+		// name, key prefix and TTL all fall back to the driver's own defaults,
+		// and TLS is off unless it is asked for.
+		{flag: "external-storage-redis-driver-name", defValue: ""},
+		{flag: "external-storage-redis-key-prefix", defValue: ""},
+		{flag: testFlagRedisAddress, defValue: ""},
+		{flag: "external-storage-redis-username", defValue: ""},
+		{flag: testFlagRedisPassword, defValue: ""},
+		{flag: "external-storage-redis-database", defValue: "0"},
+		{flag: "external-storage-redis-ttl", defValue: "0s"},
+		{flag: "external-storage-redis-tls-enabled", defValue: "false"},
+		{flag: "external-storage-redis-tls-ca", defValue: ""},
+		{flag: "external-storage-redis-tls-cert", defValue: ""},
+		{flag: "external-storage-redis-tls-key", defValue: ""},
+		{flag: "external-storage-redis-tls-server-name", defValue: ""},
+		{flag: "external-storage-redis-tls-insecure-skip-verify", defValue: "false"},
 	}
 
 	for _, test := range tests {
@@ -317,6 +346,20 @@ func TestNewRunCmd_ExternalStorageFlagsBoundToOpts(t *testing.T) {
 		testFlagS3AccessKeyID:                     "access-key",
 		testFlagS3SecretAccessKey:                 "secret-key",
 		testFlagS3SessionToken:                    "session-token",
+
+		"external-storage-redis-driver-name":              "my-redis-driver",
+		"external-storage-redis-key-prefix":               "tenant-a:payloads",
+		testFlagRedisAddress:                              "redis:6379",
+		"external-storage-redis-username":                 testRedisUsername,
+		testFlagRedisPassword:                             "redis-password",
+		"external-storage-redis-database":                 "3",
+		"external-storage-redis-ttl":                      "1h0m0s",
+		"external-storage-redis-tls-enabled":              "true",
+		"external-storage-redis-tls-ca":                   "/tls/ca.pem",
+		"external-storage-redis-tls-cert":                 "/tls/cert.pem",
+		"external-storage-redis-tls-key":                  "/tls/key.pem",
+		"external-storage-redis-tls-server-name":          "redis.example.com",
+		"external-storage-redis-tls-insecure-skip-verify": "true",
 	}
 
 	for flag, value := range values {
