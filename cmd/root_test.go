@@ -32,6 +32,7 @@ func TestNewRootCmd_Subcommands(t *testing.T) {
 
 	assert.True(t, names["graph"])
 	assert.True(t, names["run"])
+	assert.True(t, names["test"])
 	assert.True(t, names["version"])
 	assert.True(t, names["validate"])
 	assert.True(t, names["schema"])

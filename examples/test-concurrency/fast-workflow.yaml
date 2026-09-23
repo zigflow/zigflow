@@ -1,0 +1,16 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: concurrency-test-fast
+  version: 0.0.1
+  title: Concurrency test (fast)
+  summary: Finishes immediately; used with slow-workflow to exercise the test lock
+  metadata:
+    display: false
+do:
+  - set:
+      output:
+        as:
+          data: ${ . }
+      set:
+        done: fast

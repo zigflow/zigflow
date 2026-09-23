@@ -112,6 +112,7 @@ platform.`,
 
 	rootCmd.AddCommand(
 		newRunCmd(),
+		newTestCmd(),
 		newVersionCmd(),
 		newValidateCmd(),
 		schema.NewSchemaCmd(Version),
