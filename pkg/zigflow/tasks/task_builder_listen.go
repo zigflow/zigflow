@@ -151,7 +151,7 @@ func (t *ListenTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		}
 
 		if await {
-			if err := t.await(ctx, workflowCtx, timeout, isAll, areAnyComplete, areAllComplete); err != nil {
+			if err := t.await(ctx, workflowCtx, timeout, isAll, &areAnyComplete, areAllComplete); err != nil {
 				return nil, err
 			}
 		}
@@ -172,7 +172,7 @@ func (t *ListenTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 // the do-task pipeline stops and Temporal records the execution as
 // CANCELED. An internal abort keeps its existing behaviour.
 func (t *ListenTaskBuilder) await(
-	ctx, workflowCtx workflow.Context, timeout time.Duration, isAll, areAnyComplete bool, areAllComplete []bool,
+	ctx, workflowCtx workflow.Context, timeout time.Duration, isAll bool, areAnyComplete *bool, areAllComplete []bool,
 ) error {
 	logger := workflow.GetLogger(ctx)
 
@@ -186,8 +186,8 @@ func (t *ListenTaskBuilder) await(
 			logger.Debug("Waiting for all listeners to complete", "status", areAllComplete)
 			return utils.SlicesEqual(areAllComplete, true)
 		} else {
-			logger.Debug("Waiting for first listening to complete", "state", areAnyComplete)
-			return areAnyComplete
+			logger.Debug("Waiting for first listening to complete", "state", *areAnyComplete)
+			return *areAnyComplete
 		}
 	})
 	if err != nil {

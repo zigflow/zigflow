@@ -45,7 +45,7 @@ func TestListenTaskBuilderAwaitTimeoutReturnsTimeoutError(t *testing.T) {
 	env := s.NewTestWorkflowEnvironment()
 
 	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) error {
-		awaitErr = builder.await(ctx, ctx, time.Second, false, false, nil)
+		awaitErr = builder.await(ctx, ctx, time.Second, false, new(bool), nil)
 		return nil
 	}, workflow.RegisterOptions{Name: "await-timeout"})
 
