@@ -140,6 +140,7 @@ func loadWorkflows(
 	cloudEventsConfig string,
 	validator *utils.Validator,
 	validate bool,
+	registrationTaskQueue string,
 ) ([]*workflowRegistration, error) {
 	registrations := make([]*workflowRegistration, 0, len(files))
 
@@ -167,60 +168,93 @@ func loadWorkflows(
 			}
 		}
 
-		// Defensive check: workflowType and taskQueue are used as Temporal
-		// registration keys and worker-grouping keys respectively. An empty
-		// value would silently produce a broken worker or a duplicate-key
-		// collision, so reject such definitions here regardless of schema
-		// validation.
-		if def.Document.Name == "" {
-			return nil, gh.FatalError{
-				WithParams: func(l *zerolog.Event) *zerolog.Event {
-					return l.Str("file", file)
-				},
-				Msg: "Workflow document.workflowType must not be empty",
-			}
-		}
-		if def.Document.Namespace == "" {
-			return nil, gh.FatalError{
-				WithParams: func(l *zerolog.Event) *zerolog.Event {
-					return l.Str("file", file)
-				},
-				Msg: "Workflow document.taskQueue must not be empty",
-			}
-		}
-
-		if validate {
-			if err := runValidation(validator, def); err != nil {
-				return nil, err
-			}
-		}
-
-		log.Debug().
-			Str("file", file).
-			Str("cloudEventsConfig", cloudEventsConfig).
-			Msg("Registering CloudEvents handler")
-
-		events, err := cloudevents.Load(cloudEventsConfig, validator, def)
+		registration, err := buildWorkflowRegistration(
+			file,
+			def,
+			cloudEventsConfig,
+			validator,
+			validate,
+			registrationTaskQueue,
+		)
 		if err != nil {
-			return nil, gh.FatalError{
-				Cause: err,
-				WithParams: func(l *zerolog.Event) *zerolog.Event {
-					return l.Str("file", file)
-				},
-				Msg: "Error creating CloudEvents handler",
-			}
+			return nil, err
 		}
 
-		registrations = append(registrations, &workflowRegistration{
-			SourceFile:   file,
-			Definition:   def,
-			Events:       events,
-			TaskQueue:    def.Document.Namespace,
-			WorkflowType: def.Document.Name,
-		})
+		registrations = append(registrations, registration)
 	}
 
 	return registrations, nil
+}
+
+// buildWorkflowRegistration prepares an already loaded definition for worker
+// registration. It is shared by file-based CLI loading and in-memory sessions.
+func buildWorkflowRegistration(
+	sourceFile string,
+	def *model.Workflow,
+	cloudEventsConfig string,
+	validator *utils.Validator,
+	validate bool,
+	registrationTaskQueue string,
+) (*workflowRegistration, error) {
+	// Defensive check: workflowType and taskQueue are used as Temporal
+	// registration keys and worker-grouping keys respectively. An empty value
+	// would silently produce a broken worker or a duplicate-key collision, so
+	// reject such definitions here regardless of schema validation.
+	if def.Document.Name == "" {
+		return nil, gh.FatalError{
+			WithParams: func(l *zerolog.Event) *zerolog.Event {
+				return l.Str("file", sourceFile)
+			},
+			Msg: "Workflow document.workflowType must not be empty",
+		}
+	}
+	if def.Document.Namespace == "" {
+		return nil, gh.FatalError{
+			WithParams: func(l *zerolog.Event) *zerolog.Event {
+				return l.Str("file", sourceFile)
+			},
+			Msg: "Workflow document.taskQueue must not be empty",
+		}
+	}
+
+	if validate {
+		if err := runValidation(validator, def); err != nil {
+			return nil, err
+		}
+	}
+
+	log.Debug().
+		Str("file", sourceFile).
+		Str("cloudEventsConfig", cloudEventsConfig).
+		Msg("Registering CloudEvents handler")
+
+	events, err := cloudevents.Load(cloudEventsConfig, validator, def)
+	if err != nil {
+		return nil, gh.FatalError{
+			Cause: err,
+			WithParams: func(l *zerolog.Event) *zerolog.Event {
+				return l.Str("file", sourceFile)
+			},
+			Msg: "Error creating CloudEvents handler",
+		}
+	}
+
+	return &workflowRegistration{
+		SourceFile:   sourceFile,
+		Definition:   def,
+		Events:       events,
+		TaskQueue:    resolveRegistrationTaskQueue(registrationTaskQueue, def.Document.Namespace),
+		WorkflowType: def.Document.Name,
+	}, nil
+}
+
+// resolveRegistrationTaskQueue returns the Temporal task queue for worker
+// registration. An empty override keeps document.taskQueue from the workflow file.
+func resolveRegistrationTaskQueue(override, documentTaskQueue string) string {
+	if override != "" {
+		return override
+	}
+	return documentTaskQueue
 }
 
 // validateWorkflowConflicts detects registrations that would conflict on the
@@ -269,7 +303,9 @@ func prepareRegistrations(opts *runOptions) ([]*workflowRegistration, error) {
 		return nil, gh.FatalError{Cause: err, Msg: "Error creating validator"}
 	}
 
-	registrations, err := loadWorkflows(files, opts.CloudEventsConfig, validator, opts.Validate)
+	registrations, err := loadWorkflows(
+		files, opts.CloudEventsConfig, validator, opts.Validate, opts.registrationTaskQueue,
+	)
 	if err != nil {
 		return nil, err
 	}

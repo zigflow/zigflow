@@ -20,6 +20,7 @@ package e2e
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -34,6 +35,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zigflow/zigflow/pkg/testrunner"
 	"github.com/zigflow/zigflow/pkg/zigflow"
 	"github.com/zigflow/zigflow/tests/e2e/utils"
 
@@ -221,4 +223,95 @@ func TestE2EMultiFileDuplicateRejected(t *testing.T) {
 		_ = cmd.Process.Kill()
 		t.Fatal("Zigflow did not exit within the timeout - duplicate detection may not be working")
 	}
+}
+
+// TestE2EZigflowTest exercises pkg/testrunner against the set workflow fixture.
+// It does not start a separate zigflow run worker; the test command path embeds
+// its own worker on the zigflow-test task queue.
+func TestE2EZigflowTest(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+
+	workflowPath := path.Join(cwd, "tests", "set", "workflow.yaml")
+	workflowBytes, err := os.ReadFile(workflowPath)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
+	t.Cleanup(cancel)
+
+	result, err := testrunner.RunBytes(ctx, workflowBytes, testrunner.Config{
+		Input:   map[string]any{},
+		Timeout: 3 * time.Minute,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, testrunner.StatusCompleted, result.Status)
+	assert.Equal(t, map[string]any{
+		"data": map[string]any{
+			"hello":  "world",
+			"second": "value",
+			"number": float64(2345),
+		},
+	}, result.Output)
+}
+
+// TestE2EZigflowTestFailed runs a workflow that raises an OWS error and checks
+// that testrunner surfaces failure status plus structured output for the CLI.
+func TestE2EZigflowTestFailed(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+
+	workflowPath := path.Join(cwd, "..", "..", "examples", "raise", "workflow.yaml")
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
+	t.Cleanup(cancel)
+
+	result, err := testrunner.Run(ctx, testrunner.Config{
+		WorkflowFile: workflowPath,
+		Input:        map[string]any{},
+		Timeout:      3 * time.Minute,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, testrunner.StatusFailed, result.Status)
+	assert.Error(t, result.Err)
+
+	out, ok := result.Output.(map[string]any)
+	require.True(t, ok, "expected map output, got %T", result.Output)
+	msg, _ := out["message"].(string)
+	assert.Contains(t, msg, "400")
+	assert.Contains(t, msg, "errors/communication")
+}
+
+// TestE2EZigflowTestTimeout terminates executions that exceed --timeout so a
+// follow-up test can poll zigflow-test without inheriting the abandoned run.
+func TestE2EZigflowTestTimeout(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+
+	slowPath := path.Join(cwd, "..", "..", "examples", "test-concurrency", "slow-workflow.yaml")
+	setPath := path.Join(cwd, "tests", "set", "workflow.yaml")
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
+	t.Cleanup(cancel)
+
+	timeoutResult, err := testrunner.Run(ctx, testrunner.Config{
+		WorkflowFile: slowPath,
+		Input:        map[string]any{},
+		Timeout:      2 * time.Second,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, timeoutResult)
+	assert.Equal(t, testrunner.StatusTimeout, timeoutResult.Status)
+	assert.ErrorIs(t, timeoutResult.Err, testrunner.ErrTestTimeout)
+	assert.ErrorIs(t, timeoutResult.Err, context.DeadlineExceeded)
+
+	followUp, err := testrunner.Run(ctx, testrunner.Config{
+		WorkflowFile: setPath,
+		Input:        map[string]any{},
+		Timeout:      3 * time.Minute,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, followUp)
+	assert.Equal(t, testrunner.StatusCompleted, followUp.Status)
 }

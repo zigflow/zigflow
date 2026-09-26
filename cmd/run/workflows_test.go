@@ -98,12 +98,23 @@ func TestLoadWorkflows_SingleValidFile(t *testing.T) {
 	p := writeTempWorkflow(t, dir, "myns", "mywf")
 
 	validator := newTestValidator(t)
-	regs, err := loadWorkflows([]string{p}, "", validator, false)
+	regs, err := loadWorkflows([]string{p}, "", validator, false, "")
 	require.NoError(t, err)
 	require.Len(t, regs, 1)
 	assert.Equal(t, "myns", regs[0].TaskQueue)
 	assert.Equal(t, "mywf", regs[0].WorkflowType)
 	assert.Equal(t, p, regs[0].SourceFile)
+}
+
+func TestLoadWorkflows_RegistrationTaskQueueOverride(t *testing.T) {
+	dir := t.TempDir()
+	p := writeTempWorkflow(t, dir, "myns", "mywf")
+
+	validator := newTestValidator(t)
+	regs, err := loadWorkflows([]string{p}, "", validator, false, TestTaskQueue)
+	require.NoError(t, err)
+	require.Len(t, regs, 1)
+	assert.Equal(t, TestTaskQueue, regs[0].TaskQueue)
 }
 
 func TestLoadWorkflows_MultipleFiles(t *testing.T) {
@@ -112,7 +123,7 @@ func TestLoadWorkflows_MultipleFiles(t *testing.T) {
 	p2 := writeTempWorkflow(t, dir, "ns", "wf2")
 
 	validator := newTestValidator(t)
-	regs, err := loadWorkflows([]string{p1, p2}, "", validator, false)
+	regs, err := loadWorkflows([]string{p1, p2}, "", validator, false, "")
 	require.NoError(t, err)
 	assert.Len(t, regs, 2)
 }
@@ -132,7 +143,7 @@ do:
 `), 0o600))
 
 	validator := newTestValidator(t)
-	_, err := loadWorkflows([]string{p}, "", validator, false)
+	_, err := loadWorkflows([]string{p}, "", validator, false, "")
 	assert.Error(t, err, "empty workflowType must be rejected")
 }
 
@@ -151,7 +162,7 @@ do:
 `), 0o600))
 
 	validator := newTestValidator(t)
-	_, err := loadWorkflows([]string{p}, "", validator, false)
+	_, err := loadWorkflows([]string{p}, "", validator, false, "")
 	assert.Error(t, err, "empty taskQueue must be rejected")
 }
 
@@ -224,12 +235,12 @@ do:
 	validator := newTestValidator(t)
 
 	t.Run("validate=true rejects legacy fields", func(t *testing.T) {
-		_, err := loadWorkflows([]string{p}, "", validator, true)
+		_, err := loadWorkflows([]string{p}, "", validator, true, "")
 		assert.Error(t, err, "schema validation must reject legacy fields when validate=true")
 	})
 
 	t.Run("validate=false allows legacy fields", func(t *testing.T) {
-		regs, err := loadWorkflows([]string{p}, "", validator, false)
+		regs, err := loadWorkflows([]string{p}, "", validator, false, "")
 		assert.NoError(t, err, "legacy fields must be accepted when validate=false")
 		assert.Len(t, regs, 1)
 	})

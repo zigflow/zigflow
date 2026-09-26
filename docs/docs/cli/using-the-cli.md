@@ -56,9 +56,47 @@ This starts a Temporal worker that:
   `document.taskQueue`
 - Polls Temporal until interrupted
 
-### 4. Trigger the workflow
+For rapid edits, use watch mode so the worker reloads when YAML changes:
 
-Zigflow does not include a trigger command. Use the
+```sh
+zigflow run -f workflow.yaml --watch
+```
+
+### 4. Test a one-shot run (optional)
+
+To validate a workflow file and input without keeping a worker running, use
+`zigflow test`:
+
+```sh
+zigflow test workflow.yaml --input testdata/input.json
+```
+
+This command validates the file, starts a short-lived in-process worker,
+executes the workflow once, prints the result and exits with a non-zero code
+on failure.
+
+:::info
+`zigflow test` always uses the fixed Temporal task queue `zigflow-test`. The
+`document.taskQueue` field in your YAML is ignored for worker registration and
+for starting the run. That keeps test executions off the same queue as a
+long-lived `zigflow run` worker. Workflows that reference other task queues
+inside tasks are not rewritten; see
+[Testing workflows](/docs/guides/testing-workflows).
+
+Concurrent `zigflow test` commands against the same Temporal server and
+namespace are serialised with a file lock so only one test worker polls
+`zigflow-test` at a time.
+:::
+
+Use the same Temporal connection flags as `zigflow run` (for example
+`--temporal-address`). On failure, the command prints a link to the Temporal
+Web UI history when `--temporal-ui-address` is reachable (default:
+`http://localhost:8233`).
+
+### 5. Trigger the workflow manually
+
+Zigflow does not include a general-purpose trigger command for long-lived
+workers. When using `zigflow run`, use the
 [Temporal CLI](https://docs.temporal.io/cli/workflow#start) to
 start executions:
 
@@ -79,7 +117,7 @@ temporal workflow start \
   --input '{"userId": 42}'
 ```
 
-### 5. View results
+### 6. View results
 
 ```sh
 temporal workflow show --workflow-id my-run-1
@@ -96,6 +134,15 @@ fails the pipeline step. Example GitHub Actions step:
 - name: Validate workflow
   run: zigflow validate workflow.yaml
 ```
+
+To run a workflow once in CI after starting Temporal, use `zigflow test`:
+
+```yaml
+- name: Test workflow run
+  run: zigflow test workflow.yaml --input testdata/input.json --timeout 5m
+```
+
+See [Testing workflows](/docs/guides/testing-workflows) for caveats and setup.
 
 ---
 
@@ -195,6 +242,9 @@ Check:
   `document.taskQueue` in your YAML
 - `--type` matches `document.workflowType`
 
+When using `zigflow test`, executions always run on the `zigflow-test` task
+queue; you do not need to match `document.taskQueue` in the file.
+
 **"dial tcp: connection refused" on startup.**
 Temporal is not reachable. Check `--temporal-address` and confirm
 the server is running.
@@ -207,5 +257,6 @@ Run with `--log-level debug` to see what failed on startup.
 ## Related pages
 
 - [CLI reference](/docs/cli/commands/zigflow): full flag documentation
+- [CLI reference: test](/docs/cli/commands/zigflow_test): `zigflow test` flags
 - [Quickstart](/docs/getting-started/quickstart): first workflow guide
 - [Deployment overview](/docs/deployment/intro): production flags

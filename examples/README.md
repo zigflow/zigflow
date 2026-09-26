@@ -54,6 +54,7 @@ A collection of examples
 | [Custom Search Attributes](./search-attributes) | How to add custom search attribute data into your Temporal workflows |
 | [Signal Listeners](./signal) | Listen for Temporal signal events |
 | [Switching](./switch) | Perform a switch statement |
+| [Concurrency test fixtures](./test-concurrency) | Manual zigflow test fixtures for lock serialisation checks |
 | [Try/Catch](./try-catch) | An example of how to catch an erroring workflow |
 | [TypeScript](./typescript) | The basic example, but in TypeScript |
 | [Update Listeners](./update) | Listen for Temporal update events |

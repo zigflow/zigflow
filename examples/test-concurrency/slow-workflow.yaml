@@ -1,0 +1,19 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: concurrency-test-slow
+  version: 0.0.1
+  title: Concurrency test (slow)
+  summary: Waits long enough to overlap a second zigflow test invocation
+  metadata:
+    display: false
+do:
+  - wait:
+      wait:
+        seconds: 45
+  - set:
+      output:
+        as:
+          data: ${ . }
+      set:
+        done: slow

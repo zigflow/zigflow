@@ -22,26 +22,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewRootCmd_Subcommands(t *testing.T) {
-	cmd := newRootCmd()
-
-	names := map[string]bool{}
-	for _, sub := range cmd.Commands() {
-		names[sub.Name()] = true
-	}
-
-	assert.True(t, names["graph"])
-	assert.True(t, names["run"])
-	assert.True(t, names["test"])
-	assert.True(t, names["version"])
-	assert.True(t, names["validate"])
-	assert.True(t, names["schema"])
-	assert.True(t, names["generate-docs"])
-}
-
-func TestNewRootCmd_Flags(t *testing.T) {
-	cmd := newRootCmd()
-
-	assert.NotNil(t, cmd.PersistentFlags().Lookup("disable-telemetry"))
-	assert.NotNil(t, cmd.PersistentFlags().Lookup("log-level"))
+func TestNewTestCmd(t *testing.T) {
+	cmd := newTestCmd()
+	assert.Equal(t, "test", cmd.Name())
+	assert.NotNil(t, cmd.Flags().Lookup("input"))
+	assert.NotNil(t, cmd.Flags().Lookup("timeout"))
+	assert.NotNil(t, cmd.Flags().Lookup("temporal-ui-address"))
+	assert.NotNil(t, cmd.Flags().Lookup("temporal-address"))
 }

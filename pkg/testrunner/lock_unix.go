@@ -1,3 +1,5 @@
+//go:build unix
+
 /*
  * Copyright 2025 - 2026 Zigflow authors <https://github.com/zigflow/zigflow/graphs/contributors>
  *
@@ -14,34 +16,26 @@
  * limitations under the License.
  */
 
-package cmd
+package testrunner
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"os"
+	"syscall"
 )
 
-func TestNewRootCmd_Subcommands(t *testing.T) {
-	cmd := newRootCmd()
-
-	names := map[string]bool{}
-	for _, sub := range cmd.Commands() {
-		names[sub.Name()] = true
-	}
-
-	assert.True(t, names["graph"])
-	assert.True(t, names["run"])
-	assert.True(t, names["test"])
-	assert.True(t, names["version"])
-	assert.True(t, names["validate"])
-	assert.True(t, names["schema"])
-	assert.True(t, names["generate-docs"])
+func openTestRunLockFile(path string) (*os.File, error) {
+	return os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600)
 }
 
-func TestNewRootCmd_Flags(t *testing.T) {
-	cmd := newRootCmd()
-
-	assert.NotNil(t, cmd.PersistentFlags().Lookup("disable-telemetry"))
-	assert.NotNil(t, cmd.PersistentFlags().Lookup("log-level"))
+func tryLockFile(f *os.File) (bool, fileLockUnlock, error) {
+	err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	if err == nil {
+		return true, func() error {
+			return syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+		}, nil
+	}
+	if err == syscall.EWOULDBLOCK {
+		return false, nil, nil
+	}
+	return false, nil, err
 }
