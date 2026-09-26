@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkzigflow=self.webpackChunkzigflow||[]).push([["4615"],{1971(e){e.exports=JSON.parse('{"metadata":{"permalink":"/preview/dependabot-go-modules-go-dependencies-2f09da7cc5/articles","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
