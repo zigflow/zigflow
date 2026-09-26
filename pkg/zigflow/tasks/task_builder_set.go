@@ -49,19 +49,11 @@ type SetTaskBuilder struct {
 }
 
 func (t *SetTaskBuilder) Build() (TemporalWorkflowFunc, error) {
-	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
+	return func(ctx workflow.Context, input any, state *utils.State) (output any, err error) {
 		logger := workflow.GetLogger(ctx)
+		logger.Debug("Parsing set data")
 
-		logger.Debug("Traversing set data")
-		result, err := utils.TraverseAndEvaluateObj(
-			t.task.Set,
-			nil,
-			state,
-			func(fn func() (any, error)) (any, error) {
-				logger.Debug("Setting set data as a side effect")
-				return t.sideEffectWrapper(ctx, fn)
-			},
-		)
+		result, err := t.parseAsSideEffect(ctx, state)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing set object :%w", err)
 		}
@@ -81,27 +73,43 @@ func (t *SetTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	}, nil
 }
 
-// sideEffectWrapper creates a wrapper function for the Runtime Expression traversal to ensure that
-// the generated values are set deterministically. For many things, this might be considered overkill
-// as input/envvars/state are likely to be determinstic. However, as this also supports things like
-// generation of UUIDs, there could be non-deterministic values being set.
-func (t *SetTaskBuilder) sideEffectWrapper(ctx workflow.Context, fn func() (any, error)) (any, error) {
-	var val any
-	var sideEffectErr error
+// parseAsSideEffect parses the whole set object inside a single side effect,
+// preventing Go from randomising the map's order
+func (t *SetTaskBuilder) parseAsSideEffect(ctx workflow.Context, state *utils.State) (any, error) {
+	type response struct {
+		Err    string
+		Result any
+	}
+	var val response
+
 	err := workflow.SideEffect(ctx, func(ctx workflow.Context) any {
-		res, err := fn()
+		result, err := utils.TraverseAndEvaluateObj(
+			t.task.Set,
+			nil,
+			state,
+			// Evaluation already runs inside this SideEffect, so pass a
+			// pass-through wrapper to mark the expressions as replay-safe and
+			// suppress the non-deterministic expression warning.
+			func(fn func() (any, error)) (any, error) {
+				return fn()
+			},
+		)
 		if err != nil {
-			sideEffectErr = err
-			return nil
+			return response{
+				Err: fmt.Errorf("error parsing set object: %w", err).Error(),
+			}
 		}
-		return res
+
+		return response{
+			Result: result,
+		}
 	}).Get(&val)
 	if err != nil {
 		return nil, fmt.Errorf("error running side effect: %w", err)
 	}
-	if sideEffectErr != nil {
-		return nil, fmt.Errorf("error running runtime expression: %w", sideEffectErr)
+	if val.Err != "" {
+		return nil, fmt.Errorf("error running runtime expression: %s", val.Err)
 	}
 
-	return val, nil
+	return val.Result, err
 }
