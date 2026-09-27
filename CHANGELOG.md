@@ -2,6 +2,22 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.16.0](https://github.com/zigflow/zigflow/releases/tag/v0.16.0) - 2026-09-27
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/589
+* fix(fork): wait for branches to be cancelled before the fork returns by @YJ-928 in https://github.com/zigflow/zigflow/pull/591
+* feat(validate): warn about nested do tasks mixed with executable tasks by @YJ-928 in https://github.com/zigflow/zigflow/pull/592
+* chore(deps): bump image-size from 2.0.2 to 2.0.4 in /docs by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/599
+* refactor: use a single side effect for set task data by @mrsimonemms in https://github.com/zigflow/zigflow/pull/600
+* fix: complete listen.to.any when a matching signal arrives by @mrsimonemms in https://github.com/zigflow/zigflow/pull/601
+* refactor: change the glob dependency to doublestar by @mrsimonemms in https://github.com/zigflow/zigflow/pull/603
+* deps(deps): bump the go-dependencies group across 1 directory with 16 updates by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/604
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/605
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.15.2...v0.16.0
+
 ## [v0.15.2](https://github.com/zigflow/zigflow/releases/tag/v0.15.2) - 2026-09-17
 
 ## What's Changed
