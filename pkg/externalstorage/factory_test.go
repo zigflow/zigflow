@@ -39,7 +39,7 @@ const (
 type stubDriverSelector struct{}
 
 func (stubDriverSelector) SelectDriver(
-	_ converter.StorageDriverStoreContext,
+	_ converter.StorageDriverSelectContext,
 	_ *commonpb.Payload,
 ) (converter.StorageDriver, error) {
 	return nil, nil
