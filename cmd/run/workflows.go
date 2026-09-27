@@ -19,7 +19,7 @@ package run
 import (
 	"path/filepath"
 
-	"github.com/matthewmueller/glob"
+	"github.com/bmatcuk/doublestar/v4"
 	gh "github.com/mrsimonemms/golang-helpers"
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/rs/zerolog"
@@ -110,7 +110,10 @@ func discoverWorkflowFiles(opts *runOptions) ([]string, error) {
 
 	if opts.DirectoryPath != "" {
 		pattern := filepath.Join(opts.DirectoryPath, opts.DirectoryGlob)
-		globbed, err := glob.Glob(pattern)
+		globbed, err := doublestar.FilepathGlob(pattern,
+			doublestar.WithFailOnIOErrors(),
+			doublestar.WithFilesOnly(),
+		)
 		if err != nil {
 			return nil, gh.FatalError{
 				Cause: err,

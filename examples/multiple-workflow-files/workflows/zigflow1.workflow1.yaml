@@ -3,7 +3,7 @@ document:
   taskQueue: zigflow1
   workflowType: workflow1
   version: 0.0.1
-  title: Workflow 2
+  title: Zigflow 1 Workflow 1
   summary: Another type of workflow
   metadata:
     display: false
@@ -16,4 +16,4 @@ do:
         as:
           data: ${ . }
       set:
-        message: Hello, this is workflow 2
+        message: Hello, this is Zigflow 1 Workflow 1
