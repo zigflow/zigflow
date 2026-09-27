@@ -36,11 +36,11 @@ repos:
       - id: markdown-toc
         exclude: ^docs
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.23.2
+    rev: v0.23.3
     hooks:
       - id: markdownlint-cli2
   - repo: https://github.com/golangci/golangci-lint
-    rev: v2.13.2
+    rev: v2.14.0
     hooks:
       - id: golangci-lint
   - repo: https://github.com/mrsimonemms/toodaloo
