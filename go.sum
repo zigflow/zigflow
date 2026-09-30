@@ -554,8 +554,8 @@ github.com/yusufpapurcu/wmi v1.2.4 h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo
 github.com/yusufpapurcu/wmi v1.2.4/go.mod h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0=
 github.com/zigflow/helpers v0.2.0 h1:iul6pT2/C4aBsQCo2Lh5MBZeFUQO9oMo0KHs56eJ0vo=
 github.com/zigflow/helpers v0.2.0/go.mod h1:mxOW2yaGnd9ABft1vBKLRzzUSf5Q3C1Os2Njb83a/+s=
-github.com/zigflow/schema v0.0.0-20260924213703-ec2f2dd93530 h1:QKl80SJCphTcCxDUstjkLcNP6O4EiXYAzVg59Hxg1yk=
-github.com/zigflow/schema v0.0.0-20260924213703-ec2f2dd93530/go.mod h1:jOchPRZ+VUG1mbN5tor6Uqm7jVNABJnCIfrmfURQa5Q=
+github.com/zigflow/schema v0.0.0-20260924213733-34f985d60e1a h1:eYS3Sh6ZrdOOJz2RNYbBx0YeBqpZI4XHhefAJVqiYX0=
+github.com/zigflow/schema v0.0.0-20260924213733-34f985d60e1a/go.mod h1:jOchPRZ+VUG1mbN5tor6Uqm7jVNABJnCIfrmfURQa5Q=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
 go.opentelemetry.io/auto/sdk v1.2.1/go.mod h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y=
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.71.0 h1:3g7B90UzBltIDKq1/5mrTGxTnOFDV0ICOhLoxiZ8jlg=
@@ -589,6 +589,8 @@ go.temporal.io/sdk/contrib/sysinfo v0.1.1 h1:qD3zUfN6e0/qOLRpBm7+D39CHeDeF4To8sZ
 go.temporal.io/sdk/contrib/sysinfo v0.1.1/go.mod h1:pAeFXP9wgbNUzS6/vbL+I97HK0z0hb7f0rgTx0X1gAo=
 go.temporal.io/sdk/contrib/tally v0.2.0 h1:XnTJIQcjOv+WuCJ1u8Ve2nq+s2H4i/fys34MnWDRrOo=
 go.temporal.io/sdk/contrib/tally v0.2.0/go.mod h1:1kpSuCms/tHeJQDPuuKkaBsMqfHnIIRnCtUYlPNXxuE=
+go.temporal.io/sdk/contrib/workflowstreams v0.1.1 h1:nX/pBWt5ED7J4tneJKuv9I15Exve5voPUlYg3eXYx4k=
+go.temporal.io/sdk/contrib/workflowstreams v0.1.1/go.mod h1:G1g8aaA6gQw7ClunFLQKjDzIsmU9dR7FamCsDnKStAc=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
 go.uber.org/atomic v1.9.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=

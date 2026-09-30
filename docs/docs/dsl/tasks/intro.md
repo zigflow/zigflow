@@ -35,6 +35,7 @@ In Temporal, a task may add logic to:
 | :--- | :--- |
 | [Call](/docs/dsl/tasks/call) | Enables the execution of a specified function within a workflow, allowing seamless integration with custom business logic or external services. |
 | [Do](/docs/dsl/tasks/do) | Serves as a fundamental building block within workflows, enabling the sequential execution of multiple subtasks. By defining a series of subtasks to perform in sequence, the Do task facilitates the efficient execution of complex operations, ensuring that each subtask is completed before the next one begins. |
+| [Emit](/docs/dsl/tasks/emit) | Publishes data from a running workflow to a Temporal Workflow Stream. |
 | [For](/docs/dsl/tasks/for) | Allows workflows to iterate over a collection of items, executing a defined set of subtasks for each item in the collection. This task type is instrumental in handling scenarios such as batch processing, data transformation, and repetitive operations across datasets. |
 | [Fork](/docs/dsl/tasks/fork) | Allows workflows to execute multiple subtasks concurrently, enabling parallel processing and improving the overall efficiency of the workflow. By defining a set of subtasks to perform concurrently, the Fork task facilitates the execution of complex operations in parallel, ensuring that multiple tasks can be executed simultaneously. |
 | [Listen](/docs/dsl/tasks/listen) | Provides a mechanism for workflows to await and react to external events, enabling event-driven behavior within workflow systems. |

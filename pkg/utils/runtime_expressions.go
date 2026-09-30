@@ -142,15 +142,17 @@ func TraverseAndEvaluateObj(
 	// export/output definitions at once.
 	//
 	// Clone the value first so each evaluation works on an isolated copy.
-	return traverseAndEvaluate(swUtil.DeepCloneValue(runtimeExpr.AsStringOrMap()), ctx, state, wrapperFn)
+	return TraverseAndEvaluate(swUtil.DeepCloneValue(runtimeExpr.AsStringOrMap()), ctx, state, wrapperFn)
 }
 
-func traverseAndEvaluate(node, ctx any, state *State, evaluationWrapper ExpressionWrapperFunc) (any, error) {
+// TraverseAndEvaluate discovers the data type and parses it. Ensure you clone data
+// before using this function
+func TraverseAndEvaluate(node, ctx any, state *State, evaluationWrapper ExpressionWrapperFunc) (any, error) {
 	switch v := node.(type) {
 	case map[string]any:
 		// Traverse a object
 		for key, value := range v {
-			evaluatedValue, err := traverseAndEvaluate(value, ctx, state, evaluationWrapper)
+			evaluatedValue, err := TraverseAndEvaluate(value, ctx, state, evaluationWrapper)
 			if err != nil {
 				return nil, err
 			}
@@ -163,7 +165,7 @@ func traverseAndEvaluate(node, ctx any, state *State, evaluationWrapper Expressi
 		// to avoid mutating the original, which may be shared across workflow executions.
 		clone := make(map[string]string, len(v))
 		for key, value := range v {
-			evaluatedValue, err := traverseAndEvaluate(value, ctx, state, evaluationWrapper)
+			evaluatedValue, err := TraverseAndEvaluate(value, ctx, state, evaluationWrapper)
 			if err != nil {
 				return nil, err
 			}
@@ -193,7 +195,7 @@ func traverseAndEvaluate(node, ctx any, state *State, evaluationWrapper Expressi
 
 func traverseSlice(v []any, ctx any, state *State, evaluationWrapper ExpressionWrapperFunc) ([]any, error) {
 	for i, value := range v {
-		evaluatedValue, err := traverseAndEvaluate(value, ctx, state, evaluationWrapper)
+		evaluatedValue, err := TraverseAndEvaluate(value, ctx, state, evaluationWrapper)
 		if err != nil {
 			return nil, err
 		}

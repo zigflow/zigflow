@@ -24,6 +24,7 @@ import (
 	swUtils "github.com/open-workflow-specification/sdk-go/v4/impl/utils"
 	"github.com/zigflow/zigflow/pkg/ctxpropagator"
 	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/contrib/workflowstreams"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -40,6 +41,9 @@ type State struct {
 	Env               map[string]any `json:"env"`                    // Available environment variables
 	Input             any            `json:"input,omitempty"`        // The input given by the caller
 	Output            any            `json:"output"`                 // What will be output to the caller
+
+	stream      *workflowstreams.WorkflowStream      `json:"-"`      // A workflow stream instance
+	StreamState *workflowstreams.WorkflowStreamState `json:"stream"` // Stream state passed for CAN
 }
 
 func (s *State) init() *State {
@@ -165,6 +169,7 @@ func (s *State) Clone() *State {
 	s1.Env = swUtils.DeepClone(s.Env)
 	s1.Input = swUtils.DeepCloneValue(s.Input)
 	s1.Output = swUtils.DeepCloneValue(s.Output)
+	s1.StreamState = s.StreamState
 
 	return s1
 }
@@ -181,6 +186,27 @@ func (s *State) GetAsMap() map[string]any {
 		"$output":     s1.Output,
 		"$propagated": s1.ContextPropagator,
 	}
+}
+
+func (s *State) GetStream(ctx workflow.Context) (*workflowstreams.WorkflowStream, error) {
+	if stream := s.stream; stream != nil {
+		// Stream already exists
+		return stream, nil
+	}
+
+	// We've continued as new
+	stream, err := workflowstreams.NewWorkflowStream(ctx, s.StreamState)
+	if err != nil {
+		return nil, err
+	}
+
+	s.SetStream(stream)
+
+	return stream, nil
+}
+
+func (s *State) SetStream(stream *workflowstreams.WorkflowStream) {
+	s.stream = stream
 }
 
 func NewState() *State {

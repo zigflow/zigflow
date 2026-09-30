@@ -56,7 +56,7 @@ var taskExampleTags = map[string][]string{
 
 type GetTaskDocsInput struct {
 	//nolint:lll // Struct tag contains schema description used by MCP tooling.
-	TaskType string `json:"task_type" jsonschema:"The task type to document. One of: call, do, for, fork, listen, raise, run, set, switch, try, wait."`
+	TaskType string `json:"task_type" jsonschema:"The task type to document. One of: call, do, emit, for, fork, listen, raise, run, set, switch, try, wait."`
 }
 
 type GetTaskDocsError struct {

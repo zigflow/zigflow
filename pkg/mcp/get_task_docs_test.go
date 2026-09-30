@@ -115,11 +115,11 @@ func TestGetTaskDocs_EmptyInput(t *testing.T) {
 }
 
 func TestGetTaskDocs_UnknownTask(t *testing.T) {
-	out, err := getTaskDocs(testVersion, zigflowdocs.TaskDocsFS, zigflowexamples.EmbeddedFS, "emit")
+	out, err := getTaskDocs(testVersion, zigflowdocs.TaskDocsFS, zigflowexamples.EmbeddedFS, "teleport")
 	require.NoError(t, err)
 	require.Len(t, out.Errors, 1)
 	assert.Equal(t, stageInput, out.Errors[0].Stage)
-	assert.Contains(t, out.Errors[0].Message, "emit")
+	assert.Contains(t, out.Errors[0].Message, "teleport")
 	assert.Contains(t, out.Errors[0].Message, "wait", "supported list is included")
 }
 

@@ -110,6 +110,20 @@ const (
 	testConstVal = "val"
 	// testConstCount is the map key used for the iteration count in numeric for-task tests.
 	testConstCount = "count"
+	// testConstHello is the scalar payload value used in emit-task tests.
+	testConstHello = "hello"
+	// testConstCustomer is the customer name used in emit-task expression tests.
+	testConstCustomer = "alice"
+	// testConstCustomerExpr is the jq expression used to read the customer from $input.
+	testConstCustomerExpr = "${ $input.customer }"
+	// testConstCustomerKey is the map key for the customer in emit-task expression tests.
+	testConstCustomerKey = "customer"
+	// testConstStatus is the map key for the order status in emit-task expression tests.
+	testConstStatus = "status"
+	// testConstShipped is the order status used in emit-task expression tests.
+	testConstShipped = "shipped"
+	// testConstApple is the first input item used in emit-task expression tests.
+	testConstApple = "apple"
 	// testConstForRefDataCount is the jq expression used to reference a numeric iteration count via $data.count.
 	testConstForRefDataCount = "${ $data.count }"
 )

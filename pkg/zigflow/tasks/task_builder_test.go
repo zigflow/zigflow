@@ -125,6 +125,11 @@ func TestNewTaskBuilderFactory(t *testing.T) {
 			expectedType: &DoTaskBuilder{},
 		},
 		{
+			name:         "emit task",
+			task:         &model.EmitTask{},
+			expectedType: &EmitTaskBuilder{},
+		},
+		{
 			name:         "for task",
 			task:         &model.ForTask{},
 			expectedType: &ForTaskBuilder{},

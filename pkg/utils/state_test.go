@@ -18,12 +18,16 @@ package utils
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/pkg/ctxpropagator"
+	"go.temporal.io/sdk/contrib/workflowstreams"
+	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
@@ -281,4 +285,153 @@ func TestState_Clone_PreservesContextPropagator(t *testing.T) {
 	clone.ContextPropagator["added"] = true
 
 	assert.Equal(t, map[string]any{ctxpropagator.CorrelationID: testCorrelationID}, s.ContextPropagator)
+}
+
+// encodeStreamWireData encodes value in the base64-of-proto format used by
+// workflow stream state.
+func encodeStreamWireData(t *testing.T, value any) string {
+	t.Helper()
+
+	payload, err := converter.GetDefaultDataConverter().ToPayload(value)
+	require.NoError(t, err)
+
+	raw, err := payload.Marshal()
+	require.NoError(t, err)
+
+	return base64.StdEncoding.EncodeToString(raw)
+}
+
+type getStreamResult struct {
+	Same bool                       `json:"same"`
+	Log  []workflowstreams.WireItem `json:"log"`
+	Base int64                      `json:"base"`
+}
+
+// getStreamTestWorkflow calls GetStream twice, reporting whether the same
+// stream is returned and what the stream contains.
+func getStreamTestWorkflow(s *State, setStream bool) func(ctx workflow.Context) (*getStreamResult, error) {
+	return func(ctx workflow.Context) (*getStreamResult, error) {
+		var existing *workflowstreams.WorkflowStream
+		if setStream {
+			stream, err := workflowstreams.NewWorkflowStream(ctx, nil)
+			if err != nil {
+				return nil, err
+			}
+			s.SetStream(stream)
+			existing = stream
+		}
+
+		first, err := s.GetStream(ctx)
+		if err != nil {
+			return nil, err
+		}
+		second, err := s.GetStream(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		snapshot, err := first.GetState(time.Minute)
+		if err != nil {
+			return nil, err
+		}
+
+		return &getStreamResult{
+			Same: first == second && (existing == nil || first == existing),
+			Log:  snapshot.Log,
+			Base: snapshot.BaseOffset,
+		}, nil
+	}
+}
+
+func TestState_GetStream(t *testing.T) {
+	wireData := encodeStreamWireData(t, "hello")
+
+	tests := []struct {
+		name      string
+		state     func() *State
+		setStream bool
+		wantLog   []workflowstreams.WireItem
+		wantBase  int64
+		wantErr   string
+	}{
+		{
+			name:      "returns the stream already set",
+			state:     NewState,
+			setStream: true,
+			wantLog:   []workflowstreams.WireItem{},
+		},
+		{
+			name:    "creates an empty stream when there is no stream state",
+			state:   NewState,
+			wantLog: []workflowstreams.WireItem{},
+		},
+		{
+			name: "restores the stream from carried stream state",
+			state: func() *State {
+				s := NewState()
+				s.StreamState = &workflowstreams.WorkflowStreamState{
+					Log:        []workflowstreams.WireItem{{Topic: "order.status", Data: wireData}},
+					BaseOffset: 5,
+				}
+				return s
+			},
+			wantLog:  []workflowstreams.WireItem{{Topic: "order.status", Data: wireData}},
+			wantBase: 5,
+		},
+		{
+			name: "errors when the carried stream state is invalid",
+			state: func() *State {
+				s := NewState()
+				s.StreamState = &workflowstreams.WorkflowStreamState{
+					Log: []workflowstreams.WireItem{{Topic: "topic1", Data: "not-base64!"}},
+				}
+				return s
+			},
+			wantErr: "workflowstreams: restore log",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			testSuite := &testsuite.WorkflowTestSuite{}
+			env := testSuite.NewTestWorkflowEnvironment()
+
+			env.ExecuteWorkflow(getStreamTestWorkflow(tc.state(), tc.setStream))
+			require.True(t, env.IsWorkflowCompleted())
+
+			if tc.wantErr != "" {
+				err := env.GetWorkflowError()
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.wantErr)
+				return
+			}
+			require.NoError(t, env.GetWorkflowError())
+
+			var result getStreamResult
+			require.NoError(t, env.GetWorkflowResult(&result))
+
+			assert.True(t, result.Same, "GetStream should return the same stream on every call")
+			assert.Equal(t, tc.wantLog, result.Log)
+			assert.Equal(t, tc.wantBase, result.Base)
+		})
+	}
+}
+
+// StreamState is how the stream survives continue-as-new, so it must be
+// serialised with the state and carried by Clone.
+func TestState_StreamStateIsCarried(t *testing.T) {
+	s := NewState()
+	s.StreamState = &workflowstreams.WorkflowStreamState{
+		Log:        []workflowstreams.WireItem{{Topic: "topic1", Data: encodeStreamWireData(t, "hello")}},
+		BaseOffset: 3,
+	}
+
+	assert.Same(t, s.StreamState, s.Clone().StreamState)
+
+	raw, err := json.Marshal(s)
+	require.NoError(t, err)
+
+	var decoded State
+	require.NoError(t, json.Unmarshal(raw, &decoded))
+	assert.Equal(t, s.StreamState, decoded.StreamState)
 }
