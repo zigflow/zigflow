@@ -23,8 +23,10 @@ import (
 	"os"
 
 	gh "github.com/mrsimonemms/golang-helpers"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	temporal "github.com/zigflow/helpers"
+	"github.com/zigflow/zigflow/pkg/externalstorage"
 	"go.temporal.io/sdk/client"
 )
 
@@ -35,11 +37,10 @@ func exec() error {
 	c, err := temporal.NewConnectionWithEnvvars(
 		temporal.WithZerolog(&log.Logger),
 		temporal.WithExternalStorageFactory(temporal.ExternalConfig{
-			Factory: temporal.ExternalConfigS3Factory(ctx, &temporal.S3Config{
-				Bucket:       os.Getenv("EXTERNAL_STORAGE_S3_BUCKET"),
-				Region:       os.Getenv("EXTERNAL_STORAGE_S3_REGION"),
-				Endpoint:     os.Getenv("EXTERNAL_STORAGE_S3_ENDPOINT"),
-				UsePathStyle: os.Getenv("EXTERNAL_STORAGE_S3_USE_PATH_STYLE") == "true",
+			Factory: externalstorage.ExternalConfigRedisFactory(ctx, &externalstorage.RedisConfig{
+				Options: &redis.Options{
+					Addr: os.Getenv("EXTERNAL_STORAGE_REDIS_ADDRESS"),
+				},
 			}),
 			PayloadSizeThreshold: 1,
 		}),
