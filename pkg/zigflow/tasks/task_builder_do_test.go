@@ -19,6 +19,7 @@ package tasks
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/nexus-rpc/sdk-go/nexus"
 	"github.com/open-workflow-specification/sdk-go/v4/model"
@@ -29,6 +30,7 @@ import (
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/contrib/workflowstreams"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
@@ -781,4 +783,70 @@ func TestDoTaskBuilderWorkflowExecutorAddsContextPropagator(t *testing.T) {
 			assert.Equal(t, tc.want, capturedState.GetAsMap()["$propagated"])
 		})
 	}
+}
+
+// The root do-task owns the workflow stream: it must register the stream
+// handlers before any task runs, so subscribers can attach early, and emit
+// tasks must publish to that same stream.
+func TestDoTaskBuilderWorkflowExecutorInitialisesStream(t *testing.T) {
+	builder := &DoTaskBuilder{
+		doc:          testWorkflow,
+		eventEmitter: testEvents,
+		name:         "test-workflow",
+		task:         &model.DoTask{},
+	}
+
+	waitBuilder := newFakeTaskBuilder(testConstTaskBefore, &model.TaskBase{})
+	tasks := []workflowFunc{
+		{
+			TaskBuilder: waitBuilder,
+			Name:        waitBuilder.GetTaskName(),
+			Func: func(ctx workflow.Context, input any, state *utils.State) (any, error) {
+				return nil, workflow.Sleep(ctx, time.Minute)
+			},
+		},
+	}
+	for _, name := range []string{testConstTaskOne, testConstTaskTwo} {
+		emit := newEmitTaskBuilder("io.temporal.streams."+name, nil)
+		fn, err := emit.Build()
+		require.NoError(t, err)
+		tasks = append(tasks, workflowFunc{TaskBuilder: emit, Name: name, Func: fn})
+	}
+
+	wf := builder.workflowExecutor(tasks)
+
+	var s testsuite.WorkflowTestSuite
+	env := s.NewTestWorkflowEnvironment()
+
+	queryOffset := func() (int64, error) {
+		res, err := env.QueryWorkflow(workflowstreams.OffsetQueryName)
+		if err != nil {
+			return 0, err
+		}
+		var offset int64
+		err = res.Get(&offset)
+		return offset, err
+	}
+
+	var offsetBeforeEmit int64
+	var errBeforeEmit error
+	env.RegisterDelayedCallback(func() {
+		offsetBeforeEmit, errBeforeEmit = queryOffset()
+	}, time.Second)
+
+	workflowName := "stream-workflow"
+	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) (any, error) {
+		return wf(ctx, map[string]any{}, nil)
+	}, workflow.RegisterOptions{Name: workflowName})
+
+	env.ExecuteWorkflow(workflowName)
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError())
+
+	require.NoError(t, errBeforeEmit, "stream should be registered before any task runs")
+	assert.Equal(t, int64(0), offsetBeforeEmit)
+
+	offset, err := queryOffset()
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), offset, "each emit task should publish to the workflow stream")
 }

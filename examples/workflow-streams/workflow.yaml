@@ -1,0 +1,42 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: workflow-streams
+  version: 0.0.1
+  title: Workflow Streams
+  summary: Stream data back from a workflow
+do:
+  - data:
+      set:
+        id: ${ uuid }
+
+  - preWait:
+      wait:
+        seconds: 1
+
+  - emitEvent:
+      emit:
+        event:
+          with:
+            # Format is `io.temporal.streams.<topic-name>`
+            type: io.temporal.streams.topic1
+            data:
+              number: 3.141
+              message: Hello world
+              happy: true
+              id: ${ $data.id } # Data can be populated with state data
+
+  - wait:
+      wait:
+        seconds: 1
+
+  - emitEvent:
+      emit:
+        event:
+          with:
+            # The data object is optional
+            type: io.temporal.streams.topic2
+
+  - postWait:
+      wait:
+        seconds: 1

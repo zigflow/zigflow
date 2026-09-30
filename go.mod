@@ -38,10 +38,11 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0
 	github.com/zigflow/helpers v0.2.0
-	github.com/zigflow/schema v0.0.0-20260924213703-ec2f2dd93530
+	github.com/zigflow/schema v0.0.0-20260924213733-34f985d60e1a
 	go.temporal.io/api v1.63.6
 	go.temporal.io/sdk v1.49.0
 	go.temporal.io/sdk/contrib/sysinfo v0.1.1
+	go.temporal.io/sdk/contrib/workflowstreams v0.1.1
 	go.yaml.in/yaml/v2 v2.4.4
 	google.golang.org/grpc v1.84.0
 	k8s.io/api v0.37.1

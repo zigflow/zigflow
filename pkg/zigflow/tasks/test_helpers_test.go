@@ -110,6 +110,8 @@ const (
 	testConstVal = "val"
 	// testConstCount is the map key used for the iteration count in numeric for-task tests.
 	testConstCount = "count"
+	// testConstHello is the scalar payload value used in emit-task tests.
+	testConstHello = "hello"
 	// testConstForRefDataCount is the jq expression used to reference a numeric iteration count via $data.count.
 	testConstForRefDataCount = "${ $data.count }"
 )

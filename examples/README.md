@@ -58,6 +58,7 @@ A collection of examples
 | [TypeScript](./typescript) | The basic example, but in TypeScript |
 | [Update Listeners](./update) | Listen for Temporal update events |
 | [Wait](./wait) | Pause a workflow on a Temporal durable timer with until and expression durations. |
+| [Workflow Streams](./workflow-streams) | Stream data back from a workflow |
 
 <!-- apps-end -->
 

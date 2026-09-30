@@ -339,6 +339,38 @@ $defs:
           type: integer
       type: object
       unevaluatedProperties: false
+  emitTask:
+    allOf:
+    - $ref: '#/$defs/taskBase'
+    - properties:
+        emit:
+          description: The configuration of an event's emission.
+          properties:
+            event:
+              additionalProperties: true
+              description: The definition of the event to emit.
+              properties:
+                with:
+                  $ref: '#/$defs/eventProperties'
+                  description: Defines the properties of event to emit.
+                  required:
+                  - type
+                  title: EmitEventWith
+              title: EmitEventDefinition
+              type: object
+          required:
+          - event
+          title: EmitTaskConfiguration
+          type: object
+          unevaluatedProperties: false
+    description: Allows workflows to publish events to event brokers or messaging
+      systems, facilitating communication and coordination between different components
+      and services.
+    required:
+    - emit
+    title: EmitTask
+    type: object
+    unevaluatedProperties: false
   endpoint:
     description: Represents an endpoint.
     oneOf:
@@ -1045,6 +1077,7 @@ $defs:
     oneOf:
     - $ref: '#/$defs/callTask'
     - $ref: '#/$defs/doTask'
+    - $ref: '#/$defs/emitTask'
     - $ref: '#/$defs/forTask'
     - $ref: '#/$defs/forkTask'
     - $ref: '#/$defs/listenTask'

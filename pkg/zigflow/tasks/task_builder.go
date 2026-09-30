@@ -275,6 +275,8 @@ func NewTaskBuilder(
 		b, err = NewCallHTTPTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.DoTask:
 		b, err = NewDoTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
+	case *model.EmitTask:
+		b, err = NewEmitTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.ForTask:
 		b, err = NewForTaskBuilder(temporalWorker, t, taskName, doc, emitter, taskOpts)
 	case *model.ForkTask:
@@ -314,6 +316,7 @@ var (
 	_ TaskBuilder = &CallGRPCTaskBuilder{}
 	_ TaskBuilder = &CallHTTPTaskBuilder{}
 	_ TaskBuilder = &DoTaskBuilder{}
+	_ TaskBuilder = &EmitTaskBuilder{}
 	_ TaskBuilder = &ForTaskBuilder{}
 	_ TaskBuilder = &ForkTaskBuilder{}
 	_ TaskBuilder = &ListenTaskBuilder{}

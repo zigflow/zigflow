@@ -563,6 +563,51 @@
         }
       ]
     },
+    "emitTask": {
+      "type": "object",
+      "title": "EmitTask",
+      "description": "Allows workflows to publish events to event brokers or messaging systems, facilitating communication and coordination between different components and services.",
+      "required": [
+        "emit"
+      ],
+      "unevaluatedProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/taskBase"
+        },
+        {
+          "properties": {
+            "emit": {
+              "type": "object",
+              "properties": {
+                "event": {
+                  "type": "object",
+                  "properties": {
+                    "with": {
+                      "$ref": "#/$defs/eventProperties",
+                      "title": "EmitEventWith",
+                      "description": "Defines the properties of event to emit.",
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  },
+                  "title": "EmitEventDefinition",
+                  "description": "The definition of the event to emit.",
+                  "additionalProperties": true
+                }
+              },
+              "title": "EmitTaskConfiguration",
+              "description": "The configuration of an event's emission.",
+              "required": [
+                "event"
+              ],
+              "unevaluatedProperties": false
+            }
+          }
+        }
+      ]
+    },
     "endpoint": {
       "title": "Endpoint",
       "description": "Represents an endpoint.",
@@ -1523,6 +1568,9 @@
         },
         {
           "$ref": "#/$defs/doTask"
+        },
+        {
+          "$ref": "#/$defs/emitTask"
         },
         {
           "$ref": "#/$defs/forTask"
