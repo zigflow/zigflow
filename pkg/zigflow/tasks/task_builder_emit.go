@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	swUtil "github.com/open-workflow-specification/sdk-go/v4/impl/utils"
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
 	"github.com/zigflow/zigflow/pkg/utils"
@@ -72,12 +73,18 @@ func (t *EmitTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		logger.Debug("Emitting data via Temporal Workflow Streams", "topic", topicName)
 		topic := stream.Topic(topicName)
 
-		data := t.task.Emit.Event.With.Additional["data"]
+		logger.Debug("Cloning and hydrating data object")
+		cloneData := swUtil.DeepCloneValue(t.task.Emit.Event.With.Additional["data"])
+		data, err := utils.TraverseAndEvaluate(cloneData, nil, state, nil)
+		if err != nil {
+			return nil, fmt.Errorf("error traversing emit data: %w", err)
+		}
 
 		if err := topic.Publish(data); err != nil {
 			return nil, err
 		}
 
+		// This task adds nothing to the response
 		return nil, nil
 	}, nil
 }
