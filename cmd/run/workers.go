@@ -280,7 +280,7 @@ func initTemporalClient(ctx context.Context, opts *runOptions) (client.Client, e
 	}
 
 	log.Trace().Msg("Connecting to Temporal")
-	tc, err := newTemporalConnection(
+	connectionOpts := []temporal.Option{
 		temporal.WithHostPort(opts.temporal.Address),
 		temporal.WithNamespace(opts.temporal.Namespace),
 		temporal.WithTLS(opts.temporal.TLSEnabled, temporal.WithTLSServerName(opts.temporal.ServerName)),
@@ -298,9 +298,18 @@ func initTemporalClient(ctx context.Context, opts *runOptions) (client.Client, e
 			return nil
 		},
 		temporal.WithZerolog(&log.Logger),
-		temporal.WithPrometheusMetrics(opts.temporal.MetricsListenAddress, opts.temporal.MetricsPrefix, nil),
 		temporal.WithContextPropagators([]workflow.ContextPropagator{ctxpropagator.NewContextPropagator()}),
-	)
+	}
+	if !opts.skipClientMetrics {
+		addr := opts.temporal.MetricsListenAddress
+		if addr == "" {
+			addr = "127.0.0.1:0"
+		}
+		connectionOpts = append(connectionOpts,
+			temporal.WithPrometheusMetrics(addr, opts.temporal.MetricsPrefix, nil),
+		)
+	}
+	tc, err := newTemporalConnection(connectionOpts...)
 	if err != nil {
 		return nil, gh.FatalError{Cause: err, Msg: "Unable to create client"}
 	}
