@@ -57,19 +57,14 @@ func runEmitTask(t *testing.T, name string, fn TemporalWorkflowFunc, state *util
 
 	env.RegisterWorkflowWithOptions(func(ctx workflow.Context) ([]workflowstreams.WireItem, error) {
 		if state == nil {
-			stream, err := workflowstreams.NewWorkflowStream(ctx, nil)
-			if err != nil {
-				return nil, err
-			}
 			state = utils.NewState()
-			state.SetStream(stream)
 		}
 
 		if _, err := fn(ctx, nil, state); err != nil {
 			return nil, err
 		}
 
-		stream, err := state.GetStream(ctx)
+		stream, err := state.Stream(ctx)
 		if err != nil {
 			return nil, err
 		}

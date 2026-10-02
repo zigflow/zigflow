@@ -188,25 +188,18 @@ func (s *State) GetAsMap() map[string]any {
 	}
 }
 
-func (s *State) GetStream(ctx workflow.Context) (*workflowstreams.WorkflowStream, error) {
-	if stream := s.stream; stream != nil {
-		// Stream already exists
-		return stream, nil
+func (s *State) Stream(ctx workflow.Context) (*workflowstreams.WorkflowStream, error) {
+	if s.stream == nil {
+		// No stream exists - create it
+		stream, err := workflowstreams.NewWorkflowStream(ctx, s.StreamState)
+		if err != nil {
+			return nil, err
+		}
+
+		s.stream = stream
 	}
 
-	// We've continued as new
-	stream, err := workflowstreams.NewWorkflowStream(ctx, s.StreamState)
-	if err != nil {
-		return nil, err
-	}
-
-	s.SetStream(stream)
-
-	return stream, nil
-}
-
-func (s *State) SetStream(stream *workflowstreams.WorkflowStream) {
-	s.stream = stream
+	return s.stream, nil
 }
 
 func NewState() *State {

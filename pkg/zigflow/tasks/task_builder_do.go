@@ -31,7 +31,6 @@ import (
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/flow"
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
-	"go.temporal.io/sdk/contrib/workflowstreams"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
@@ -174,7 +173,7 @@ func (t *DoTaskBuilder) Validate() error {
 }
 
 func (t *DoTaskBuilder) detachStreams(ctx workflow.Context, state *utils.State) error {
-	stream, err := state.GetStream(ctx)
+	stream, err := state.Stream(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting stream: %w", err)
 	}
@@ -186,23 +185,10 @@ func (t *DoTaskBuilder) detachStreams(ctx workflow.Context, state *utils.State) 
 		return fmt.Errorf("error waiting for pollers to detach: %w", err)
 	}
 
-	return nil
-}
-
-// initStreamState creates a new workflow stream state and stores it to utils.State
-func (t *DoTaskBuilder) initStreamState(ctx workflow.Context, state *utils.State) error {
-	// Create a new workflow stream
-	stream, err := workflowstreams.NewWorkflowStream(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("error creating up workflow stream: %w", err)
-	}
-
-	// Store the stream state in the global state
 	streamState, err := stream.GetState(15 * time.Minute)
 	if err != nil {
-		return fmt.Errorf("error getting stream state: %w", err)
+		return fmt.Errorf("error getting streaming state: %w", err)
 	}
-	state.SetStream(stream)
 	state.StreamState = streamState
 
 	return nil
@@ -251,7 +237,7 @@ func (t *DoTaskBuilder) workflowExecutor(tasks []workflowFunc) TemporalWorkflowF
 			state.Input = input
 
 			logger.Debug("Initialising stream state")
-			if err := t.initStreamState(ctx, state); err != nil {
+			if _, err := state.Stream(ctx); err != nil {
 				logger.Error("Error creating workflow stream", "error", err)
 				return nil, err
 			}
@@ -319,10 +305,7 @@ func (t *DoTaskBuilder) continueAsNew(
 ) error {
 	logger := workflow.GetLogger(ctx)
 
-	err := workflow.Await(ctx, func() bool {
-		return workflow.AllHandlersFinished(ctx)
-	})
-	if err != nil {
+	if err := t.detachStreams(ctx, state); err != nil {
 		logger.Error("Failed to wait for handers to finish", "error", err)
 		return fmt.Errorf("failed to wait for handlers to finish: %w", err)
 	}

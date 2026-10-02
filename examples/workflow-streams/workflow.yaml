@@ -5,8 +5,6 @@ document:
   version: 0.0.1
   title: Workflow Streams
   summary: Stream data back from a workflow
-  metadata:
-    canMaxHistoryLength: 10
 do:
   - data:
       set:

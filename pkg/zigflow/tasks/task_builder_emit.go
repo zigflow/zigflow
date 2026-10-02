@@ -65,7 +65,7 @@ func (t *EmitTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
 		logger := workflow.GetLogger(ctx)
 
-		stream, err := state.GetStream(ctx)
+		stream, err := state.Stream(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving stream instance: %w", err)
 		}
