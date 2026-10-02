@@ -28,6 +28,7 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/contrib/workflowstreams"
 	"go.temporal.io/sdk/converter"
+	"golang.org/x/sync/errgroup"
 )
 
 func exec() error {
@@ -49,12 +50,17 @@ func exec() error {
 		return gh.FatalError{Cause: err, Msg: "Error executing workflow"}
 	}
 
-	if err := subscribeToStreams(ctx, c, we.GetID()); err != nil {
-		return gh.FatalError{
-			Cause: err,
-			Msg:   "Error streaming data",
+	g, cctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		if err := subscribeToStreams(cctx, c, we.GetID()); err != nil {
+			return gh.FatalError{
+				Cause: err,
+				Msg:   "Error streaming data",
+			}
 		}
-	}
+		return nil
+	})
 
 	log.Info().Str("workflowId", we.GetID()).Str("runId", we.GetRunID()).Msg("Started workflow")
 
@@ -72,6 +78,13 @@ func exec() error {
 	fmt.Println("===")
 	fmt.Println(string(f))
 	fmt.Println("===")
+
+	if err := g.Wait(); err != nil {
+		return gh.FatalError{
+			Cause: err,
+			Msg:   "Error waiting for goroutine",
+		}
+	}
 
 	return nil
 }
