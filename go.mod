@@ -30,7 +30,7 @@ require (
 	github.com/mrsimonemms/temporal-codec-server/packages/golang v0.0.0-20260828093121-4bff7ebacfc3
 	github.com/nexus-rpc/sdk-go v0.7.0
 	github.com/open-workflow-specification/sdk-go/v4 v4.0.0
-	github.com/posthog/posthog-go v1.28.1
+	github.com/posthog/posthog-go v1.29.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cobra v1.10.2

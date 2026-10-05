@@ -432,8 +432,8 @@ github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10/go.mod h1
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/posthog/posthog-go v1.28.1 h1:1sN+E4Z38Cq8f7XwMZs6ctUxtYdo2UyiD2sMfEtBS8Y=
-github.com/posthog/posthog-go v1.28.1/go.mod h1:rN0C9Urenhytgo3KQ/QVorGkyGfpouquDTSs2Ujzr+g=
+github.com/posthog/posthog-go v1.29.0 h1:vyliTqWGXmjpFxX3k94ECmPNa7x2g/bqNqSKyU6vfhM=
+github.com/posthog/posthog-go v1.29.0/go.mod h1:rN0C9Urenhytgo3KQ/QVorGkyGfpouquDTSs2Ujzr+g=
 github.com/power-devops/perfstat v0.0.0-20260916203055-22a1a467d9f0 h1:XA01Vk/wv9YikCi1V51yRzIHPMT5of9+cMpZoZvDn/M=
 github.com/power-devops/perfstat v0.0.0-20260916203055-22a1a467d9f0/go.mod h1:OmDBASR4679mdNQnz2pUhc2G8CO2JrUAVFDRBDP/hJE=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
