@@ -79,14 +79,12 @@ func NewCallMCPTaskBuilder(
 	}
 
 	return &CallMCPTaskBuilder{
-		builder: builder[*models.CallMCP]{
-			doc:            doc,
-			eventEmitter:   emitter,
-			name:           taskName,
-			task:           t,
-			taskOpts:       taskOpts,
-			temporalWorker: temporalWorker,
-		},
+		doc:            doc,
+		eventEmitter:   emitter,
+		name:           taskName,
+		task:           t,
+		taskOpts:       taskOpts,
+		temporalWorker: temporalWorker,
 	}, nil
 }
 
