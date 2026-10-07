@@ -205,6 +205,11 @@ $defs:
                 description: The MCP method parameters.
                 title: McpMethodParameters
                 type: object
+              protocolVersion:
+                default: "2025-06-18"
+                description: The version of the MCP protocol to use.
+                title: McpProtocolVersion
+                type: string
               timeout:
                 $ref: '#/$defs/duration'
                 description: The duration after which the MCP call times out.

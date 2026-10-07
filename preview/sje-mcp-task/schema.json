@@ -408,6 +408,12 @@
                       "description": "The MCP method parameters.",
                       "additionalProperties": true
                     },
+                    "protocolVersion": {
+                      "type": "string",
+                      "title": "McpProtocolVersion",
+                      "description": "The version of the MCP protocol to use.",
+                      "default": "2025-06-18"
+                    },
                     "timeout": {
                       "$ref": "#/$defs/duration",
                       "title": "McpCallTimeout",
