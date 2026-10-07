@@ -29,6 +29,24 @@ import (
 	"go.temporal.io/sdk/worker"
 )
 
+func durationDecodeHook(from, to reflect.Type, data any) (any, error) {
+	if to != reflect.TypeFor[model.Duration]() {
+		return data, nil
+	}
+
+	b, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("durationDecodeHook: marshal failed: %w", err)
+	}
+
+	var d model.Duration
+	if err := json.Unmarshal(b, &d); err != nil {
+		return nil, fmt.Errorf("durationDecodeHook: unmarshal failed: %w", err)
+	}
+
+	return d, nil
+}
+
 func endpointDecodeHook(from, to reflect.Type, data any) (any, error) {
 	if to != reflect.TypeFor[model.Endpoint]() {
 		return data, nil
@@ -59,8 +77,11 @@ func NewCallMCPTaskBuilder(
 	// Convert the Function's "With" to MCPArguments
 	var with models.MCPArguments
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		TagName:     "json",
+		ErrorUnused: true,
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			endpointDecodeHook,
+			durationDecodeHook,
 			mapstructure.StringToTimeDurationHookFunc(), // keep any hooks you already rely on
 		),
 		Result: &with,

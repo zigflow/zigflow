@@ -16,7 +16,10 @@
 
 package models
 
-import "github.com/open-workflow-specification/sdk-go/v4/model"
+import (
+	"github.com/go-viper/mapstructure/v2"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
+)
 
 type CallMCP struct {
 	model.TaskBase `json:",inline"`
@@ -29,11 +32,29 @@ func (c *CallMCP) GetBase() *model.TaskBase {
 }
 
 type MCPArguments struct {
-	Method     string          `json:"method"`
-	Parameters any             `json:"parameters"`
-	Timeout    *model.Duration `json:"duration"`
-	Transport  *MCPTransport   `json:"transport"`
-	Client     *MCPClient      `json:"client"`
+	ProtocolVersion string          `json:"protocolVersion"`
+	Method          string          `json:"method"`
+	Parameters      any             `json:"parameters"`
+	Timeout         *model.Duration `json:"timeout"`
+	Transport       *MCPTransport   `json:"transport"`
+	Client          *MCPClient      `json:"client"`
+}
+
+func (m *MCPArguments) ToParams[T any]() (*T, error) {
+	var out T
+	dec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		TagName:     "json",
+		ErrorUnused: true,
+		Result:      &out,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := dec.Decode(m.Parameters); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
 }
 
 type MCPTransport struct {

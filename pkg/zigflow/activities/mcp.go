@@ -22,7 +22,10 @@ import (
 	"os/exec"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	swUtil "github.com/open-workflow-specification/sdk-go/v4/impl/utils"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/zigflow/zigflow/pkg/utils"
+	"github.com/zigflow/zigflow/pkg/version"
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
 	"github.com/zigflow/zigflow/pkg/zigflow/models"
 	"go.temporal.io/sdk/activity"
@@ -55,12 +58,24 @@ func (c *CallMCP) CallMCPActivity(
 
 	impl := &mcp.Implementation{
 		Name:    "Zigflow",
-		Version: "v1.0.0",
+		Version: version.Version,
 	}
 
+	// Clone and traverse, interpolating the data
+	cloneData := swUtil.DeepCloneValue(task.With.Parameters)
+	data, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(cloneData), nil, state)
+	if err != nil {
+		return nil, fmt.Errorf("error traversing http data object: %w", err)
+	}
+	task.With.Parameters = data
+
 	if cl := task.With.Client; cl != nil {
-		impl.Name = cl.Name
-		impl.Version = cl.Version
+		if cl.Name != "" {
+			impl.Name = cl.Name
+		}
+		if cl.Version != "" {
+			impl.Version = cl.Version
+		}
 	}
 
 	client := mcp.NewClient(impl, nil)
@@ -73,15 +88,26 @@ func (c *CallMCP) CallMCPActivity(
 			Endpoint: endpoint,
 		}
 	} else if t := task.With.Transport.STDIO; t != nil {
-		logger.Info("Calling MCP over STDIO")
+		logger.Info("Calling MCP over STDIO", "command", t.Command, "arguments", t.Arguments)
+
+		//nolint:gosec // path originates from trusted config, not user input
+		cmd := exec.CommandContext(ctx, t.Command, t.Arguments...)
+		cmd.Env = t.Environment
+
 		transport = &mcp.CommandTransport{
-			//nolint:gosec // path originates from trusted config, not user input
-			Command: exec.CommandContext(ctx, t.Command, t.Arguments...),
+			Command: cmd,
 		}
 	}
 
+	protocolVersion := "2025-06-18"
+	if pv := task.With.ProtocolVersion; pv != "" {
+		protocolVersion = pv
+	}
+
 	logger.Debug("Connecting to MCP server")
-	session, err := client.Connect(ctx, transport, nil)
+	session, err := client.Connect(ctx, transport, &mcp.ClientSessionOptions{
+		ProtocolVersion: protocolVersion,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -104,23 +130,30 @@ func (c *CallMCP) callMethod(
 	logger := activity.GetLogger(ctx)
 	method := task.With.Method
 
+	if t := task.With.Timeout; t != nil {
+		logger.Debug("Setting MCP call timeout", "timeout", t)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, utils.ToDuration(t))
+		defer cancel()
+	}
+
 	var result any
 	var err error
 	switch method {
 	case mcpListTools:
-		result, err = session.ListTools(ctx, &mcp.ListToolsParams{})
+		result, err = invokeMCP(ctx, &task.With, session.ListTools)
 	case mcpCallTool:
-		result, err = session.CallTool(ctx, &mcp.CallToolParams{})
+		result, err = invokeMCP(ctx, &task.With, session.CallTool)
 	case mcpListPrompts:
-		result, err = session.ListPrompts(ctx, &mcp.ListPromptsParams{})
+		result, err = invokeMCP(ctx, &task.With, session.ListPrompts)
 	case mcpGetPrompt:
-		result, err = session.GetPrompt(ctx, &mcp.GetPromptParams{})
+		result, err = invokeMCP(ctx, &task.With, session.GetPrompt)
 	case mcpListResources:
-		result, err = session.ListResources(ctx, &mcp.ListResourcesParams{})
+		result, err = invokeMCP(ctx, &task.With, session.ListResources)
 	case mcpReadResource:
-		result, err = session.ReadResource(ctx, &mcp.ReadResourceParams{})
+		result, err = invokeMCP(ctx, &task.With, session.ReadResource)
 	case mcpListResourceTemplates:
-		result, err = session.ListResourceTemplates(ctx, &mcp.ListResourceTemplatesParams{})
+		result, err = invokeMCP(ctx, &task.With, session.ListResourceTemplates)
 	default:
 		logger.Error("Invalid MCP method", "method", method)
 		return nil, temporal.NewNonRetryableApplicationError(
@@ -137,4 +170,19 @@ func (c *CallMCP) callMethod(
 
 	logger.Debug("Returning response from MCP server", "method", method)
 	return result, nil
+}
+
+// invokeMCP converts the task arguments into the method's parameter type and
+// calls the given MCP session method.
+func invokeMCP[P, R any](
+	ctx context.Context,
+	args *models.MCPArguments,
+	fn func(context.Context, *P) (R, error),
+) (any, error) {
+	p, err := args.ToParams[P]()
+	if err != nil {
+		var zero P
+		return nil, fmt.Errorf("error converting mcp arguments to %T: %w", zero, err)
+	}
+	return fn(ctx, p)
 }
