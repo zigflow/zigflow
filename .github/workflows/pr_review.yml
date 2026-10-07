@@ -92,6 +92,19 @@ jobs:
             Avoid nitpicks and stylistic suggestions unless they meaningfully
             impact maintainability or correctness.
 
+            When reviewing Go code:
+            - read the `go` directive in `go.mod` before reporting any Go
+              language, compiler, standard library or tooling issue
+            - treat that declared Go version as authoritative for supported
+              language features, and do not rely on assumptions from older Go
+              versions
+            - if a finding depends on version-specific behaviour, verify it
+              against the declared version and state which Go version
+              introduced or changed that behaviour
+            - do not claim that code cannot compile if the repository's CI has
+              successfully compiled or tested that same code with the declared
+              Go version, unless you first reconcile that evidence
+
             When referencing files, do not use local runner paths such as
             /home/runner/work/...
 
