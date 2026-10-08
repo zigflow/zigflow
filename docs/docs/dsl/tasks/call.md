@@ -130,6 +130,11 @@ do:
 
 ## Gotchas
 
+**`with` is evaluated before the activity is scheduled.** The activity receives,
+and the Temporal history records, the resolved values; only expressions that
+read `$data.activity` are evaluated by the activity. See
+[Activity inputs](/docs/concepts/data-and-expressions#activity-inputs).
+
 **The request body is encoded for the declared `Content-Type`.** A `body` given
 as a mapping is form-encoded when the headers declare
 `application/x-www-form-urlencoded`, and sent as JSON otherwise. A `body` given

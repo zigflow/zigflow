@@ -33,13 +33,14 @@ const (
 )
 
 type State struct {
-	CANStartFrom      *string        `json:"canStartFrom,omitempty"` // Continue-as-new from here
-	Context           any            `json:"context"`                // Output data exported to later tasks output
-	ContextPropagator map[string]any `json:"contextPropagator"`      // Data sent via the context propagator
-	Data              map[string]any `json:"data"`                   // Data stored along the way
-	Env               map[string]any `json:"env"`                    // Available environment variables
-	Input             any            `json:"input,omitempty"`        // The input given by the caller
-	Output            any            `json:"output"`                 // What will be output to the caller
+	ActivityInputs    *ActivityInputs `json:"activityInputs,omitempty"` // Set when the workflow resolved an activity's inputs
+	CANStartFrom      *string         `json:"canStartFrom,omitempty"`   // Continue-as-new from here
+	Context           any             `json:"context"`                  // Output data exported to later tasks output
+	ContextPropagator map[string]any  `json:"contextPropagator"`        // Data sent via the context propagator
+	Data              map[string]any  `json:"data"`                     // Data stored along the way
+	Env               map[string]any  `json:"env"`                      // Available environment variables
+	Input             any             `json:"input,omitempty"`          // The input given by the caller
+	Output            any             `json:"output"`                   // What will be output to the caller
 }
 
 func (s *State) init() *State {
@@ -159,6 +160,7 @@ func (s *State) ClearOutput() *State {
 func (s *State) Clone() *State {
 	s1 := NewState()
 
+	s1.ActivityInputs = s.ActivityInputs
 	s1.Context = swUtils.DeepCloneValue(s.Context)
 	s1.ContextPropagator = swUtils.DeepClone(s.ContextPropagator)
 	s1.Data = swUtils.DeepClone(s.Data)

@@ -51,5 +51,6 @@ type CallHTTPTaskBuilder struct {
 var callHTTPActivity = &activities.CallHTTP{}
 
 func (t *CallHTTPTaskBuilder) Build() (TemporalWorkflowFunc, error) {
+	t.resolveInputs = activities.ResolveHTTPInputs
 	return t.buildActivityFunc(callHTTPActivity.CallHTTPActivity, legacyCallHTTPActivityName), nil
 }

@@ -228,6 +228,31 @@ Inside workflow execution, metadata is accessible via `$data.workflow` and
       workflowId: ${ $data.workflow.workflow_execution_id }
 ```
 
+### Activity inputs
+
+Expressions in the inputs of a task that runs an activity are evaluated by the
+workflow before the activity is scheduled: `with` of `call: http` and
+`call: grpc`; the arguments and environment of `run` `shell`, `script` and
+`container`; a script's external source; and, on Docker, a container's image.
+The activity receives, and the Temporal history records, the values it uses.
+Each expression is evaluated once, so a value that looks like an expression,
+such as text from `$input`, is passed on as text.
+
+`$data.activity` describes the attempt that is running, so an expression that
+reads it is left as written and evaluated by the activity, on each attempt. So
+is an expression whose result JSON cannot carry exactly to the activity: an
+integer beyond 2^53, or a NaN or infinite number.
+
+```yaml
+- fetchUser:
+    call: http
+    with:
+      method: get
+      endpoint: ${ "https://api.example.com/users/" + $input.userId } # evaluated before scheduling
+      headers:
+        X-Attempt: ${ $data.activity.attempt | tostring } # evaluated by each attempt
+```
+
 ---
 
 ## Common mistakes

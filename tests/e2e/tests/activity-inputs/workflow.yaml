@@ -1,0 +1,25 @@
+document:
+  dsl: 1.0.0
+  taskQueue: activity-inputs
+  workflowType: workflow
+  version: 0.0.1
+do:
+  - getPost:
+      call: http
+      export:
+        as: '${ $context + { getPost: . } }'
+      with:
+        method: get
+        endpoint: ${ "http://" + $env.HTTP_MOCK + "/posts/" + $input.id }
+        headers:
+          x-note: ${ $input.note }
+          x-attempt: ${ $data.activity.attempt }
+  - echo:
+      output:
+        as: '${ $context + { echo: . } }'
+      run:
+        shell:
+          command: echo
+          arguments:
+            - ${ $input.note }
+            - ${ $data.activity.attempt }

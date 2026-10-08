@@ -98,6 +98,10 @@ func (t *RunTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	if activityFn != nil {
 		t.activityName = t.registerActivityForTask(activityFn)
 		t.legacyActivityName = legacyName
+		runtime := t.containerRuntime()
+		t.resolveInputs = func(task *model.RunTask, state *utils.State) (*model.RunTask, *utils.ActivityInputs, error) {
+			return activities.ResolveRunInputs(task, runtime, state)
+		}
 	}
 
 	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
@@ -185,8 +189,13 @@ func (t *RunTaskBuilder) executeCommand(ctx workflow.Context, activityFn, input 
 	logger := workflow.GetLogger(ctx)
 	logger.Debug("Executing a command", "task", t.GetTaskName())
 
+	task, activityState, err := t.activityArgs(ctx, state)
+	if err != nil {
+		return nil, err
+	}
+
 	args := append([]any{
-		t.task, input, state,
+		task, input, activityState,
 	}, additional...)
 
 	var res any
@@ -208,16 +217,22 @@ func (t *RunTaskBuilder) executeCommand(ctx workflow.Context, activityFn, input 
 
 func (t *RunTaskBuilder) runContainer(ctx workflow.Context, input any, state *utils.State) (any, error) {
 	var namespace, serviceAccount string
-	var runtime activities.ContainerRuntime
 
 	if t.taskOpts != nil && t.taskOpts.Run != nil {
 		namespace = t.taskOpts.Run.Namespace
-		runtime = t.taskOpts.Run.Runtime
 		serviceAccount = t.taskOpts.Run.ServiceAccount
 	}
 
 	name := dispatchActivityName(ctx, t.legacyActivityName, t.activityName)
-	return t.executeCommand(ctx, name, input, state, namespace, runtime, serviceAccount)
+	return t.executeCommand(ctx, name, input, state, namespace, t.containerRuntime(), serviceAccount)
+}
+
+// containerRuntime is the runtime a container task runs on; the zero value is Docker.
+func (t *RunTaskBuilder) containerRuntime() activities.ContainerRuntime {
+	if t.taskOpts != nil && t.taskOpts.Run != nil {
+		return t.taskOpts.Run.Runtime
+	}
+	return ""
 }
 
 func (t *RunTaskBuilder) runScript(ctx workflow.Context, input any, state *utils.State) (any, error) {

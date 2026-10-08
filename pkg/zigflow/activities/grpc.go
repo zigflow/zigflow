@@ -40,6 +40,37 @@ func init() {
 
 type CallGRPC struct{}
 
+// The parts of a gRPC task's input both sides evaluate, keyed as in the
+// activity's own tree so deferred locations line up.
+const (
+	grpcInputArgs   = "args"
+	grpcInputMethod = "method"
+)
+
+// ResolveGRPCInputs returns a copy of task with its method and arguments
+// resolved in the workflow. The activity never adds activity metadata to the
+// state, so $data.activity reads the same on either side and is resolved too.
+func ResolveGRPCInputs(task *model.CallGRPC, state *utils.State) (*model.CallGRPC, *utils.ActivityInputs, error) {
+	ob, inputs, err := utils.ResolveActivityInputs(map[string]any{
+		grpcInputArgs:   task.With.Arguments,
+		grpcInputMethod: task.With.Method,
+	}, state, false)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error traversing grpc data object: %w", err)
+	}
+
+	obj := ob.(map[string]any)
+	method, ok := obj[grpcInputMethod].(string)
+	if !ok {
+		return nil, nil, fmt.Errorf("grpc method must be a string, got %T", obj[grpcInputMethod])
+	}
+
+	resolved := *task
+	resolved.With.Method = method
+	resolved.With.Arguments, _ = obj[grpcInputArgs].(map[string]any)
+	return &resolved, inputs, nil
+}
+
 func (c *CallGRPC) CallGRPCActivity(
 	ctx context.Context, task *model.CallGRPC, input any, state *utils.State,
 ) (any, error) {
@@ -48,12 +79,12 @@ func (c *CallGRPC) CallGRPCActivity(
 	stopHeartbeat := metadata.StartActivityHeartbeat(ctx, task.GetBase())
 	defer stopHeartbeat()
 
-	ob, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(map[string]any{
-		"service": task.With.Service,
-		"args":    task.With.Arguments,
-		"method":  task.With.Method,
-		"proto":   task.With.Proto,
-	}), nil, state)
+	ob, err := utils.EvaluateActivityInput("", map[string]any{
+		"service":       task.With.Service,
+		grpcInputArgs:   task.With.Arguments,
+		grpcInputMethod: task.With.Method,
+		"proto":         task.With.Proto,
+	}, state)
 	if err != nil {
 		return nil, temporal.NewNonRetryableApplicationError("error traversing grpc data object", "CallGRPC error", err)
 	}
@@ -61,8 +92,8 @@ func (c *CallGRPC) CallGRPCActivity(
 	obj := ob.(map[string]any)
 
 	service := obj["service"].(model.GRPCService)
-	args := obj["args"].(map[string]any)
-	method := obj["method"].(string)
+	args := obj[grpcInputArgs].(map[string]any)
+	method := obj[grpcInputMethod].(string)
 	proto := obj["proto"].(*model.ExternalResource)
 
 	address := fmt.Sprintf("%s:%d", service.Host, service.Port)

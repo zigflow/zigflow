@@ -31,7 +31,6 @@ import (
 	"strings"
 	"time"
 
-	swUtil "github.com/open-workflow-specification/sdk-go/v4/impl/utils"
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
@@ -271,10 +270,51 @@ func objectOrRuntimeExprToMap(name string, o *model.ObjectOrRuntimeExpr) (map[st
 	return m, nil
 }
 
-// ParseHTTPArguments note that I looked at the github.com/go-viper/mapstructure/v2.Decode
+// ParseHTTPArguments evaluates the task's `with` inside the activity: every
+// expression for a task scheduled with unresolved inputs, otherwise only those
+// the workflow deferred (see utils.ActivityInputs).
+func ParseHTTPArguments(task *model.CallHTTP, state *utils.State) (*model.HTTPArguments, error) {
+	data, err := httpArgumentsTree(task)
+	if err != nil {
+		return nil, err
+	}
+
+	obj, err := utils.EvaluateActivityInput("", data, state)
+	if err != nil {
+		return nil, fmt.Errorf("error traversing http data object: %w", err)
+	}
+
+	return httpArgumentsFromTree(obj)
+}
+
+// ResolveHTTPInputs returns a copy of task with its `with` resolved in the
+// workflow, leaving expressions that read $data.activity for the activity.
+func ResolveHTTPInputs(task *model.CallHTTP, state *utils.State) (*model.CallHTTP, *utils.ActivityInputs, error) {
+	data, err := httpArgumentsTree(task)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	obj, inputs, err := utils.ResolveActivityInputs(data, state, true)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error traversing http data object: %w", err)
+	}
+
+	args, err := httpArgumentsFromTree(obj)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resolved := *task
+	resolved.With = *args
+	return &resolved, inputs, nil
+}
+
+// httpArgumentsTree converts `with` to the map both the workflow and the
+// activity evaluate. Note that I looked at the github.com/go-viper/mapstructure/v2.Decode
 // function, but this wasn't able to decode some of the more complex data types. This is
 // more heavyweight than I'd like, but it's fine for now.
-func ParseHTTPArguments(task *model.CallHTTP, state *utils.State) (*model.HTTPArguments, error) {
+func httpArgumentsTree(task *model.CallHTTP) (map[string]any, error) {
 	// First, we need to convert it to map[string]any
 	b, err := json.Marshal(task.With)
 	if err != nil {
@@ -287,13 +327,10 @@ func ParseHTTPArguments(task *model.CallHTTP, state *utils.State) (*model.HTTPAr
 		return nil, fmt.Errorf("error unmarshalling data to map: %w", err)
 	}
 
-	// Clone and traverse, interpolating the data
-	cloneData := swUtil.DeepClone(data)
-	obj, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(cloneData), nil, state)
-	if err != nil {
-		return nil, fmt.Errorf("error traversing http data object: %w", err)
-	}
+	return data, nil
+}
 
+func httpArgumentsFromTree(obj any) (*model.HTTPArguments, error) {
 	// Now, put it back to a JSON string
 	e, err := json.Marshal(obj)
 	if err != nil {

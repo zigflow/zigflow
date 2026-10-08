@@ -18,6 +18,12 @@ a JavaScript or Python script or another Zigflow workflow.
 | run.workflow | [`workflow`](#workflow) | `no` | The definition of the workflow to run.<br />*Required if `container`, `script` and `shell` have not been set.* |
 | await | `boolean` | `no` | Determines whether or not the process to run should be awaited for.<br />*When set to `false`, the task cannot wait for the process to complete and thus cannot output the process's result.* Only available for workflows.<br />*Defaults to `true`.* |
 
+Expressions in the arguments and environment of a container, script or shell, a
+script's external source and, on Docker, a container's image are evaluated
+before the activity is scheduled; only expressions that read `$data.activity`
+are evaluated by the activity. See
+[Activity inputs](/docs/concepts/data-and-expressions#activity-inputs).
+
 ## Container
 
 :::info

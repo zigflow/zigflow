@@ -124,7 +124,9 @@ Ideally, this should be avoided as Zigflow does not allow specific targeting of
 an activity.
 :::
 
-This can be accessed from `${ $data.activity }`.
+This can be accessed from `${ $data.activity }` in the inputs of a task that runs
+an activity, where it is evaluated by each attempt. See
+[Activity inputs](/docs/concepts/data-and-expressions#activity-inputs).
 
 | Name | Type | Example |
 | ---- | ---- | ------- |

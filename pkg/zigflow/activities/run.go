@@ -27,7 +27,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	swUtil "github.com/open-workflow-specification/sdk-go/v4/impl/utils"
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
@@ -158,7 +157,7 @@ func (r *Run) resolveScriptContents(ctx context.Context, script *model.Script, s
 		rawEndpoint := ext.Endpoint.String()
 		logger.Debug("Evaluating script source endpoint", "raw", rawEndpoint)
 
-		evaluated, err := utils.EvaluateString(rawEndpoint, nil, enrichedState)
+		evaluated, err := utils.EvaluateActivityInput("/"+runInputSource, rawEndpoint, enrichedState)
 		if err != nil {
 			return nil, fmt.Errorf("error evaluating script source endpoint: %w", err)
 		}
@@ -219,20 +218,14 @@ func (r *Run) runDockerCommand(ctx context.Context, task *model.RunTask, state *
 		cmd = append(cmd, "--rm")
 	}
 
-	if envs := task.Run.Container.Environment; envs != nil {
-		enrichedState := state.Clone().AddActivityInfo(ctx)
+	enrichedState := state.Clone().AddActivityInfo(ctx)
 
-		for k, v := range envs {
-			parsedV, err := utils.EvaluateString(v, nil, enrichedState)
-			if err != nil {
-				return nil, temporal.NewNonRetryableApplicationError("Error parsing Docker container envvar", "container", err)
-			}
-			var value string
-			if parsedV == nil {
-				value = ""
-			} else {
-				value = fmt.Sprintf("%v", parsedV)
-			}
+	if envs := task.Run.Container.Environment; envs != nil {
+		parsed, err := utils.EvaluateActivityInput("/"+runInputEnvironment, envs, enrichedState)
+		if err != nil {
+			return nil, temporal.NewNonRetryableApplicationError("Error parsing Docker container envvar", "container", err)
+		}
+		for k, value := range parsed.(map[string]string) {
 			cmd = append(cmd, fmt.Sprintf("--env=%s=%s", k, value))
 		}
 	}
@@ -247,11 +240,24 @@ func (r *Run) runDockerCommand(ctx context.Context, task *model.RunTask, state *
 			cmd = append(cmd, fmt.Sprintf("--volume=%s:%s", local, remote))
 		}
 	}
-	// Add in the image
-	cmd = append(cmd, task.Run.Container.Image)
+	// The image and arguments are evaluated with the rest of the command by
+	// runExecCommand, unless the workflow resolved them; then only what it
+	// deferred is evaluated here, and the command is passed on as it is.
+	image, err := utils.EvaluateDeferredActivityInput("/"+runInputImage, task.Run.Container.Image, enrichedState)
+	if err != nil {
+		return nil, fmt.Errorf("error traversing container image: %w", err)
+	}
+	cmd = append(cmd, fmt.Sprintf("%v", image))
 
-	// Add in arguments
-	cmd = append(cmd, task.Run.Container.Arguments...)
+	args, err := utils.EvaluateDeferredActivityInput("/"+runInputArguments, task.Run.Container.Arguments, enrichedState)
+	if err != nil {
+		return nil, fmt.Errorf("error traversing container arguments: %w", err)
+	}
+	if evaluated, ok := args.([]any); ok {
+		cmd = append(cmd, asStrings(evaluated)...)
+	} else {
+		cmd = append(cmd, task.Run.Container.Arguments...)
+	}
 
 	return r.runExecCommand(ctx, []string{cmd[0]}, &model.RunArguments{Value: cmd[1:]}, nil, state, "", task.GetBase())
 }
@@ -271,20 +277,10 @@ func (r *Run) runExecCommand(
 	stopHeartbeat := metadata.StartActivityHeartbeat(ctx, task)
 	defer stopHeartbeat()
 
-	if args == nil {
-		args = &model.RunArguments{}
-	}
-	if env == nil {
-		env = map[string]string{}
-	}
-
 	state = state.Clone().AddActivityInfo(ctx)
 
 	logger.Debug("Interpolating command arguments and envvars")
-	d, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(map[string]any{
-		"args": swUtil.DeepCloneValue(args.AsSlice()),
-		"env":  swUtil.DeepCloneValue(env),
-	}), nil, state)
+	d, err := utils.EvaluateActivityInput("/"+runInputExec, execInputs(args, env), state)
 	if err != nil {
 		return nil, fmt.Errorf("error traversing task parameters: %w", err)
 	}

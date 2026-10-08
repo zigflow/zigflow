@@ -25,7 +25,6 @@ import (
 	"strings"
 	"time"
 
-	swUtil "github.com/open-workflow-specification/sdk-go/v4/impl/utils"
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
@@ -59,13 +58,6 @@ const (
 	lifetimeCleanupAlways     = "always"
 	lifetimeCleanupEventually = "eventually"
 	lifetimeCleanupNever      = "never"
-)
-
-// argsKey and envKey are the field names used when collecting the
-// container's args and env for runtime-expression evaluation.
-const (
-	argsKey = "args"
-	envKey  = "env"
 )
 
 // labelKeyRunID, labelKeyActivityID and labelKeyContainerName are the labels
@@ -206,18 +198,12 @@ func (r *Run) evaluateContainerArgs(args []string, state *utils.State) ([]string
 		return nil, nil
 	}
 
-	d, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(map[string]any{
-		argsKey: swUtil.DeepCloneValue(args),
-	}), nil, state)
+	d, err := utils.EvaluateActivityInput("/"+runInputArguments, args, state)
 	if err != nil {
 		return nil, fmt.Errorf("error traversing container arguments: %w", err)
 	}
 
-	parsed, ok := d.(map[string]any)
-	if !ok {
-		return nil, nil
-	}
-	items, ok := parsed[argsKey].([]any)
+	items, ok := d.([]any)
 	if !ok {
 		return nil, nil
 	}
@@ -238,18 +224,12 @@ func (r *Run) evaluateContainerEnv(env map[string]string, state *utils.State) ([
 		return nil, nil
 	}
 
-	d, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(map[string]any{
-		envKey: swUtil.DeepCloneValue(env),
-	}), nil, state)
+	d, err := utils.EvaluateActivityInput("/"+runInputEnvironment, env, state)
 	if err != nil {
 		return nil, fmt.Errorf("error traversing container environment: %w", err)
 	}
 
-	parsed, ok := d.(map[string]any)
-	if !ok {
-		return nil, nil
-	}
-	evaluated, ok := parsed[envKey].(map[string]string)
+	evaluated, ok := d.(map[string]string)
 	if !ok {
 		return nil, nil
 	}

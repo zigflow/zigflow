@@ -67,6 +67,39 @@ type builder[T model.Task] struct {
 	// Path from the workflow root; disambiguates per-task activity names
 	// when sibling scopes reuse a leaf name.
 	taskPath []string
+	// Resolves the task's activity inputs before scheduling; nil schedules
+	// the task as declared.
+	resolveInputs activityInputResolver[T]
+}
+
+// activityInputResolver returns a copy of task with its activity inputs
+// resolved against state, and the expressions left for the activity.
+type activityInputResolver[T model.Task] func(task T, state *utils.State) (T, *utils.ActivityInputs, error)
+
+// activityArgs returns the task and state to schedule an activity with. New
+// executions resolve the task's inputs here, so the activity receives, and
+// the history records, concrete values. The state the activity receives lists
+// the expressions left for it; the workflow's own state never carries them.
+//
+// Executions started before this change have no version marker, so replay
+// schedules the task as it was originally recorded, for the activity to
+// evaluate.
+func (d *builder[T]) activityArgs(ctx workflow.Context, state *utils.State) (T, *utils.State, error) {
+	if d.resolveInputs == nil || workflow.GetVersion(
+		ctx, activityInputsVersionChangeID, workflow.DefaultVersion, activityInputsVersion,
+	) == workflow.DefaultVersion {
+		return d.task, state, nil
+	}
+
+	task, inputs, err := d.resolveInputs(d.task, state)
+	if err != nil {
+		var zero T
+		return zero, nil, fmt.Errorf("error resolving activity inputs for task %s: %w", d.name, err)
+	}
+
+	activityState := *state
+	activityState.ActivityInputs = inputs
+	return task, &activityState, nil
 }
 
 func (d *builder[T]) perTaskActivityName() string {
@@ -168,8 +201,13 @@ func (d *builder[T]) executeActivity(ctx workflow.Context, activity, input any, 
 	logger := workflow.GetLogger(ctx)
 	logger.Debug("Calling activity", "name", d.name)
 
+	task, activityState, err := d.activityArgs(ctx, state)
+	if err != nil {
+		return nil, err
+	}
+
 	var res any
-	if err := workflow.ExecuteActivity(ctx, activity, d.task, input, state).Get(ctx, &res); err != nil {
+	if err := workflow.ExecuteActivity(ctx, activity, task, input, activityState).Get(ctx, &res); err != nil {
 		// A cancelled activity means the workflow is being cancelled.
 		// Return the cancellation so the do-task pipeline stops and
 		// Temporal records the execution as CANCELED.

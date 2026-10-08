@@ -51,6 +51,20 @@ const activityNamingVersionChangeID = "zigflow.per-task-activity-aliases"
 // activityNamingVersionChangeID on new executions.
 const activityNamingVersion = 1
 
+// activityInputsVersionChangeID is the Temporal workflow versioning marker
+// that gates resolving an activity's inputs in the workflow before it is
+// scheduled. Executions started before this change have no marker, so replay
+// schedules their activities with the inputs unresolved, as recorded, and the
+// activity evaluates them as it always did.
+//
+// This string is a durable contract written into workflow histories. It
+// must never change once released.
+const activityInputsVersionChangeID = "zigflow.resolve-activity-inputs"
+
+// activityInputsVersion is the version recorded for
+// activityInputsVersionChangeID on new executions.
+const activityInputsVersion = 1
+
 // Legacy fixed activity type names. These are the names Temporal derived
 // from the activity method names before per-task aliases existed, and they
 // remain registered on every worker via ActivitiesList for back-compat.

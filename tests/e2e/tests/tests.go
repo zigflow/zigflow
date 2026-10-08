@@ -17,6 +17,7 @@
 package tests
 
 import (
+	_ "github.com/zigflow/zigflow/tests/e2e/tests/activity-inputs"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/callHTTP"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/cancel"
 	_ "github.com/zigflow/zigflow/tests/e2e/tests/cancel-fork"
