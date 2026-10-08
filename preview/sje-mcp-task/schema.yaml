@@ -212,6 +212,8 @@ $defs:
                 type: string
               timeout:
                 $ref: '#/$defs/duration'
+                default:
+                  seconds: 30
                 description: The duration after which the MCP call times out.
                 title: McpCallTimeout
               transport:

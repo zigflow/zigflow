@@ -417,7 +417,10 @@
                     "timeout": {
                       "$ref": "#/$defs/duration",
                       "title": "McpCallTimeout",
-                      "description": "The duration after which the MCP call times out."
+                      "description": "The duration after which the MCP call times out.",
+                      "default": {
+                        "seconds": 30
+                      }
                     },
                     "transport": {
                       "type": "object",
