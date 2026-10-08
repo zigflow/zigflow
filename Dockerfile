@@ -22,6 +22,7 @@ ENV GOOS=linux
 ENV GOCACHE=/go/.cache
 ENV PROJECT_NAME="${PROJECT_NAME}"
 ENV WORKFLOW_FILE=/go/app/workflow.example.yaml
+ENV GOFLAGS=-buildvcs=false
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
   && apt update \
   && apt install -y nodejs python3 \
