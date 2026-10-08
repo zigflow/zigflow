@@ -20,13 +20,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/open-workflow-specification/sdk-go/v4/model"
 	"github.com/zigflow/zigflow/pkg/cloudevents"
+	"github.com/zigflow/zigflow/pkg/utils"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
 	"github.com/zigflow/zigflow/pkg/zigflow/models"
 	"go.temporal.io/sdk/worker"
+	"go.temporal.io/sdk/workflow"
 )
 
 func durationDecodeHook(from, to reflect.Type, data any) (any, error) {
@@ -127,5 +130,24 @@ type CallMCPTaskBuilder struct {
 var callMCPActivity = &activities.CallMCP{}
 
 func (t *CallMCPTaskBuilder) Build() (TemporalWorkflowFunc, error) {
-	return t.buildActivityFunc(callMCPActivity.CallMCPActivity, legacyCallMCPActivityName), nil
+	fn := t.buildActivityFunc(callMCPActivity.CallMCPActivity, legacyCallMCPActivityName)
+	timeout := utils.ToDuration(t.task.With.Timeout)
+
+	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
+		return fn(withMinStartToCloseTimeout(ctx, timeout), input, state)
+	}, nil
+}
+
+// withMinStartToCloseTimeout raises the activity StartToCloseTimeout to at
+// least the given timeout. The MCP call timeout is derived from the activity
+// context, so a shorter StartToCloseTimeout would otherwise silently cap it.
+// Longer StartToCloseTimeout values are left unchanged.
+func withMinStartToCloseTimeout(ctx workflow.Context, timeout time.Duration) workflow.Context {
+	ao := workflow.GetActivityOptions(ctx)
+	if ao.StartToCloseTimeout >= timeout {
+		return ctx
+	}
+
+	ao.StartToCloseTimeout = timeout
+	return workflow.WithActivityOptions(ctx, ao)
 }

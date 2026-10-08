@@ -20,8 +20,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	swUtil "github.com/open-workflow-specification/sdk-go/v4/impl/utils"
@@ -72,7 +74,7 @@ func (c *CallMCP) CallMCPActivity(
 	cloneData := swUtil.DeepCloneValue(task.With.Parameters)
 	data, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(cloneData), nil, state)
 	if err != nil {
-		return nil, fmt.Errorf("error traversing http data object: %w", err)
+		return nil, fmt.Errorf("error traversing mcp data object: %w", err)
 	}
 	task.With.Parameters = data
 
@@ -89,7 +91,8 @@ func (c *CallMCP) CallMCPActivity(
 
 	transport, err := c.createTransport(ctx, task)
 	if err != nil {
-		return nil, fmt.Errorf("error creating transport: %w", err)
+		// Returned unwrapped so a non-retryable ApplicationError is preserved
+		return nil, err
 	}
 
 	protocolVersion := "2025-06-18"
@@ -165,12 +168,18 @@ func (c *CallMCP) createTransport(ctx context.Context, task *models.CallMCP) (mc
 	if t := task.With.Transport.HTTP; t != nil {
 		endpoint := t.Endpoint.String()
 		logger.Info("Calling MCP over HTTP", "endpoint", endpoint)
+		origin, err := url.Parse(endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("invalid MCP HTTP endpoint: %w", err)
+		}
+
 		transport = &mcp.StreamableClientTransport{
 			Endpoint: endpoint,
 			HTTPClient: &http.Client{
 				Transport: &headerRoundTripper{
 					headers: t.Headers,
 					next:    http.DefaultTransport,
+					origin:  origin,
 				},
 			},
 		}
@@ -180,7 +189,7 @@ func (c *CallMCP) createTransport(ctx context.Context, task *models.CallMCP) (mc
 		//nolint:gosec // path originates from trusted config, not user input
 		cmd := exec.CommandContext(ctx, t.Command, t.Arguments...)
 		if len(t.Environment) > 0 {
-			cmd.Env = os.Environ() // Need ambient envvars for stdio transport to work
+			cmd.Env = os.Environ()
 			for key, value := range t.Environment {
 				cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
 			}
@@ -220,14 +229,22 @@ func invokeMCP[P, R any](
 type headerRoundTripper struct {
 	headers map[string]string
 	next    http.RoundTripper
+	origin  *url.URL
 }
 
 func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	clone := req.Clone(req.Context())
 
-	for key, value := range h.headers {
-		clone.Header.Set(key, value)
+	if h.sameOrigin(clone.URL, h.origin) {
+		for key, value := range h.headers {
+			clone.Header.Set(key, value)
+		}
 	}
 
 	return h.next.RoundTrip(clone)
+}
+
+func (h *headerRoundTripper) sameOrigin(a, b *url.URL) bool {
+	return strings.EqualFold(a.Scheme, b.Scheme) &&
+		strings.EqualFold(a.Host, b.Host)
 }

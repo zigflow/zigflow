@@ -9,12 +9,13 @@ Use Call when your workflow needs to:
 - Make an HTTP request to an external API
 - Invoke a Temporal activity on another task queue
 - Call a gRPC service
+- Call a tool, prompt or resource on an MCP server
 
 ## Properties
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
-| call | `string` | `yes` | The name of the function to call. One of `activity` or `http`. |
+| call | `string` | `yes` | The name of the function to call. One of `activity`, `grpc`, `http` or `mcp`. |
 | with | `map` | `no` | A name/value mapping of the parameters to call the function with |
 
 ## Activity
@@ -128,6 +129,81 @@ do:
         endpoint: https://jsonplaceholder.typicode.com/users/2
 ```
 
+## MCP
+
+Call a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server.
+To use this, the `call` property must equal `mcp`.
+
+Each call connects to the MCP server, calls a single method, then disconnects.
+The method's result is returned as the task output.
+
+### Properties {/*#mcp-properties*/}
+
+| Name | Type | Required | Description |
+| --- | :---: | :---: | --- |
+| method | `string` | `yes` | The MCP method to call.<br />*Supported values are:*<br />*- `tools/list`*<br />*- `tools/call`*<br />*- `prompts/list`*<br />*- `prompts/get`*<br />*- `resources/list`*<br />*- `resources/read`*<br />*- `resources/templates/list`* |
+| parameters | `map` | `no` | The parameters for the MCP method, if any. Field names follow the MCP specification for the method, for example `name` and `arguments` for `tools/call`. These are interpolated through the state. |
+| transport | `map` | `yes` | The transport used to connect to the MCP server. Exactly one of `http` or `stdio` must be set. |
+| transport.http.endpoint | `string`\|[`endpoint`](https://github.com/open-workflow-specification/specification/blob/main/dsl-reference.md#endpoint) | `yes` | An URI or an object that describes the MCP server's HTTP endpoint. |
+| transport.http.headers | `map[string, string]` | `no` | A name/value mapping of the HTTP headers to send with requests, if any. |
+| transport.stdio.command | `string` | `yes` | The command used to run the MCP server. |
+| transport.stdio.arguments | `string[]` | `no` | The arguments to pass to the command, if any. |
+| transport.stdio.environment | `map[string, string]` | `no` | A name/value mapping of environment variables to set for the command, if any. |
+| client.name | `string` | `no` | The client name sent to the MCP server.<br />*Defaults to `Zigflow`.* |
+| client.version | `string` | `no` | The client version sent to the MCP server.<br />*Defaults to the Zigflow version.* |
+| protocolVersion | `string` | `no` | The MCP protocol version to request.<br />*Defaults to `2025-06-18`.* |
+| timeout | [`duration`](https://github.com/open-workflow-specification/specification/blob/main/dsl-reference.md#duration) | `no` | The maximum time allowed for the MCP call, including connecting.<br />*Defaults to 30 seconds.* |
+
+If `client` is set, both `name` and `version` are required.
+
+### HTTP example {/*#mcp-http-example*/}
+
+```yaml
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: call-mcp-http
+  version: 0.0.1
+do:
+  - getCallDocs:
+      call: mcp
+      with:
+        method: tools/call
+        parameters:
+          name: get_task_docs
+          arguments:
+            task_type: call
+        transport:
+          http:
+            endpoint: http://zigflow-mcp:8080
+            headers:
+              X-Request-Source: zigflow
+```
+
+### STDIO example {/*#mcp-stdio-example*/}
+
+```yaml
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: call-mcp-stdio
+  version: 0.0.1
+do:
+  - listTools:
+      call: mcp
+      with:
+        method: tools/list
+        timeout:
+          seconds: 10
+        transport:
+          stdio:
+            command: zigflow
+            arguments:
+              - mcp
+            environment:
+              LOG_LEVEL: error
+```
+
 ## Gotchas
 
 **The request body is encoded for the declared `Content-Type`.** A `body` given
@@ -165,7 +241,7 @@ such as `ScheduleToCloseTimeout`, to enforce a maximum execution time.
 
 ### SDK metrics {/*#sdk-metrics*/}
 
-Activity-dispatching tasks (`call: http`, `call: grpc`, and `run:` tasks
+Activity-dispatching tasks (`call: http`, `call: grpc`, `call: mcp` and `run:` tasks
 of type Container, Script and Shell) are each registered on their worker
 under a name derived from the task's path from the workflow root. For a
 task at the top of a workflow's `do:` list, the registered name is
@@ -186,6 +262,24 @@ worker.
 
 **gRPC proto files must be accessible.** The `proto.endpoint` path must be
 readable by the Zigflow worker process at runtime.
+
+**MCP headers are only sent to the configured origin.** If the MCP server
+redirects to a different scheme, host or port, the configured `headers`,
+including `Authorization`, are not sent to the new location.
+
+**MCP STDIO commands run on the worker.** The command must be available to the
+Zigflow worker process. It inherits the worker's environment, and values in
+`environment` are added to it, replacing any existing variables with the same
+name.
+
+**The MCP timeout extends the activity timeout.** If `timeout` is longer than
+the task's Temporal `StartToCloseTimeout`, Zigflow raises the
+`StartToCloseTimeout` to match. A longer configured `StartToCloseTimeout` is
+kept.
+
+**MCP tool errors do not fail the task.** A `tools/call` result with `isError:
+true` is returned as the task output. Check `isError` if the workflow depends
+on the tool succeeding.
 
 ## Related pages
 
