@@ -93,6 +93,14 @@ func NewCallMCPTaskBuilder(
 		return nil, fmt.Errorf("error converting mcp arguments: %w", err)
 	}
 
+	if with.Timeout == nil {
+		with.Timeout = &model.Duration{
+			Value: model.DurationInline{
+				Seconds: 30,
+			},
+		}
+	}
+
 	t := &models.CallMCP{
 		TaskBase: *task.GetBase(),
 		Call:     task.Call,

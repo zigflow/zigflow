@@ -64,14 +64,14 @@ type MCPTransport struct {
 }
 
 type MCPTransportHTTP struct {
-	Endpoint *model.Endpoint `json:"endpoint"`
-	Headers  map[string]any  `json:"headers"`
+	Endpoint *model.Endpoint   `json:"endpoint"`
+	Headers  map[string]string `json:"headers"`
 }
 
 type MCPTransportSTDIO struct {
-	Command     string   `json:"command"`
-	Arguments   []string `json:"arguments"`
-	Environment []string `json:"environment"`
+	Command     string            `json:"command"`
+	Arguments   []string          `json:"arguments"`
+	Environment map[string]string `json:"environment"`
 }
 
 type MCPClient struct {

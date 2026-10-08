@@ -19,6 +19,8 @@ package activities
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"os"
 	"os/exec"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -56,6 +58,11 @@ func (c *CallMCP) CallMCPActivity(
 	stopHeartbeat := metadata.StartActivityHeartbeat(ctx, task.GetBase())
 	defer stopHeartbeat()
 
+	logger.Debug("Setting MCP call timeout", "timeout", task.With.Timeout)
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(ctx, utils.ToDuration(task.With.Timeout))
+	defer cancel()
+
 	impl := &mcp.Implementation{
 		Name:    "Zigflow",
 		Version: version.Version,
@@ -80,23 +87,9 @@ func (c *CallMCP) CallMCPActivity(
 
 	client := mcp.NewClient(impl, nil)
 
-	var transport mcp.Transport
-	if t := task.With.Transport.HTTP; t != nil {
-		endpoint := t.Endpoint.String()
-		logger.Info("Calling MCP over HTTP", "endpoint", endpoint)
-		transport = &mcp.StreamableClientTransport{
-			Endpoint: endpoint,
-		}
-	} else if t := task.With.Transport.STDIO; t != nil {
-		logger.Info("Calling MCP over STDIO", "command", t.Command, "arguments", t.Arguments)
-
-		//nolint:gosec // path originates from trusted config, not user input
-		cmd := exec.CommandContext(ctx, t.Command, t.Arguments...)
-		cmd.Env = t.Environment
-
-		transport = &mcp.CommandTransport{
-			Command: cmd,
-		}
+	transport, err := c.createTransport(ctx, task)
+	if err != nil {
+		return nil, fmt.Errorf("error creating transport: %w", err)
 	}
 
 	protocolVersion := "2025-06-18"
@@ -129,13 +122,6 @@ func (c *CallMCP) callMethod(
 ) (any, error) {
 	logger := activity.GetLogger(ctx)
 	method := task.With.Method
-
-	if t := task.With.Timeout; t != nil {
-		logger.Debug("Setting MCP call timeout", "timeout", t)
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, utils.ToDuration(t))
-		defer cancel()
-	}
 
 	var result any
 	var err error
@@ -172,6 +158,50 @@ func (c *CallMCP) callMethod(
 	return result, nil
 }
 
+func (c *CallMCP) createTransport(ctx context.Context, task *models.CallMCP) (mcp.Transport, error) {
+	logger := activity.GetLogger(ctx)
+
+	var transport mcp.Transport
+	if t := task.With.Transport.HTTP; t != nil {
+		endpoint := t.Endpoint.String()
+		logger.Info("Calling MCP over HTTP", "endpoint", endpoint)
+		transport = &mcp.StreamableClientTransport{
+			Endpoint: endpoint,
+			HTTPClient: &http.Client{
+				Transport: &headerRoundTripper{
+					headers: t.Headers,
+					next:    http.DefaultTransport,
+				},
+			},
+		}
+	} else if t := task.With.Transport.STDIO; t != nil {
+		logger.Info("Calling MCP over STDIO", "command", t.Command, "arguments", t.Arguments)
+
+		//nolint:gosec // path originates from trusted config, not user input
+		cmd := exec.CommandContext(ctx, t.Command, t.Arguments...)
+		if len(t.Environment) > 0 {
+			cmd.Env = os.Environ() // Need ambient envvars for stdio transport to work
+			for key, value := range t.Environment {
+				cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
+			}
+		}
+
+		transport = &mcp.CommandTransport{
+			Command: cmd,
+		}
+	}
+
+	if transport == nil {
+		return nil, temporal.NewNonRetryableApplicationError(
+			"CallMCP given an invalid transport",
+			"CallMCP non-retryable error",
+			fmt.Errorf("unknown transport type for MCP call: %v", task.With.Transport),
+		)
+	}
+
+	return transport, nil
+}
+
 // invokeMCP converts the task arguments into the method's parameter type and
 // calls the given MCP session method.
 func invokeMCP[P, R any](
@@ -185,4 +215,19 @@ func invokeMCP[P, R any](
 		return nil, fmt.Errorf("error converting mcp arguments to %T: %w", zero, err)
 	}
 	return fn(ctx, p)
+}
+
+type headerRoundTripper struct {
+	headers map[string]string
+	next    http.RoundTripper
+}
+
+func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	clone := req.Clone(req.Context())
+
+	for key, value := range h.headers {
+		clone.Header.Set(key, value)
+	}
+
+	return h.next.RoundTrip(clone)
 }
