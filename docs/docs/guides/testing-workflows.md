@@ -44,7 +44,8 @@ validation, workflow execution in Temporal, task execution and output.
 A typical local integration test environment requires three things:
 
 1. A running Temporal server
-2. A Zigflow worker with your workflow definitions loaded
+2. A Zigflow worker with your workflow definitions loaded, **or** a one-shot
+   `zigflow test` run (see below)
 3. A script or test runner that starts workflow executions and checks results
 
 **Start a local Temporal development server:**
@@ -52,6 +53,42 @@ A typical local integration test environment requires three things:
 ```sh
 temporal server start-dev
 ```
+
+#### Option A: one-shot test with `zigflow test`
+
+`zigflow test` validates a workflow file, starts a short-lived in-process
+worker, runs the workflow once with JSON input, prints the result and exits.
+It is suited to local checks and CI scripts when you do not need a long-lived
+worker.
+
+```sh
+zigflow test workflow.yaml --input testdata/input.json
+```
+
+:::warning
+`zigflow test` always uses the Temporal task queue `zigflow-test`. The
+`document.taskQueue` value in the YAML is not used for registering the test
+worker or for starting the run. That avoids competing with a separate
+`zigflow run` process on the same queue. Tasks inside the workflow that
+specify their own task queues are unchanged.
+:::
+
+Pass inline JSON with `--input-json` when a file is inconvenient. Use
+`--timeout` for long-running workflows (shorten `wait` durations in test YAML
+where possible; see [Testing long-running workflows](#testing-long-running-workflows)).
+
+The public Go package `github.com/zigflow/zigflow/pkg/testrunner` exposes the
+same orchestration for tests written in Go. Treat it as experimental until
+documented as a stable API.
+
+On failure, `zigflow test` still exits with a non-zero status and prints
+`Failed` or `Timeout`, but it also prints an `output` section when structured
+failure data is available (for example Open Workflow Specification errors from
+`raise`). The Go `Result.Output` field is populated the same way. A short
+`error:` line and Temporal inspect link are printed after the output when the
+run did not complete successfully.
+
+#### Option B: long-lived worker and Temporal CLI
 
 **Start the Zigflow worker in a separate terminal:**
 
@@ -111,12 +148,22 @@ job follows these steps:
 
 1. Start Temporal (using the [Temporal CLI](https://docs.temporal.io/cli),
    [Docker](https://hub.docker.com/r/temporalio/temporal) or the [GitHub Action](https://github.com/temporalio/setup-temporal))
-2. Start the Zigflow worker
-3. Execute workflows with test inputs
-4. Verify that workflow outputs match expected values
-5. Exit with a non-zero code if any assertion fails
+2. Run workflows with test inputs (`zigflow test` or a long-lived worker plus
+   a client)
+3. Verify that workflow outputs match expected values
+4. Exit with a non-zero code if any assertion fails
 
-**Example CI steps:**
+**Example CI steps using `zigflow test`:**
+
+```sh
+# Start Temporal in the background
+temporal server start-dev &
+
+# Run the workflow once; non-zero exit on failure
+zigflow test workflow.yaml --input testdata/input.json --timeout 10m
+```
+
+**Example with a background worker and scripts:**
 
 ```sh
 # Start Temporal in the background
@@ -224,7 +271,23 @@ take effect only after the worker is restarted.
 **Reusing workflow IDs across test runs.**
 If you reuse a workflow ID, Temporal may reject or deduplicate the execution
 depending on its reuse policy. Use unique workflow IDs for each test run, or
-set `--workflow-id-reuse-policy` when starting executions.
+set `--workflow-id-reuse-policy` when starting executions. `zigflow test`
+generates a unique workflow ID for each invocation.
+
+**Running `zigflow test` while `zigflow run` is active.**
+Because `zigflow test` uses the `zigflow-test` queue, it does not share the
+worker pool with `zigflow run` on `document.taskQueue`.
+
+**Running multiple `zigflow test` commands at once.**
+Each invocation registers only its own workflow on the shared `zigflow-test`
+queue. Without coordination, Temporal could deliver a task to a worker that
+does not have that workflow registered. Zigflow therefore acquires a
+per-machine file lock keyed by Temporal address and namespace so only one
+`zigflow test` process polls `zigflow-test` at a time for that server and
+namespace. Additional invocations wait until the lock is released. The lock
+file lives under your user cache directory (for example
+`~/.cache/zigflow/test-locks` on Linux). Different namespaces, or different
+Temporal servers, do not block each other.
 
 **Hard-coding long timer durations.**
 A `wait` task with a duration of hours will block test execution for hours.
@@ -239,6 +302,7 @@ on exact timing are fragile in CI environments.
 
 ## Related pages
 
+- [Using the CLI](/docs/cli/using-the-cli): validate, test and run commands
 - [How Zigflow Runs](/docs/concepts/how-zigflow-runs): execution model overview
 - [Listen task](/docs/dsl/tasks/listen): waiting for external events and signals
 - [Wait task](/docs/dsl/tasks/wait): durable timers

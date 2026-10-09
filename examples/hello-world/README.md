@@ -19,6 +19,14 @@ go run .
 
 This will trigger the workflow and print everything to the console.
 
+With a local Temporal server (`temporal server start-dev`):
+
+```sh
+go run . test workflow.yaml --input test-input.json
+```
+
+See [Using the CLI](/docs/cli/using-the-cli) for `zigflow test` behaviour.
+
 ## Diagram
 
 <!-- ZIGFLOW_GRAPH_START -->
