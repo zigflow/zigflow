@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	m "github.com/zigflow/zigflow/pkg/mcp"
+	"github.com/zigflow/zigflow/pkg/version"
 )
 
 func newMCPCmd() *cobra.Command {
@@ -38,12 +39,12 @@ func newMCPCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			server := mcp.NewServer(&mcp.Implementation{
 				Name:       "zigflow",
-				Version:    Version,
+				Version:    version.Version,
 				Title:      "Zigflow",
 				WebsiteURL: opts.WebsiteURL,
 			}, nil)
 
-			_ = m.New(server, Version)
+			_ = m.New(server, version.Version)
 
 			switch opts.Transport {
 			case "http":
