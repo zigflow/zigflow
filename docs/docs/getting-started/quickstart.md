@@ -204,6 +204,12 @@ zigflow run -f workflow.yaml --log-level debug
 
 ## Next steps
 
+:::tip
+For a new project, create a repository from the
+[Zigflow starter template](https://github.com/zigflow/starter). It includes an
+example workflow, a Docker Compose setup and workflow validation in CI.
+:::
+
 - [Concepts: Overview](/docs/concepts/overview): the mental model behind Zigflow
 - [Your first workflow](/docs/getting-started/your-first-workflow): triggering
   from application code

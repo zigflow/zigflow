@@ -84,6 +84,10 @@ Run your first workflow in a few minutes and see the result.
 
    You should see the workflow output in the CLI.
 
+Building something new? Create it from the [Zigflow starter template](https://github.com/zigflow/starter),
+which comes with an example workflow, a Docker Compose setup and workflow
+validation in CI.
+
 ### Next steps
 
 - [Documentation](https://zigflow.dev/docs)
