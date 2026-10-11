@@ -103,7 +103,7 @@ jobs:
           VERSION="${{ github.ref_name }}"
           VERSION="${VERSION#v}"
           go build \
-            -ldflags "-X github.com/zigflow/zigflow/cmd.Version=${VERSION}" \
+            -ldflags "-X github.com/zigflow/zigflow/pkg/version.Version=${VERSION}" \
             -o /tmp/zigflow-tag \
             .
           mkdir -p docs/static/schemas/${VERSION}

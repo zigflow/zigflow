@@ -22,15 +22,20 @@ import (
 	"context"
 	"encoding/json"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zigflow/zigflow/internal/e2etest"
+	zfmcp "github.com/zigflow/zigflow/pkg/mcp"
 	"go.temporal.io/sdk/client"
 )
 
@@ -38,6 +43,11 @@ import (
 // hardcoded in workflow.yaml, so the test intercepts it locally to stay
 // hermetic.
 const jsonplaceholderHost = "jsonplaceholder.typicode.com"
+
+// expectedMCPTool is a tool the Zigflow MCP server always exposes. Both MCP
+// branches list the server's tools, so its presence proves each call reached
+// a real Zigflow MCP server.
+const expectedMCPTool = "get_task_docs"
 
 // grpcInput is the value supplied to the gRPC Command1 method via
 // $env.GRPC_INPUT (ZIGGY_GRPC_INPUT below). The basic gRPC service echoes it
@@ -73,7 +83,8 @@ const user3JSON = `{
 }`
 
 // TestExternalCallsE2E runs the external-calls example end to end. The workflow
-// is a non-competing fork with a gRPC branch and an HTTP branch.
+// is a non-competing fork with gRPC, HTTP, MCP over HTTP and MCP over STDIO
+// branches.
 //
 // The gRPC backend runs as the basic BasicService in a Testcontainers
 // container, which stands in for the compose "grpc" service; the HTTP endpoint
@@ -113,7 +124,14 @@ func TestExternalCallsE2E(t *testing.T) {
 	// semantics untouched. service.host and service.port are typed, validated
 	// fields (host is a hostname, port an int), so unlike arguments.input they
 	// cannot be $env expressions; a test-specific copy is the cleanest option.
-	workflowFile := writeHostWorkflow(t, forwarder.Host, forwarder.Port)
+	//
+	// The MCP branches are rewired the same way. Compose provides a
+	// "zigflow-mcp" service and runs the STDIO server with "go run" from the
+	// repository root; here the HTTP branch targets an in-process Zigflow MCP
+	// server and the STDIO branch runs "mcp" on an explicit Zigflow binary.
+	mcpURL := startMCPHTTPServer(t)
+	zigflowBinary := e2etest.ZigflowBinary(t)
+	workflowFile := writeHostWorkflow(t, forwarder.Host, forwarder.Port, mcpURL, zigflowBinary)
 
 	// Keep the worker's Temporal connection direct; only the external HTTPS host
 	// is routed through the mock. The gRPC call targets localhost (the
@@ -156,6 +174,11 @@ func assertExternalCallsResult(t *testing.T, got, user3 map[string]any) {
 	require.True(t, ok, "grpc branch should be an object")
 	assert.Equal(t, expectedGRPCOutput, grpcBranch["output"], "grpc Command1 output")
 
+	for _, branch := range []string{"mcp-http", "mcp-stdio"} {
+		assert.Containsf(t, mcpToolNames(t, got[branch]), expectedMCPTool,
+			"%s branch lists the Zigflow MCP server's tools", branch)
+	}
+
 	// No branch result should carry an unresolved ${ ... } expression string.
 	raw, err := json.Marshal(got)
 	require.NoError(t, err)
@@ -170,16 +193,18 @@ func assertExternalCallsResult(t *testing.T, got, user3 map[string]any) {
 //   - gRPC host    ("grpc" -> the loopback forwarder host)
 //   - gRPC port    (3000   -> the forwarder's mapped port)
 //   - proto endpoint path (in-container path -> the host path)
+//   - MCP HTTP endpoint ("zigflow-mcp" service -> the in-process MCP server)
+//   - MCP STDIO command ("go run . mcp" -> "<zigflow binary> mcp")
 //
-// Everything else, including the HTTP branch and the ${ $env.GRPC_INPUT }
-// argument, is preserved verbatim: this adapts the container/compose wiring
+// Everything else, including the HTTP branch, the MCP methods and the
+// ${ $env.GRPC_INPUT } argument, is preserved verbatim: this adapts the container/compose wiring
 // assumptions without changing the workflow's semantics. The patched copy is
 // written to a temp file and its path returned.
 //
 // Each replacement is guarded so the test fails loudly if workflow.yaml drifts
 // from the substrings this rewrite depends on, rather than silently testing the
 // unpatched (container-only) values.
-func writeHostWorkflow(t *testing.T, host, port string) string {
+func writeHostWorkflow(t *testing.T, host, port, mcpURL, zigflowBinary string) string {
 	t.Helper()
 
 	source, err := os.ReadFile("workflow.yaml")
@@ -195,6 +220,12 @@ func writeHostWorkflow(t *testing.T, host, port string) string {
 		},
 		{old: "host: grpc", new: "host: " + host},
 		{old: "port: 3000", new: "port: " + port},
+		{old: "uri: http://zigflow-mcp:8080", new: "uri: " + mcpURL},
+		{old: "command: go", new: "command: " + strconv.Quote(zigflowBinary)},
+		{
+			old: "- run\n                      - .\n                      - mcp",
+			new: "- mcp",
+		},
 	}
 
 	patched := string(source)
@@ -221,4 +252,43 @@ func decodeJSON(t *testing.T, s string) map[string]any {
 	var out map[string]any
 	require.NoError(t, json.Unmarshal([]byte(s), &out))
 	return out
+}
+
+// startMCPHTTPServer serves Zigflow's MCP server over streamable HTTP on a
+// loopback address and returns its URL. It stands in for the compose
+// "zigflow-mcp" service. Loopback is in the HTTPS mock's NO_PROXY, so the
+// worker reaches it directly.
+func startMCPHTTPServer(t *testing.T) string {
+	t.Helper()
+
+	server := mcp.NewServer(&mcp.Implementation{Name: "zigflow", Version: "e2e"}, nil)
+	zfmcp.New(server, "e2e")
+
+	srv := httptest.NewServer(mcp.NewStreamableHTTPHandler(
+		func(*http.Request) *mcp.Server { return server },
+		&mcp.StreamableHTTPOptions{Stateless: true},
+	))
+	t.Cleanup(srv.Close)
+
+	return srv.URL
+}
+
+// mcpToolNames extracts the tool names from a tools/list branch result.
+func mcpToolNames(t *testing.T, result any) []string {
+	t.Helper()
+
+	branch, ok := result.(map[string]any)
+	require.True(t, ok, "MCP branch should be an object, got %T", result)
+	tools, ok := branch["tools"].([]any)
+	require.True(t, ok, "MCP branch should contain a tools list, got %v", branch)
+
+	names := make([]string, 0, len(tools))
+	for _, tool := range tools {
+		if m, ok := tool.(map[string]any); ok {
+			if name, ok := m["name"].(string); ok {
+				names = append(names, name)
+			}
+		}
+	}
+	return names
 }

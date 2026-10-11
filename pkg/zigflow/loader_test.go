@@ -360,3 +360,126 @@ do:
 	assert.Error(t, err, "await:false on run script must be rejected by Validate()")
 	assert.Contains(t, err.Error(), "run scripts must be run with await")
 }
+
+const mcpTaskYAMLPrefix = `document:
+  dsl: 1.0.0
+  taskQueue: default
+  workflowType: mcp
+  version: 0.0.1
+do:
+  - callMCP:
+      call: mcp
+      with:
+`
+
+// TestValidateBytes_CallMCP verifies the JSON schema accepts valid MCP call
+// tasks and rejects malformed ones before they reach the task builder.
+func TestValidateBytes_CallMCP(t *testing.T) {
+	tests := []struct {
+		Name    string
+		With    string
+		WantErr bool
+	}{
+		{
+			Name: "http transport with headers and timeout",
+			With: `        method: tools/call
+        protocolVersion: "2025-03-26"
+        timeout:
+          seconds: 10
+        parameters:
+          name: echo
+          arguments:
+            message: hello
+        transport:
+          http:
+            endpoint: https://example.com/mcp
+            headers:
+              Authorization: Bearer token`,
+		},
+		{
+			Name: "stdio transport with arguments and environment",
+			With: `        method: tools/list
+        transport:
+          stdio:
+            command: npx
+            arguments:
+              - -y
+              - server
+            environment:
+              DEBUG: "true"`,
+		},
+		{
+			Name: "stdio environment value must be a string",
+			With: `        method: tools/list
+        transport:
+          stdio:
+            command: server
+            environment:
+              PORT: 8080`,
+			WantErr: true,
+		},
+		{
+			Name:    "transport is required",
+			With:    `        method: tools/list`,
+			WantErr: true,
+		},
+		{
+			Name: "exactly one transport is allowed",
+			With: `        method: tools/list
+        transport:
+          http:
+            endpoint: https://example.com/mcp
+          stdio:
+            command: server`,
+			WantErr: true,
+		},
+		{
+			Name: "unsupported method is rejected",
+			With: `        method: tools/unknown
+        transport:
+          stdio:
+            command: server`,
+			WantErr: true,
+		},
+		{
+			Name: "ISO 8601 timeout is rejected",
+			With: `        method: tools/list
+        timeout: PT1M
+        transport:
+          stdio:
+            command: server`,
+			WantErr: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			err := zigflow.ValidateBytes([]byte(mcpTaskYAMLPrefix + test.With))
+			if test.WantErr {
+				assert.ErrorIs(t, err, zigflow.ErrSchemaValidation)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
+}
+
+// TestLoadFromFile_CallMCPTaskTypeIsCallFunction verifies an MCP call is
+// parsed by the SDK as a *model.CallFunction, which the task builder
+// dispatches on its call name.
+func TestLoadFromFile_CallMCPTaskTypeIsCallFunction(t *testing.T) {
+	content := mcpTaskYAMLPrefix + `        method: tools/list
+        transport:
+          stdio:
+            command: server`
+
+	workflow, err := zigflow.LoadFromFile(writeWorkflow(t, content))
+	require.NoError(t, err)
+	require.NotNil(t, workflow.Do)
+	tasks := *workflow.Do
+	require.Len(t, tasks, 1)
+
+	task, ok := tasks[0].Task.(*model.CallFunction)
+	require.True(t, ok, "mcp call must be parsed as *model.CallFunction, got %T", tasks[0].Task)
+	assert.Equal(t, "mcp", task.Call)
+}

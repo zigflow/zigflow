@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -66,17 +67,49 @@ const workerStartAttempts = 3
 func workerCommand(t *testing.T) (program string, args []string) {
 	t.Helper()
 
-	if binary := os.Getenv(BinaryEnvVar); binary != "" {
-		// The path is operator-supplied via the environment for this test
-		// helper, so the traversal is intentional.
-		info, err := os.Stat(binary) //nolint:gosec // test-controlled path
-		require.NoErrorf(t, err, "%s=%q is set but not usable", BinaryEnvVar, binary)
-		require.Falsef(t, info.IsDir(), "%s=%q is a directory, not a binary", BinaryEnvVar, binary)
+	if binary := prebuiltBinary(t); binary != "" {
 		return binary, []string{runSubcommand}
 	}
 
 	t.Logf("%s not set; falling back to \"go run\" (slower)", BinaryEnvVar)
 	return "go", []string{"run", zigflowModule, runSubcommand}
+}
+
+// prebuiltBinary returns the binary named by ZIGFLOW_E2E_BINARY, or an empty
+// string when it is not set. A set but unusable path fails the test.
+func prebuiltBinary(t *testing.T) string {
+	t.Helper()
+
+	binary := os.Getenv(BinaryEnvVar)
+	if binary == "" {
+		return ""
+	}
+
+	// The path is operator-supplied via the environment for this test
+	// helper, so the traversal is intentional.
+	info, err := os.Stat(binary) //nolint:gosec // test-controlled path
+	require.NoErrorf(t, err, "%s=%q is set but not usable", BinaryEnvVar, binary)
+	require.Falsef(t, info.IsDir(), "%s=%q is a directory, not a binary", BinaryEnvVar, binary)
+	return binary
+}
+
+// ZigflowBinary returns the path to a Zigflow binary, for tests that need to
+// run a subcommand other than the worker (for example "mcp" as an MCP STDIO
+// server). It prefers ZIGFLOW_E2E_BINARY and otherwise builds the binary into
+// the test's temp directory, so the path never depends on the working
+// directory of whichever process executes it.
+func ZigflowBinary(t *testing.T) string {
+	t.Helper()
+
+	if binary := prebuiltBinary(t); binary != "" {
+		return binary
+	}
+
+	binary := filepath.Join(t.TempDir(), "zigflow")
+	t.Logf("%s not set; building Zigflow binary at %s", BinaryEnvVar, binary)
+	out, err := exec.CommandContext(t.Context(), "go", "build", "-o", binary, zigflowModule).CombinedOutput()
+	require.NoErrorf(t, err, "build Zigflow binary: %s", out)
+	return binary
 }
 
 // StartWorker runs the Zigflow worker as a subprocess against the given

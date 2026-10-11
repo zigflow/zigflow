@@ -73,7 +73,7 @@ func TestGetTaskDocs_Call(t *testing.T) {
 
 func TestGetTaskDocs_CallSubTypesFromSchema(t *testing.T) {
 	out := taskDocs(t, "call")
-	assert.Equal(t, []string{"activity", "grpc", "http"}, out.SubTypes)
+	assert.Equal(t, []string{"activity", "grpc", "http", "mcp"}, out.SubTypes)
 }
 
 func TestGetTaskDocs_CallExamplesFromCatalog(t *testing.T) {
