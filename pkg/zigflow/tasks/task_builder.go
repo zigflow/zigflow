@@ -76,18 +76,12 @@ type builder[T model.Task] struct {
 // resolved against state, and the expressions left for the activity.
 type activityInputResolver[T model.Task] func(task T, state *utils.State) (T, *utils.ActivityInputs, error)
 
-// activityArgs returns the task and state to schedule an activity with. New
-// executions resolve the task's inputs here, so the activity receives, and
-// the history records, concrete values. The state the activity receives lists
-// the expressions left for it; the workflow's own state never carries them.
-//
-// Executions started before this change have no version marker, so replay
-// schedules the task as it was originally recorded, for the activity to
-// evaluate.
-func (d *builder[T]) activityArgs(ctx workflow.Context, state *utils.State) (T, *utils.State, error) {
-	if d.resolveInputs == nil || workflow.GetVersion(
-		ctx, activityInputsVersionChangeID, workflow.DefaultVersion, activityInputsVersion,
-	) == workflow.DefaultVersion {
+// activityArgs returns the task and state to schedule an activity with. The
+// task's inputs are resolved here, so the activity receives, and the history
+// records, concrete values. The state the activity receives lists the
+// expressions left for it; the workflow's own state never carries them.
+func (d *builder[T]) activityArgs(state *utils.State) (T, *utils.State, error) {
+	if d.resolveInputs == nil {
 		return d.task, state, nil
 	}
 
@@ -167,41 +161,18 @@ func (d *builder[T]) registerActivityForTask(fn any) string {
 // Combines registerActivityForTask with the dispatch closure used by
 // CallHTTP/CallGRPC. RunTaskBuilder picks between sub-activities and
 // uses registerActivityForTask directly instead.
-//
-// legacyName is the fixed activity type name recorded by histories created
-// before per-task aliases existed; dispatchActivityName decides at runtime
-// which name to schedule so open executions keep replaying deterministically.
-func (d *builder[T]) buildActivityFunc(fn any, legacyName string) TemporalWorkflowFunc {
-	perTaskName := d.registerActivityForTask(fn)
+func (d *builder[T]) buildActivityFunc(fn any) TemporalWorkflowFunc {
+	name := d.registerActivityForTask(fn)
 	return func(ctx workflow.Context, input any, state *utils.State) (any, error) {
-		return d.executeActivity(ctx, dispatchActivityName(ctx, legacyName, perTaskName), input, state)
+		return d.executeActivity(ctx, name, input, state)
 	}
-}
-
-// dispatchActivityName selects the activity type to schedule, using Temporal
-// workflow versioning so renaming activities to per-task aliases does not
-// break open histories.
-//
-// On a new execution GetVersion records a marker and returns the current
-// version, so the per-task alias is scheduled. On an execution that started
-// before the change there is no marker, GetVersion returns
-// workflow.DefaultVersion, and the legacy name the history already recorded
-// is scheduled again, keeping the replay deterministic. The worker registers
-// both names, so either resolves at runtime.
-func dispatchActivityName(ctx workflow.Context, legacyName, perTaskName string) string {
-	if workflow.GetVersion(
-		ctx, activityNamingVersionChangeID, workflow.DefaultVersion, activityNamingVersion,
-	) == workflow.DefaultVersion {
-		return legacyName
-	}
-	return perTaskName
 }
 
 func (d *builder[T]) executeActivity(ctx workflow.Context, activity, input any, state *utils.State) (output any, err error) {
 	logger := workflow.GetLogger(ctx)
 	logger.Debug("Calling activity", "name", d.name)
 
-	task, activityState, err := d.activityArgs(ctx, state)
+	task, activityState, err := d.activityArgs(state)
 	if err != nil {
 		return nil, err
 	}

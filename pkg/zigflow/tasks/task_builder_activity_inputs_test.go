@@ -57,9 +57,7 @@ func activityInputState() *utils.State {
 
 // executeTask runs fn in a test workflow with activityFn registered under the
 // task's activity name, and returns the workflow error.
-func executeTask(
-	t *testing.T, fn TemporalWorkflowFunc, activityFn any, setup ...func(*testsuite.TestWorkflowEnvironment),
-) error {
+func executeTask(t *testing.T, fn TemporalWorkflowFunc, activityFn any) error {
 	t.Helper()
 
 	var s testsuite.WorkflowTestSuite
@@ -69,9 +67,6 @@ func executeTask(
 		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: time.Minute})
 		return fn(ctx, nil, activityInputState())
 	}, workflow.RegisterOptions{Name: "activity-inputs"})
-	for _, f := range setup {
-		f(env)
-	}
 
 	env.ExecuteWorkflow("activity-inputs")
 	return env.GetWorkflowError()
@@ -275,25 +270,4 @@ func TestActivityInputResolutionErrorFailsTheTask(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "error resolving activity inputs for task fetch")
 	assert.Contains(t, err.Error(), "boom")
-}
-
-// An execution that started before inputs were resolved in the workflow has no
-// version marker: replay must schedule the task exactly as it was recorded.
-func TestExecutionWithoutVersionMarkerSchedulesInputsUnresolved(t *testing.T) {
-	task := newActivityInputHTTPTask()
-
-	var scheduled *model.CallHTTP
-	var activityState *utils.State
-	err := executeTask(t, buildHTTP(t, task), func(task *model.CallHTTP, _ any, state *utils.State) (any, error) {
-		scheduled, activityState = task, state
-		return map[string]any{}, nil
-	}, func(env *testsuite.TestWorkflowEnvironment) {
-		env.OnGetVersion(activityInputsVersionChangeID, workflow.DefaultVersion, activityInputsVersion).
-			Return(workflow.DefaultVersion)
-	})
-	require.NoError(t, err)
-
-	assert.Equal(t, task.With.Endpoint.String(), scheduled.With.Endpoint.String())
-	assert.JSONEq(t, string(task.With.Body), string(scheduled.With.Body))
-	assert.Nil(t, activityState.ActivityInputs)
 }

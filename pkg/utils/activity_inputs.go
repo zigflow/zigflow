@@ -75,9 +75,8 @@ func ResolveActivityInputs(value any, state *State, deferActivityState bool) (an
 
 // EvaluateActivityInput evaluates value, the part of an activity's input at
 // prefix, inside the activity. When the workflow resolved the inputs, only the
-// expressions it deferred under prefix are evaluated. Otherwise the activity
-// was scheduled before inputs were resolved in the workflow, and every
-// expression in value is evaluated, as it always was.
+// expressions it deferred under prefix are evaluated. When state carries no
+// activity inputs, every expression in value is evaluated.
 func EvaluateActivityInput(prefix string, value any, state *State) (any, error) {
 	if state.ActivityInputs == nil {
 		return walkInputs(swUtil.DeepCloneValue(value), prefix, func(_, s string) (any, error) {
@@ -88,8 +87,8 @@ func EvaluateActivityInput(prefix string, value any, state *State) (any, error) 
 }
 
 // EvaluateDeferredActivityInput evaluates only the expressions the workflow
-// deferred under prefix, over the same shapes as EvaluateActivityInput. An
-// activity scheduled with unresolved inputs gets value back unchanged.
+// deferred under prefix, over the same shapes as EvaluateActivityInput. When
+// state carries no activity inputs, value is returned unchanged.
 func EvaluateDeferredActivityInput(prefix string, value any, state *State) (any, error) {
 	if state.ActivityInputs == nil {
 		return value, nil

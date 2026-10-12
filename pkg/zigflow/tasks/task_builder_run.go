@@ -62,11 +62,6 @@ type RunTaskBuilder struct {
 	// dispatch name so SDK metrics carry activity_type=<workflowType>.<taskName>.
 	// Empty for the runWorkflow sub-factory (no activity registration).
 	activityName string
-	// legacyActivityName is the fixed activity type name the chosen
-	// sub-activity used before per-task aliases existed. Sub-factories pass
-	// both names to dispatchActivityName so open histories keep scheduling
-	// the legacy name during replay.
-	legacyActivityName string
 }
 
 // Singleton whose bound method values are registered under per-task names.
@@ -75,19 +70,15 @@ var runActivityInstance = &activities.Run{}
 func (t *RunTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	var factory TemporalWorkflowFunc
 	var activityFn any
-	var legacyName string
 	switch {
 	case t.task.Run.Container != nil:
 		activityFn = runActivityInstance.CallContainerActivity
-		legacyName = legacyCallContainerActivityName
 		factory = t.runContainer
 	case t.task.Run.Script != nil:
 		activityFn = runActivityInstance.CallScriptActivity
-		legacyName = legacyCallScriptActivityName
 		factory = t.runScript
 	case t.task.Run.Shell != nil:
 		activityFn = runActivityInstance.CallShellActivity
-		legacyName = legacyCallShellActivityName
 		factory = t.runShell
 	case t.task.Run.Workflow != nil:
 		factory = t.runWorkflow
@@ -97,7 +88,6 @@ func (t *RunTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 	if activityFn != nil {
 		t.activityName = t.registerActivityForTask(activityFn)
-		t.legacyActivityName = legacyName
 		runtime := t.containerRuntime()
 		t.resolveInputs = func(task *model.RunTask, state *utils.State) (*model.RunTask, *utils.ActivityInputs, error) {
 			return activities.ResolveRunInputs(task, runtime, state)
@@ -189,7 +179,7 @@ func (t *RunTaskBuilder) executeCommand(ctx workflow.Context, activityFn, input 
 	logger := workflow.GetLogger(ctx)
 	logger.Debug("Executing a command", "task", t.GetTaskName())
 
-	task, activityState, err := t.activityArgs(ctx, state)
+	task, activityState, err := t.activityArgs(state)
 	if err != nil {
 		return nil, err
 	}
@@ -223,8 +213,7 @@ func (t *RunTaskBuilder) runContainer(ctx workflow.Context, input any, state *ut
 		serviceAccount = t.taskOpts.Run.ServiceAccount
 	}
 
-	name := dispatchActivityName(ctx, t.legacyActivityName, t.activityName)
-	return t.executeCommand(ctx, name, input, state, namespace, t.containerRuntime(), serviceAccount)
+	return t.executeCommand(ctx, t.activityName, input, state, namespace, t.containerRuntime(), serviceAccount)
 }
 
 // containerRuntime is the runtime a container task runs on; the zero value is Docker.
@@ -236,13 +225,11 @@ func (t *RunTaskBuilder) containerRuntime() activities.ContainerRuntime {
 }
 
 func (t *RunTaskBuilder) runScript(ctx workflow.Context, input any, state *utils.State) (any, error) {
-	name := dispatchActivityName(ctx, t.legacyActivityName, t.activityName)
-	return t.executeCommand(ctx, name, input, state)
+	return t.executeCommand(ctx, t.activityName, input, state)
 }
 
 func (t *RunTaskBuilder) runShell(ctx workflow.Context, input any, state *utils.State) (any, error) {
-	name := dispatchActivityName(ctx, t.legacyActivityName, t.activityName)
-	return t.executeCommand(ctx, name, input, state)
+	return t.executeCommand(ctx, t.activityName, input, state)
 }
 
 // childWorkflowInput returns the input and state for the child workflow. When

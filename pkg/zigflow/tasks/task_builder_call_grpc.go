@@ -60,5 +60,5 @@ var callGRPCActivity = &activities.CallGRPC{}
 
 func (t *CallGRPCTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	t.resolveInputs = activities.ResolveGRPCInputs
-	return t.buildActivityFunc(callGRPCActivity.CallGRPCActivity, legacyCallGRPCActivityName), nil
+	return t.buildActivityFunc(callGRPCActivity.CallGRPCActivity), nil
 }
