@@ -568,8 +568,8 @@ github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9dec
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yusufpapurcu/wmi v1.2.4 h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo0=
 github.com/yusufpapurcu/wmi v1.2.4/go.mod h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0=
-github.com/zigflow/helpers v0.2.0 h1:iul6pT2/C4aBsQCo2Lh5MBZeFUQO9oMo0KHs56eJ0vo=
-github.com/zigflow/helpers v0.2.0/go.mod h1:mxOW2yaGnd9ABft1vBKLRzzUSf5Q3C1Os2Njb83a/+s=
+github.com/zigflow/helpers v0.2.1 h1:ozObJQdyOKdiQeoNUxC8XgniNsar+oHJvIglQUYE76w=
+github.com/zigflow/helpers v0.2.1/go.mod h1:mxOW2yaGnd9ABft1vBKLRzzUSf5Q3C1Os2Njb83a/+s=
 github.com/zigflow/schema v0.0.0-20260930083453-1d7f22b48f32 h1:R7/8WbE/f4OXQm0UGCD4Oww+DxFzHCC8FlR1VA2c4XA=
 github.com/zigflow/schema v0.0.0-20260930083453-1d7f22b48f32/go.mod h1:jOchPRZ+VUG1mbN5tor6Uqm7jVNABJnCIfrmfURQa5Q=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
