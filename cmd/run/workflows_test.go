@@ -111,10 +111,10 @@ func TestLoadWorkflows_RegistrationTaskQueueOverride(t *testing.T) {
 	p := writeTempWorkflow(t, dir, "myns", "mywf")
 
 	validator := newTestValidator(t)
-	regs, err := loadWorkflows([]string{p}, "", validator, false, TestTaskQueue)
+	regs, err := loadWorkflows([]string{p}, "", validator, false, "isolated-test-queue")
 	require.NoError(t, err)
 	require.Len(t, regs, 1)
-	assert.Equal(t, TestTaskQueue, regs[0].TaskQueue)
+	assert.Equal(t, "isolated-test-queue", regs[0].TaskQueue)
 }
 
 func TestLoadWorkflows_MultipleFiles(t *testing.T) {

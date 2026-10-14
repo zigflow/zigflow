@@ -26,13 +26,23 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	zigtemporal "github.com/zigflow/helpers"
 )
 
 func TestRunBytesRejectsInvalidDefinition(t *testing.T) {
-	result, err := RunBytes(t.Context(), []byte("invalid: ["), Config{})
+	result, err := RunBytes(t.Context(), []byte("invalid: ["), &Config{})
 
 	require.Error(t, err)
 	assert.Nil(t, result)
+}
+
+func TestRunBytesDoesNotMutateConnectionOptions(t *testing.T) {
+	t.Setenv("TEMPORAL_ADDRESS", "localhost:17233")
+	t.Setenv("TEMPORAL_NAMESPACE", "test-namespace")
+	connection := &zigtemporal.TemporalOpts{}
+	_, err := RunBytes(t.Context(), []byte("invalid: ["), &Config{Temporal: connection})
+	require.Error(t, err)
+	assert.Equal(t, &zigtemporal.TemporalOpts{}, connection)
 }
 
 func TestNewWorkflowID(t *testing.T) {

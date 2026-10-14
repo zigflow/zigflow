@@ -1,5 +1,5 @@
 document:
   title: Concurrency test fixtures
-  summary: Manual zigflow test fixtures for lock serialisation checks
+  summary: Manual Zigflow test fixtures for concurrent queue isolation
   metadata:
     display: false

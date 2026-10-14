@@ -22,9 +22,9 @@ import (
 
 	gh "github.com/mrsimonemms/golang-helpers"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	temporal "github.com/zigflow/helpers"
-	runcmd "github.com/zigflow/zigflow/cmd/run"
 	"github.com/zigflow/zigflow/pkg/testrunner"
 )
 
@@ -49,12 +49,13 @@ This command is intended for local development and CI scripts. It connects to
 Temporal using the same flags as zigflow run. A dev Temporal server is usually
 started with "temporal server start-dev".
 
-All test runs use the fixed task queue "` + runcmd.TestTaskQueue + `" so they do not
-compete with long-lived zigflow run workers on document.taskQueue from the file.
+Each invocation uses its own zigflow-test-UUID task queue. Concurrent tests
+run independently, including tests with the same workflow type. The caller
+controls concurrency. Test sessions start no health or metrics listeners.
 
-Only one zigflow test process at a time may poll that queue for a given Temporal
-address and namespace; other invocations wait on a file lock until the run
-finishes.
+Runtime options currently use the defaults: ZIGGY_ environment variables,
+Docker containers, no payload encryption and no external storage. For custom
+runtime configuration, use the Go testrunner package.
 
 Arguments:
   workflow-file   Path to the Zigflow workflow file to test`,
@@ -83,7 +84,16 @@ Arguments:
 		viper.GetString("temporal_ui_address"), "Temporal Web UI base URL for inspect links on failure",
 	)
 
-	temporal.NewCobraOpts(cmd, opts.temporal)
+	connectionFlags := &cobra.Command{}
+	temporal.NewCobraOpts(connectionFlags, opts.temporal)
+	connectionFlags.Flags().VisitAll(func(flag *pflag.Flag) {
+		switch flag.Name {
+		case "health-listen-address", "metrics-listen-address", "metrics-prefix":
+			return
+		default:
+			cmd.Flags().AddFlag(flag)
+		}
+	})
 
 	return cmd
 }
@@ -115,7 +125,7 @@ func runTestCmd(
 		return err
 	}
 
-	result, err := testrunner.Run(cmd.Context(), testrunner.Config{
+	result, err := testrunner.Run(cmd.Context(), &testrunner.Config{
 		WorkflowFile: workflowFile,
 		Input:        input,
 		Timeout:      timeout,

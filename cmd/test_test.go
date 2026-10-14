@@ -29,4 +29,7 @@ func TestNewTestCmd(t *testing.T) {
 	assert.NotNil(t, cmd.Flags().Lookup("timeout"))
 	assert.NotNil(t, cmd.Flags().Lookup("temporal-ui-address"))
 	assert.NotNil(t, cmd.Flags().Lookup("temporal-address"))
+	for _, name := range []string{"health-listen-address", "metrics-listen-address", "metrics-prefix"} {
+		assert.Nil(t, cmd.Flags().Lookup(name), "test sessions do not expose %s", name)
+	}
 }

@@ -1,7 +1,7 @@
-# Concurrency lock manual check
+# Concurrent test isolation
 
-Fixtures for checking that concurrent `zigflow test` runs serialise on the
-`zigflow-test` task queue (file lock per Temporal address and namespace).
+Fixtures for checking that concurrent `zigflow test` runs use separate
+`zigflow-test-<uuid>` task queues without a file lock.
 
 ## Prerequisites
 
@@ -18,7 +18,7 @@ cd /workspaces/zigflow
 ## Run
 
 Start the slow workflow in the background, then start the fast one immediately.
-The fast run should not finish until the slow run has completed.
+The fast run should complete while the slow run is still waiting.
 
 ```sh
 (
@@ -37,9 +37,10 @@ time go run . test examples/test-concurrency/fast-workflow.yaml \
 wait "$slow_pid"
 ```
 
-If locking works, the fast command's `time` output shows roughly the slow
-workflow duration (about 45 seconds) plus its own run time, not a sub-second
-total.
+The fast run should return its own output without waiting for the slow
+workflow's 45-second timer. Both workflows use the same workflow type but
+different definitions, so each result must match its own file. The Temporal
+UI should show a different task queue for each execution.
 
 ## Validate fixtures only
 

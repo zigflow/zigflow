@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
@@ -82,7 +83,16 @@ func (v *Validator) ValidateStruct(data any) ([]ValidationErrors, error) {
 	return vErrs, nil
 }
 
+// The SDK validator is shared. Registering rules or translations while another
+// caller validates data races with its internal maps. Configure it once, before
+// returning it to any caller, then use its concurrent validation API.
+var sharedValidator = sync.OnceValues(newValidator)
+
 func NewValidator() (*Validator, error) {
+	return sharedValidator()
+}
+
+func newValidator() (*Validator, error) {
 	enTrans := en.New()
 	uni := ut.New(enTrans)
 	trans, _ := uni.GetTranslator(enTrans.Locale())

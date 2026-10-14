@@ -227,7 +227,7 @@ func TestE2EMultiFileDuplicateRejected(t *testing.T) {
 
 // TestE2EZigflowTest exercises pkg/testrunner against the set workflow fixture.
 // It does not start a separate zigflow run worker; the test command path embeds
-// its own worker on the zigflow-test task queue.
+// its own worker on a unique test task queue.
 func TestE2EZigflowTest(t *testing.T) {
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
@@ -239,7 +239,7 @@ func TestE2EZigflowTest(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
 	t.Cleanup(cancel)
 
-	result, err := testrunner.RunBytes(ctx, workflowBytes, testrunner.Config{
+	result, err := testrunner.RunBytes(ctx, workflowBytes, &testrunner.Config{
 		Input:   map[string]any{},
 		Timeout: 3 * time.Minute,
 	})
@@ -266,7 +266,7 @@ func TestE2EZigflowTestFailed(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
 	t.Cleanup(cancel)
 
-	result, err := testrunner.Run(ctx, testrunner.Config{
+	result, err := testrunner.Run(ctx, &testrunner.Config{
 		WorkflowFile: workflowPath,
 		Input:        map[string]any{},
 		Timeout:      3 * time.Minute,
@@ -284,7 +284,7 @@ func TestE2EZigflowTestFailed(t *testing.T) {
 }
 
 // TestE2EZigflowTestTimeout terminates executions that exceed --timeout so a
-// follow-up test can poll zigflow-test without inheriting the abandoned run.
+// no execution is left waiting on a queue whose worker has stopped.
 func TestE2EZigflowTestTimeout(t *testing.T) {
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
@@ -295,7 +295,7 @@ func TestE2EZigflowTestTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
 	t.Cleanup(cancel)
 
-	timeoutResult, err := testrunner.Run(ctx, testrunner.Config{
+	timeoutResult, err := testrunner.Run(ctx, &testrunner.Config{
 		WorkflowFile: slowPath,
 		Input:        map[string]any{},
 		Timeout:      2 * time.Second,
@@ -306,7 +306,7 @@ func TestE2EZigflowTestTimeout(t *testing.T) {
 	assert.ErrorIs(t, timeoutResult.Err, testrunner.ErrTestTimeout)
 	assert.ErrorIs(t, timeoutResult.Err, context.DeadlineExceeded)
 
-	followUp, err := testrunner.Run(ctx, testrunner.Config{
+	followUp, err := testrunner.Run(ctx, &testrunner.Config{
 		WorkflowFile: setPath,
 		Input:        map[string]any{},
 		Timeout:      3 * time.Minute,
