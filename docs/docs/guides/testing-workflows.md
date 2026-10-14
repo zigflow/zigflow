@@ -66,7 +66,8 @@ zigflow test workflow.yaml --input testdata/input.json
 ```
 
 :::warning
-`zigflow test` always uses the Temporal task queue `zigflow-test`. The
+`zigflow test` uses a unique Temporal task queue `zigflow-test-UUID` for
+each invocation. The
 `document.taskQueue` value in the YAML is not used for registering the test
 worker or for starting the run. That avoids competing with a separate
 `zigflow run` process on the same queue. Tasks inside the workflow that
@@ -81,12 +82,72 @@ The public Go package `github.com/zigflow/zigflow/pkg/testrunner` exposes the
 same orchestration for tests written in Go. Treat it as experimental until
 documented as a stable API.
 
+The CLI currently uses the default runtime configuration: `ZIGGY_` environment
+variables, Docker containers, no payload encryption, no external storage and no
+CloudEvents configuration file. The corresponding `zigflow run` flags are not
+available on `zigflow test`. A pass under these defaults does not verify your
+production runtime configuration. Use the Go API below for custom settings.
+
 On failure, `zigflow test` still exits with a non-zero status and prints
 `Failed` or `Timeout`, but it also prints an `output` section when structured
 failure data is available (for example Open Workflow Specification errors from
 `raise`). The Go `Result.Output` field is populated the same way. A short
 `error:` line and Temporal inspect link are printed after the output when the
 run did not complete successfully.
+
+#### Testing from Go
+
+Import `pkg/testrunner` to run workflow files with `Run`, or YAML and JSON bytes
+with `RunBytes`. Both functions validate the definition, own the worker and
+client lifecycle, and return a structured result without printing CLI output.
+Check both the returned error (setup failure) and `Result.Status` (execution
+outcome).
+
+```go
+package workflowtest
+
+import (
+    "context"
+    "fmt"
+    "time"
+
+    temporal "github.com/zigflow/helpers"
+    "github.com/zigflow/zigflow/pkg/testrunner"
+)
+
+func Check(ctx context.Context, definition []byte) error {
+    result, err := testrunner.RunBytes(ctx, definition, &testrunner.Config{
+        Temporal: &temporal.TemporalOpts{
+            Address:   "localhost:7233",
+            Namespace: "default",
+        },
+        Timeout: time.Minute,
+        Input:   map[string]any{"name": "test"},
+        Envvars: map[string]any{}, // Explicitly disable environment loading.
+    })
+    if err != nil {
+        return err
+    }
+    if result.Status != testrunner.StatusCompleted {
+        return fmt.Errorf("workflow test %s: %w", result.Status, result.Err)
+    }
+    // Assert the expected Result.Output in your test.
+    return nil
+}
+```
+
+Use `Config.Client` for payload codecs and external storage, `Config.TaskOptions`
+for task execution settings such as the container runtime, `Config.Envvars` for
+explicit environment values, and `Config.CloudEventsConfig` for a CloudEvents
+configuration file. Client configuration is shared with `zigflow run`.
+
+Each call creates its own queue, available as `Result.TaskQueue`. Concurrent
+calls may reuse a configuration, provided the caller does not mutate its maps
+or pointers while they are running. The runner does not mutate connection
+options, start health or metrics listeners, or create Temporal schedules.
+Control concurrency in your Go test runner. Child workflows and built-in
+activities inherit the isolated queue; explicit activity queue targets are
+unchanged.
 
 #### Option B: long-lived worker and Temporal CLI
 
@@ -275,19 +336,16 @@ set `--workflow-id-reuse-policy` when starting executions. `zigflow test`
 generates a unique workflow ID for each invocation.
 
 **Running `zigflow test` while `zigflow run` is active.**
-Because `zigflow test` uses the `zigflow-test` queue, it does not share the
+Because `zigflow test` uses a unique queue, it does not share the
 worker pool with `zigflow run` on `document.taskQueue`.
 
 **Running multiple `zigflow test` commands at once.**
-Each invocation registers only its own workflow on the shared `zigflow-test`
-queue. Without coordination, Temporal could deliver a task to a worker that
-does not have that workflow registered. Zigflow therefore acquires a
-per-machine file lock keyed by Temporal address and namespace so only one
-`zigflow test` process polls `zigflow-test` at a time for that server and
-namespace. Additional invocations wait until the lock is released. The lock
-file lives under your user cache directory (for example
-`~/.cache/zigflow/test-locks` on Linux). Different namespaces, or different
-Temporal servers, do not block each other.
+Each invocation registers its workflow on a unique queue. Runs on different
+machines are isolated even when they share a Temporal namespace and workflow
+type. There is no file lock or built-in concurrency limit. Use your CI matrix,
+test runner or a tool such as `xargs -P` to bound the number of active workers.
+Test sessions do not bind health or metrics ports, so they can run alongside
+long-lived workers using the default ports.
 
 **Hard-coding long timer durations.**
 A `wait` task with a duration of hours will block test execution for hours.

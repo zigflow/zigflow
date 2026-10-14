@@ -92,10 +92,7 @@ type runOptions struct {
 	// registrationTaskQueue, when non-empty, is used instead of document.taskQueue
 	// when building workflowRegistration values (zigflow test only today).
 	registrationTaskQueue string
-	// skipScheduleUpdates skips Temporal schedule reconciliation (zigflow test).
-	skipScheduleUpdates bool
-	// skipClientMetrics omits Prometheus metrics on the Temporal client (zigflow test).
-	// Multiple short-lived sessions in one process cannot register the same collectors twice.
+	// skipClientMetrics lets unit tests avoid duplicate global metric collectors.
 	skipClientMetrics bool
 }
 

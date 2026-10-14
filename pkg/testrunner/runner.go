@@ -28,9 +28,10 @@ import (
 
 	"github.com/google/uuid"
 	zigtemporal "github.com/zigflow/helpers"
-	"github.com/zigflow/zigflow/cmd/run"
 	"github.com/zigflow/zigflow/pkg/telemetry"
+	workerconfig "github.com/zigflow/zigflow/pkg/worker"
 	"github.com/zigflow/zigflow/pkg/zigflow"
+	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
 	"go.temporal.io/sdk/client"
 )
 
@@ -50,7 +51,8 @@ const (
 // It is wrapped with the configured duration and context.DeadlineExceeded.
 var ErrTestTimeout = errors.New("workflow test timed out")
 
-// Config controls a single workflow test execution.
+// Config controls a single workflow test execution. It may be reused by concurrent
+// Run and RunBytes calls. Callers must not mutate its maps or pointers during a run.
 type Config struct {
 	WorkflowFile string
 	Input        any
@@ -58,10 +60,18 @@ type Config struct {
 	Temporal     *zigtemporal.TemporalOpts
 	TemporalUI   string
 	Telemetry    *telemetry.Telemetry
+	// Client configures the same payload codecs and external storage as Zigflow workers.
+	Client workerconfig.ClientConfig
+	// Envvars overrides the default ZIGGY_ environment. An empty map disables loading.
+	Envvars map[string]any
+	// TaskOptions configures task execution, including the container runtime.
+	TaskOptions       *tasks.TaskOpts
+	CloudEventsConfig string
 }
 
 // Result is returned when Run completes or fails in a controlled way.
 type Result struct {
+	TaskQueue      string
 	WorkflowType   string
 	Status         Status
 	Duration       time.Duration
@@ -73,9 +83,13 @@ type Result struct {
 	TemporalUIBase string
 }
 
-// Run validates the workflow file, starts an in-process worker, executes the
-// workflow once, waits for completion, and stops the worker.
-func Run(ctx context.Context, cfg Config) (*Result, error) {
+// Run validates the workflow file, starts a worker on a unique task queue, executes
+// the workflow once, waits for completion, and stops the worker. The caller controls
+// concurrency. No health or metrics listeners are started and no schedules are updated.
+func Run(ctx context.Context, cfg *Config) (*Result, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("test config is required")
+	}
 	if cfg.WorkflowFile == "" {
 		return nil, fmt.Errorf("workflow file is required")
 	}
@@ -90,26 +104,28 @@ func Run(ctx context.Context, cfg Config) (*Result, error) {
 
 // RunBytes validates a workflow definition from raw YAML or JSON bytes, starts
 // an in-process worker, executes the workflow once, waits for completion, and
-// stops the worker. WorkflowFile is used only as a diagnostic source label when
-// set; RunBytes never reads it.
-func RunBytes(ctx context.Context, data []byte, cfg Config) (*Result, error) {
-	source := cfg.WorkflowFile
-	if source == "" {
-		source = "<memory>"
+// stops the worker. RunBytes does not read Config.WorkflowFile.
+func RunBytes(ctx context.Context, data []byte, cfg *Config) (*Result, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("test config is required")
 	}
-	return runBytes(ctx, data, cfg, source)
+	config := *cfg
+	return runBytes(ctx, data, &config)
 }
 
-func runBytes(ctx context.Context, data []byte, cfg Config, source string) (*Result, error) {
+func runBytes(ctx context.Context, data []byte, cfg *Config) (*Result, error) {
 	if cfg.Timeout <= 0 {
 		cfg.Timeout = 10 * time.Minute
 	}
 	if cfg.TemporalUI == "" {
 		cfg.TemporalUI = "http://localhost:8233"
 	}
-	if cfg.Temporal == nil {
-		cfg.Temporal = &zigtemporal.TemporalOpts{}
+	// Copy connection settings so concurrent callers can safely reuse Config.
+	connection := zigtemporal.TemporalOpts{}
+	if cfg.Temporal != nil {
+		connection = *cfg.Temporal
 	}
+	cfg.Temporal = &connection
 	if err := mergeTemporalEnv(cfg.Temporal); err != nil {
 		return nil, fmt.Errorf("load Temporal environment: %w", err)
 	}
@@ -130,30 +146,20 @@ func runBytes(ctx context.Context, data []byte, cfg Config, source string) (*Res
 	runCtx, cancel := context.WithTimeout(ctx, cfg.Timeout)
 	defer cancel()
 
-	releaseLock, err := acquireTestRunLock(runCtx, cfg.Temporal)
+	session, err := startSession(runCtx, wf, cfg)
 	if err != nil {
 		return nil, err
 	}
-	defer releaseLock()
-
-	session, err := run.StartSession(runCtx, run.SessionConfig{
-		Workflow:  wf,
-		Source:    source,
-		Temporal:  cfg.Temporal,
-		Telemetry: cfg.Telemetry,
-	})
-	if err != nil {
-		return nil, err
-	}
-	defer session.Stop()
+	defer session.stop()
 
 	workflowID := NewWorkflowID(workflowType)
-	we, err := session.Client().ExecuteWorkflow(runCtx, client.StartWorkflowOptions{
+	we, err := session.client.ExecuteWorkflow(runCtx, client.StartWorkflowOptions{
 		ID:        workflowID,
-		TaskQueue: session.TaskQueue(),
+		TaskQueue: session.taskQueue,
 	}, workflowType, cfg.Input)
 	if err != nil {
 		return &Result{
+			TaskQueue:      session.taskQueue,
 			WorkflowType:   workflowType,
 			Status:         StatusFailed,
 			Duration:       time.Since(start),
@@ -170,6 +176,7 @@ func runBytes(ctx context.Context, data []byte, cfg Config, source string) (*Res
 	uiURL := HistoryURL(cfg.TemporalUI, cfg.Temporal.Namespace, we.GetID(), we.GetRunID())
 
 	res := &Result{
+		TaskQueue:      session.taskQueue,
 		WorkflowType:   workflowType,
 		Status:         StatusCompleted,
 		Duration:       duration,
@@ -187,7 +194,7 @@ func runBytes(ctx context.Context, data []byte, cfg Config, source string) (*Res
 		if errors.Is(runCtx.Err(), context.DeadlineExceeded) {
 			res.Status = StatusTimeout
 			res.Err = fmt.Errorf("%w after %s: %w", ErrTestTimeout, cfg.Timeout, context.DeadlineExceeded)
-			if termErr := terminateWorkflowAfterTestTimeout(ctx, session.Client(), we.GetID(), we.GetRunID()); termErr != nil {
+			if termErr := terminateWorkflowAfterTestTimeout(ctx, session.client, we.GetID(), we.GetRunID()); termErr != nil {
 				res.Err = fmt.Errorf("%w: %v", res.Err, termErr)
 			}
 		}
@@ -197,7 +204,7 @@ func runBytes(ctx context.Context, data []byte, cfg Config, source string) (*Res
 }
 
 // terminateWorkflowAfterTestTimeout stops a timed-out execution before the test
-// worker stops polling zigflow-test. TerminateWorkflow is used rather than
+// worker stops polling its isolated queue. TerminateWorkflow is used rather than
 // CancelWorkflow so the run ends promptly even when the workflow or activities
 // do not honour cancellation.
 func terminateWorkflowAfterTestTimeout(parentCtx context.Context, c client.Client, workflowID, runID string) error {
