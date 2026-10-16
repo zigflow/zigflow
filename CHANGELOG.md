@@ -2,6 +2,32 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.17.0](https://github.com/zigflow/zigflow/releases/tag/v0.17.0) - 2026-10-16
+
+> This release contains breaking changes
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/607
+* fix(run): pass run.workflow.input to the child workflow by @YJ-928 in https://github.com/zigflow/zigflow/pull/609
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/611
+* deps(deps): bump github.com/posthog/posthog-go from 1.28.1 to 1.29.0 in the go-dependencies group by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/612
+* ci: set go version to pr review workflow by @mrsimonemms in https://github.com/zigflow/zigflow/pull/613
+* chore: add buildvcs=false to Dockerfile by @mrsimonemms in https://github.com/zigflow/zigflow/pull/614
+* fix: resolve activity inputs in the workflow before scheduling by @YJ-928 in https://github.com/zigflow/zigflow/pull/615
+* chore: remove unused dev server flags from vscode task by @mrsimonemms in https://github.com/zigflow/zigflow/pull/616
+* chore: add support for claude mcp by @mrsimonemms in https://github.com/zigflow/zigflow/pull/620
+* docs: update docs for starter template by @mrsimonemms in https://github.com/zigflow/zigflow/pull/621
+* fix(deps): bump golang.org/x/net to v0.60.0 for CVE-2026-78669 by @YJ-928 in https://github.com/zigflow/zigflow/pull/623
+* test: resolve the temp dir symlink in the working-directory test by @YJ-928 in https://github.com/zigflow/zigflow/pull/622
+* BREAKING refactor!: remove the GetVersion gates for activity inputs and activity names by @YJ-928 in https://github.com/zigflow/zigflow/pull/626
+* deps(deps): bump the go-dependencies group with 6 updates by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/625
+* chore: bump zigflow/helpers to v0.2.1 by @mrsimonemms in https://github.com/zigflow/zigflow/pull/628
+* BREAKING feat(tasks)!: run for and try bodies inline in the parent workflow by @ShlomitSibony in https://github.com/zigflow/zigflow/pull/624
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/633
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.16.0...v0.17.0
+
 ## [v0.16.0](https://github.com/zigflow/zigflow/releases/tag/v0.16.0) - 2026-09-27
 
 ## What's Changed
