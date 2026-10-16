@@ -37,3 +37,22 @@ func TestNewValidator_TranslatedErrors(t *testing.T) {
 
 	assert.NotEmpty(t, errs[0].Message, "expected a translated human-readable message, got empty string")
 }
+
+func TestNewValidatorConcurrent(t *testing.T) {
+	for range 16 {
+		t.Run("validate", func(t *testing.T) {
+			t.Parallel()
+			for range 10 {
+				v, err := NewValidator()
+				require.NoError(t, err)
+				errs, err := v.ValidateStruct(testStruct{})
+				require.NoError(t, err)
+				require.Len(t, errs, 1)
+				assert.NotEmpty(t, errs[0].Message)
+				validErrs, err := v.ValidateStruct(testStruct{Name: "valid"})
+				require.NoError(t, err)
+				assert.Empty(t, validErrs)
+			}
+		})
+	}
+}
