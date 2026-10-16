@@ -50,6 +50,11 @@
       "resolved": "ghcr.io/mrsimonemms/devcontainers/cobra-cli@sha256:e5f61d4c00e066815dc98ce8f949aeded739b97f8f69c234ba33d1f07be8c081",
       "integrity": "sha256:e5f61d4c00e066815dc98ce8f949aeded739b97f8f69c234ba33d1f07be8c081"
     },
+    "ghcr.io/mrsimonemms/devcontainers/floci:1": {
+      "version": "1.0.0",
+      "resolved": "ghcr.io/mrsimonemms/devcontainers/floci@sha256:b2875708b037c6cc2c9ee8da0e51837b44d75f708178eb851744c5a8229c1a02",
+      "integrity": "sha256:b2875708b037c6cc2c9ee8da0e51837b44d75f708178eb851744c5a8229c1a02"
+    },
     "ghcr.io/rio/features/skaffold:2": {
       "version": "2.0.0",
       "resolved": "ghcr.io/rio/features/skaffold@sha256:6368d4c207c98008165b8b9e8b0df19ebd9bc6efce7463da16aebcb18c8d7328",

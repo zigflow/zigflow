@@ -118,6 +118,7 @@ platform.`,
 		newGraphCmd(),
 		newGenerateDocsCmd(rootCmd),
 		newMCPCmd(),
+		newServerlessCmd(),
 	)
 
 	return rootCmd
