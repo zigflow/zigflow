@@ -161,7 +161,7 @@ func survivesJSON(v any) bool {
 	case float64:
 		return !math.IsNaN(x) && !math.IsInf(x, 0)
 	case int:
-		return -maxExactJSONInt <= x && x <= maxExactJSONInt
+		return -maxExactJSONInt <= int64(x) && int64(x) <= maxExactJSONInt
 	case *big.Int:
 		return x.IsInt64() && -maxExactJSONInt <= x.Int64() && x.Int64() <= maxExactJSONInt
 	case map[string]any:

@@ -37,7 +37,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0
-	github.com/zigflow/helpers v0.2.2
+	github.com/zigflow/helpers v0.2.3
 	github.com/zigflow/schema v0.0.0-20261005164709-9424a19f52e2
 	go.temporal.io/api v1.63.7
 	go.temporal.io/sdk v1.50.0
