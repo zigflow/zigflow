@@ -2,6 +2,15 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.17.1](https://github.com/zigflow/zigflow/releases/tag/v0.17.1) - 2026-10-18
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/634
+* fix: restore support for 32 bit architecture by @mrsimonemms in https://github.com/zigflow/zigflow/pull/635
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.17.0...v0.17.1
+
 ## [v0.17.0](https://github.com/zigflow/zigflow/releases/tag/v0.17.0) - 2026-10-16
 
 > This release contains breaking changes
