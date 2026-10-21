@@ -217,7 +217,7 @@ func (t *ListenTaskBuilder) await(
 		logger.Warn("Await timeout", "task", t.GetTaskName())
 		return models.NewErrTimeout(
 			fmt.Errorf("no matching event received within %s", timeout),
-			workflow.GetInfo(ctx).WorkflowExecution.ID,
+			t.instancePointer(),
 		)
 	}
 

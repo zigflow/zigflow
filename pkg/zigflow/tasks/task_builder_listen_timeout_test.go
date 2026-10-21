@@ -34,10 +34,16 @@ import (
 // https://zigflow.dev/spec/1.0.0/errors/timeout produces, so a catch can tell
 // a timeout apart from any other failure.
 func TestListenTaskBuilderAwaitTimeoutReturnsTimeoutError(t *testing.T) {
-	builder := &ListenTaskBuilder{
-		name: "timeoutListener",
-		task: &model.ListenTask{},
+	task := &model.ListenTask{}
+	list := model.TaskList{
+		&model.TaskItem{Key: testConstTaskBefore, Task: &model.SetTask{}},
+		&model.TaskItem{Key: "timeoutListener", Task: task},
 	}
+	builder := &ListenTaskBuilder{builder[*model.ListenTask]{
+		doc:  &model.Workflow{Do: &list},
+		name: "timeoutListener",
+		task: task,
+	}}
 
 	var awaitErr error
 
@@ -58,4 +64,6 @@ func TestListenTaskBuilderAwaitTimeoutReturnsTimeoutError(t *testing.T) {
 	require.True(t, errors.As(awaitErr, &zigflowErr), "expected a *model.Error, got %T: %v", awaitErr, awaitErr)
 	assert.Equal(t, models.ErrorTypeTimeout, zigflowErr.Type.String())
 	assert.Equal(t, 408, zigflowErr.Status)
+	// A JSON Pointer to the listen task, as the specification asks.
+	assert.Equal(t, "/do/1/timeoutListener", zigflowErr.Instance.String())
 }

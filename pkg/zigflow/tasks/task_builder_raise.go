@@ -80,13 +80,15 @@ var temporalErrMapping = map[string]func(error, string) error{
 }
 
 func (t *RaiseTaskBuilder) Build() (TemporalWorkflowFunc, error) {
+	pointer := t.instancePointer()
+
 	return func(ctx workflow.Context, input any, state *utils.State) (_ any, err error) {
 		logger := workflow.GetLogger(ctx)
 		logger.Debug("Raising error")
 
 		gtx := context.Background()
 		info := workflow.GetInfo(ctx)
-		instanceID := info.WorkflowExecution.ID
+		workflowID := info.WorkflowExecution.ID
 
 		var raiseErr *model.Error
 		var titleResult any = ""
@@ -121,15 +123,23 @@ func (t *RaiseTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 				}
 			}
 
+			instance, err := t.errorInstance(definition, pointer, state)
+			if err != nil {
+				logger.Error("Error finding error instance", "error", err)
+				return nil, err
+			}
+
 			if raiseErrF, ok := raiseErrFuncMapping[definition.Type.String()]; ok {
-				raiseErr = raiseErrF(fmt.Errorf("%v", detailResult), instanceID)
+				raiseErr = raiseErrF(fmt.Errorf("%v", detailResult), instance)
 			} else if temporalErrF, ok := temporalErrMapping[definition.Title.String()]; ok {
-				return nil, temporalErrF(fmt.Errorf("%v", detailResult), instanceID)
+				return nil, temporalErrF(fmt.Errorf("%v", detailResult), workflowID)
 			} else {
-				raiseErr = definition
+				// A copy: the definition is shared by every run of this workflow.
+				custom := *definition
+				raiseErr = &custom
 				raiseErr.Detail = model.NewStringOrRuntimeExpr(fmt.Sprintf("%v", detailResult))
 				raiseErr.Instance = &model.JsonPointerOrRuntimeExpression{
-					Value: instanceID,
+					Value: instance,
 				}
 			}
 
@@ -139,4 +149,30 @@ func (t *RaiseTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 		return nil, raiseErr
 	}, nil
+}
+
+// errorInstance is the instance of the raised error: the one the task sets,
+// evaluated against the workflow state when it is a runtime expression, or
+// else the task's own pointer.
+func (t *RaiseTaskBuilder) errorInstance(
+	definition *model.Error, pointer string, state *utils.State,
+) (string, error) {
+	if definition.Instance == nil {
+		return pointer, nil
+	}
+	switch value := definition.Instance.Value.(type) {
+	case string:
+		return value, nil
+	case model.RuntimeExpression:
+		result, err := utils.TraverseAndEvaluateObj(model.NewObjectOrRuntimeExpr(value), nil, state)
+		if err != nil {
+			return "", fmt.Errorf("error finding error instance: %w", err)
+		}
+		instance, ok := result.(string)
+		if !ok {
+			return "", fmt.Errorf("error instance must evaluate to a string, got %T", result)
+		}
+		return instance, nil
+	}
+	return pointer, nil
 }

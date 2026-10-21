@@ -21,6 +21,7 @@ do:
                 type: ${ $data.error.type }
                 status: ${ $data.error.status }
                 title: ${ $data.error.title }
+                instance: ${ $data.error.instance }
               output:
                 as:
                   result: ${ . }

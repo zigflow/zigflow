@@ -34,6 +34,8 @@ var testCase = utils.TestCase{
 			"type":   "https://serverlessworkflow.io/spec/1.0.0/errors/validation",
 			"status": float64(400),
 			"title":  "Boom",
+			// A JSON Pointer to the raise task, not the workflow ID.
+			"instance": "/do/0/guarded/try/0/failing",
 		},
 	},
 	Test: utils.RunToCompletion[map[string]any],

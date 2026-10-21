@@ -156,13 +156,13 @@ type: https://zigflow.dev/spec/1.0.0/errors/timeout
 status: 408
 title: Timeout Error
 detail: no matching event received within 2s
-instance: my-workflow-id
+instance: /do/0/approve/try/1/waitForApproval
 message: "[408] Timeout Error: no matching event received within 2s (...)"
 ```
 
 Use `type` to handle different errors differently inside the catch block.
-`status` is a number, and `instance` is the ID of the workflow the error came
-from.
+`status` is a number, and `instance` is a [JSON Pointer](https://datatracker.ietf.org/doc/html/rfc6901)
+to the task the error came from, unless a `raise` task sets its own `instance`.
 
 Any other error, such as a failed expression, has a `message` and, when it wraps
 another error, a `cause` with the error underneath. It has no RFC 7807 fields.
