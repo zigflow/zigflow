@@ -1,0 +1,22 @@
+document:
+  dsl: 1.0.0
+  taskQueue: fork-do-only-branch
+  workflowType: workflow
+  version: 0.0.1
+do:
+  - parallel:
+      fork:
+        branches:
+          - left:
+              do:
+                - inner:
+                    do:
+                      - mark:
+                          set:
+                            left: true
+          - right:
+              set:
+                right: true
+  - after:
+      set:
+        done: true

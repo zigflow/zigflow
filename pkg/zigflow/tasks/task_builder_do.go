@@ -20,6 +20,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 
 	ceSDK "github.com/cloudevents/sdk-go/v2"
 	swUtil "github.com/open-workflow-specification/sdk-go/v4/impl/utils"
@@ -37,6 +39,15 @@ import (
 
 type DoTaskOpts struct {
 	DisableRegisterWorkflow bool
+	// RegisterWorkflow registers the task list as a workflow even when it
+	// holds only do tasks. Only the document's top-level list treats do
+	// tasks as separate workflows; a list that runs as a workflow of its
+	// own (a fork branch, a redirect target or a top-level workflow) must be
+	// registered whatever it holds.
+	RegisterWorkflow bool
+	// Document marks the document's top-level task list. When it holds only
+	// do tasks, each of them is a workflow of its own.
+	Document bool
 	// Nested marks this task list as executing inline inside an enclosing
 	// workflow's Temporal context rather than as a workflow of its own.
 	//
@@ -105,6 +116,13 @@ type workflowFunc struct {
 func (t *DoTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	tasks := make([]workflowFunc, 0)
 
+	// Only the document's top-level list of do tasks is a set of workflows.
+	multipleWorkflows := t.opts.Document && !slices.ContainsFunc(*t.task.Do, func(task *model.TaskItem) bool {
+		return task.AsDoTask() == nil
+	})
+
+	targets := switchTargets(*t.task.Do)
+
 	var hasNoDo bool
 	for _, task := range *t.task.Do {
 		l := log.With().Str("task", task.Key).Str("workflow", t.GetTaskName()).Logger()
@@ -125,13 +143,8 @@ func (t *DoTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 			return nil, fmt.Errorf("error creating task builder: %w", err)
 		}
 
-		// A do task that runs inline in a nested body must be nested like its
-		// parent. NewTaskBuilder only has the default options, and a non-nested
-		// do swallows `then: end` and may continue as new. A do task after the
-		// first non-do task is not run inline: it is only a redirect target, run
-		// as a child workflow, so it keeps the default options.
-		if inner, ok := builder.(*DoTaskBuilder); ok && t.opts.Nested && addTasks {
-			inner.opts.Nested = true
+		if inner, ok := builder.(*DoTaskBuilder); ok {
+			t.setChildOpts(inner, addTasks, multipleWorkflows || targets[task.Key])
 		}
 
 		// Build the task and store it for use
@@ -153,18 +166,43 @@ func (t *DoTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	// Execute the workflow
 	wf := t.workflowExecutor(tasks)
 
-	if !t.opts.DisableRegisterWorkflow && hasNoDo {
-		t.registerWorkflow(tasks)
+	if !t.opts.DisableRegisterWorkflow && (hasNoDo || t.opts.RegisterWorkflow) {
+		if err := t.registerWorkflow(tasks); err != nil {
+			return nil, err
+		}
 	}
 
 	return wf, nil
+}
+
+// setChildOpts sets the options NewTaskBuilder cannot know for a do task in
+// this list. addTasks reports whether it runs inline; register whether it
+// also runs as a workflow of its own (a top-level workflow, or the target of a
+// switch in this list).
+func (t *DoTaskBuilder) setChildOpts(inner *DoTaskBuilder, addTasks, register bool) {
+	// A do task that runs inline in a nested body must be nested like its
+	// parent. NewTaskBuilder only has the default options, and a non-nested
+	// do swallows `then: end` and may continue as new.
+	if t.opts.Nested && addTasks {
+		inner.opts.Nested = true
+	}
+	// A do task after the first non-do task is not run inline: it is only a
+	// redirect target, run as a child workflow. It keeps the default options,
+	// and like a top-level workflow it is registered.
+	if !addTasks || register {
+		inner.opts.RegisterWorkflow = true
+	}
 }
 
 // registerWorkflow registers the task list as a workflow, so a switch can
 // redirect to it as a child workflow. A child workflow is its own Temporal
 // execution, so the registered function is never nested, even when this task
 // list also runs inline in a nested body.
-func (t *DoTaskBuilder) registerWorkflow(tasks []workflowFunc) {
+func (t *DoTaskBuilder) registerWorkflow(tasks []workflowFunc) error {
+	if err := t.claimWorkflowName(); err != nil {
+		return err
+	}
+
 	standalone := *t
 	standalone.opts.Nested = false
 
@@ -172,6 +210,51 @@ func (t *DoTaskBuilder) registerWorkflow(tasks []workflowFunc) {
 	t.temporalWorker.RegisterWorkflowWithOptions(standalone.workflowExecutor(tasks), workflow.RegisterOptions{
 		Name: t.GetTaskName(),
 	})
+	return nil
+}
+
+// claimWorkflowName records which task list registers this workflow name.
+// Names are flat, so two lists of the document can share one; that fails here
+// with both paths instead of as an SDK panic when the worker registers it twice.
+func (t *DoTaskBuilder) claimWorkflowName() error {
+	if t.taskOpts == nil {
+		return nil
+	}
+	if t.taskOpts.registered == nil {
+		t.taskOpts.registered = map[string]string{}
+	}
+
+	name := t.GetTaskName()
+	path := "/" + strings.Join(t.taskPath, "/")
+	if other, ok := t.taskOpts.registered[name]; ok {
+		return fmt.Errorf("workflow name %q is registered by two task lists, %s and %s: rename one of them", name, other, path)
+	}
+	t.taskOpts.registered[name] = path
+	return nil
+}
+
+// switchTargets returns the tasks a switch in this list redirects to. A switch
+// runs its target as a child workflow, so the target must be registered even
+// when it also runs inline.
+func switchTargets(list model.TaskList) map[string]bool {
+	targets := map[string]bool{}
+	for _, item := range list {
+		task, ok := item.Task.(*model.SwitchTask)
+		if !ok {
+			continue
+		}
+		for _, switchItem := range task.Switch {
+			for _, switchCase := range switchItem {
+				if switchCase.Then == nil {
+					continue
+				}
+				if redirect, ok := errors.AsType[flow.RedirectError](flow.FromDirective(switchCase.Then)); ok {
+					targets[redirect.Target] = true
+				}
+			}
+		}
+	}
+	return targets
 }
 
 func (t *DoTaskBuilder) PostLoad() error {

@@ -1,0 +1,24 @@
+document:
+  dsl: 1.0.0
+  taskQueue: fork-compete-do-only-loser
+  workflowType: workflow
+  version: 0.0.1
+do:
+  - race:
+      fork:
+        compete: true
+        branches:
+          - fast:
+              set:
+                won: true
+          # Only do tasks, and slow, so it loses and is cancelled
+          - slow:
+              do:
+                - inner:
+                    do:
+                      - pause:
+                          wait:
+                            seconds: 30
+  - after:
+      set:
+        done: true

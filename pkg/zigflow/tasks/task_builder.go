@@ -52,6 +52,10 @@ type TaskBuilder interface {
 // Configure any task opts that come from the CLI
 type TaskOpts struct {
 	Run *RunTaskOpts
+
+	// registered maps each workflow name the document registers to the path
+	// of the task list that registered it.
+	registered map[string]string
 }
 
 type TemporalWorkflowFunc func(ctx workflow.Context, input any, state *utils.State) (output any, err error)

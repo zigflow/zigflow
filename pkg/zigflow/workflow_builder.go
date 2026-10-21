@@ -61,6 +61,7 @@ func NewWorkflow(
 		emitter,
 		taskOpts,
 		tasks.DoTaskOpts{
+			Document: true,
 			// Pass the envvars - this will be passed to the state object
 			Envvars: envvars,
 			// Search for a max history length for CAN override

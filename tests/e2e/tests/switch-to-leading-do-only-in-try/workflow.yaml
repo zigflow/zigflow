@@ -1,0 +1,24 @@
+document:
+  dsl: 1.0.0
+  taskQueue: switch-to-leading-do-only-in-try
+  workflowType: workflow
+  version: 0.0.1
+do:
+  - attempt:
+      try:
+        - group:
+            do:
+              - inner:
+                  do:
+                    - mark:
+                        set:
+                          reached: true
+        - check:
+            switch:
+              - always:
+                  then: group
+      catch:
+        do:
+          - recovered:
+              set:
+                caught: true

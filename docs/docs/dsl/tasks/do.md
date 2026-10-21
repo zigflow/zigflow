@@ -123,6 +123,11 @@ level.** Workflow type names are taken from the task names (`workflow1`,
 **Each task in `do` must have a unique name within its scope.** Duplicate task
 names cause a validation error.
 
+A task list that runs as a workflow of its own (a top-level workflow, a fork
+branch, or the target of a `switch`) is registered under its name, so that name
+must be unique across the whole document. If two such lists share a name, the
+worker does not start and the error names both of them.
+
 ## Related pages
 
 - [Fork](/docs/dsl/tasks/fork): run tasks in parallel rather than in sequence

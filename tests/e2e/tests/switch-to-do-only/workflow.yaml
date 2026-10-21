@@ -1,0 +1,17 @@
+document:
+  dsl: 1.0.0
+  taskQueue: switch-to-do-only
+  workflowType: workflow
+  version: 0.0.1
+do:
+  - check:
+      switch:
+        - always:
+            then: group
+  - group:
+      do:
+        - inner:
+            do:
+              - mark:
+                  set:
+                    reached: true

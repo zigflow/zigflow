@@ -1,0 +1,18 @@
+document:
+  dsl: 1.0.0
+  taskQueue: multi-workflow-do-only
+  workflowType: ignored
+  version: 0.0.1
+do:
+  - workflow1:
+      do:
+        - phase:
+            do:
+              - mark:
+                  set:
+                    one: true
+  - workflow2:
+      do:
+        - mark:
+            set:
+              two: true

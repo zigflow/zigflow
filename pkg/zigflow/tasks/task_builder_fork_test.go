@@ -331,6 +331,56 @@ func TestForkMultiTaskBranchAliasNestsUnderBranchKey(t *testing.T) {
 	w.AssertExpectations(t)
 }
 
+// A branch made only of do tasks still runs as its own child workflow, so it
+// must be registered under the child workflow name. Only the document's
+// top-level list of do tasks is a set of separate workflows.
+func TestForkBranchOfOnlyDoTasksIsRegistered(t *testing.T) {
+	doc := &model.Workflow{Document: model.Document{Name: "wf-fork-do-only"}}
+	childWorkflowName := utils.GenerateChildWorkflowName("fork", testForkTaskName, "branchC")
+
+	w := new(WorkflowRegistryMock)
+	w.On("RegisterWorkflowWithOptions", mock.Anything, workflow.RegisterOptions{Name: childWorkflowName}).Once()
+	// The inner list holds a non-do task, so it registers itself as before.
+	w.On("RegisterWorkflowWithOptions", mock.Anything, workflow.RegisterOptions{Name: testConstInnerForTask}).Once()
+	w.On("RegisterActivityWithOptions", mock.Anything, mock.Anything).Maybe()
+
+	forkTask := &model.ForkTask{
+		Fork: model.ForkTaskConfiguration{
+			Branches: &model.TaskList{
+				&model.TaskItem{
+					Key: "branchC",
+					Task: &model.DoTask{
+						Do: &model.TaskList{
+							&model.TaskItem{
+								Key: testConstInnerForTask,
+								Task: &model.DoTask{
+									Do: &model.TaskList{
+										&model.TaskItem{Key: "leaf", Task: newTestHTTPTask()},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	b := &ForkTaskBuilder{
+		doc:            doc,
+		eventEmitter:   testEvents,
+		name:           testForkTaskName,
+		taskPath:       []string{testForkTaskName},
+		task:           forkTask,
+		temporalWorker: w,
+	}
+
+	_, err := b.Build()
+	assert.NoError(t, err)
+
+	w.AssertExpectations(t)
+}
+
 // TestForkTaskBuilderExecPropagatesCancelledBranchInNonCompetingFork is
 // the regression test for a fork that waits forever. A branch that is
 // cancelled independently of the fork has terminated and will never

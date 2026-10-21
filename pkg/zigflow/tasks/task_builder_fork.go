@@ -174,6 +174,12 @@ func (t *ForkTaskBuilder) buildOrPostLoad() ([]*forkedTask, []TaskBuilder, error
 			return nil, nil, fmt.Errorf("error creating the forked task builder: %w", err)
 		}
 
+		// The branch runs as the child workflow childWorkflowName, so it must
+		// be registered even when it is made only of do tasks.
+		if d, ok := builder.(*DoTaskBuilder); ok {
+			d.opts.RegisterWorkflow = true
+		}
+
 		builders = append(builders, builder)
 	}
 

@@ -552,6 +552,155 @@ func TestDoTaskBuilderBuildSkipsNestedDoAfterNonDoTask(t *testing.T) {
 	assert.Nil(t, state.Data["b"])
 }
 
+const (
+	testConstGroup     = "group"
+	testConstWorkflow1 = "workflow1"
+	testConstWorkflow2 = "workflow2"
+)
+
+func doOf(items ...*model.TaskItem) *model.DoTask {
+	list := model.TaskList(items)
+	return &model.DoTask{Do: &list}
+}
+
+func setItem(key string) *model.TaskItem {
+	return &model.TaskItem{Key: key, Task: &model.SetTask{Set: model.NewObjectOrRuntimeExpr(map[string]any{key: true})}}
+}
+
+func expectRegistered(w *WorkflowRegistryMock, names ...string) {
+	for _, name := range names {
+		w.On("RegisterWorkflowWithOptions", mock.Anything, workflow.RegisterOptions{Name: name}).Once()
+	}
+}
+
+// A do task after the first non-do task runs only as a redirect target, a
+// child workflow of its own, so it is registered even when it holds only do
+// tasks.
+func TestDoTaskBuilderRegistersRedirectTargetOfOnlyDoTasks(t *testing.T) {
+	task := doOf(
+		setItem("step1"),
+		&model.TaskItem{Key: testConstGroup, Task: doOf(&model.TaskItem{Key: testConstInnerForTask, Task: doOf(setItem("leaf"))})},
+	)
+
+	w := new(WorkflowRegistryMock)
+	expectRegistered(w, "do-task", testConstGroup, testConstInnerForTask)
+
+	builder, err := NewDoTaskBuilder(w, task, "do-task", testWorkflow, testEvents, nil)
+	require.NoError(t, err)
+	_, err = builder.Build()
+	require.NoError(t, err)
+
+	w.AssertExpectations(t)
+}
+
+// In the document's top-level list of do tasks each one is a workflow, and is
+// registered even when it holds only do tasks; the list itself is not.
+func TestDoTaskBuilderRegistersTopLevelWorkflowOfOnlyDoTasks(t *testing.T) {
+	task := doOf(
+		&model.TaskItem{Key: testConstWorkflow1, Task: doOf(&model.TaskItem{Key: "phase", Task: doOf(setItem("one"))})},
+		&model.TaskItem{Key: testConstWorkflow2, Task: doOf(setItem("two"))},
+	)
+
+	w := new(WorkflowRegistryMock)
+	expectRegistered(w, testConstWorkflow1, "phase", testConstWorkflow2)
+
+	builder, err := NewDoTaskBuilder(w, task, "ignored", testWorkflow, testEvents, nil, DoTaskOpts{Document: true})
+	require.NoError(t, err)
+	_, err = builder.Build()
+	require.NoError(t, err)
+
+	w.AssertExpectations(t)
+}
+
+// A list of only do tasks that runs inline (before the first non-do task) is
+// a sequence of steps, not a workflow, so it is still not registered.
+func TestDoTaskBuilderDoesNotRegisterInlineListOfOnlyDoTasks(t *testing.T) {
+	task := doOf(
+		&model.TaskItem{Key: testConstGroup, Task: doOf(&model.TaskItem{Key: testConstInnerForTask, Task: doOf(setItem("leaf"))})},
+		setItem("step2"),
+	)
+
+	w := new(WorkflowRegistryMock)
+	expectRegistered(w, "do-task", testConstInnerForTask)
+
+	builder, err := NewDoTaskBuilder(w, task, "do-task", testWorkflow, testEvents, nil, DoTaskOpts{Document: true})
+	require.NoError(t, err)
+	_, err = builder.Build()
+	require.NoError(t, err)
+
+	w.AssertExpectations(t)
+}
+
+// A switch runs its target as a child workflow, so a list of only do tasks
+// that a switch in the same list redirects to is registered, even though it
+// also runs inline before the first non-do task.
+func TestDoTaskBuilderRegistersSwitchTargetOfOnlyDoTasks(t *testing.T) {
+	task := doOf(
+		&model.TaskItem{Key: testConstGroup, Task: doOf(&model.TaskItem{Key: testConstInnerForTask, Task: doOf(setItem("leaf"))})},
+		&model.TaskItem{Key: "check", Task: &model.SwitchTask{Switch: []model.SwitchItem{
+			{"always": model.SwitchCase{Then: &model.FlowDirective{Value: testConstGroup}}},
+		}}},
+	)
+
+	w := new(WorkflowRegistryMock)
+	expectRegistered(w, "do-task", testConstGroup, testConstInnerForTask)
+
+	builder, err := NewDoTaskBuilder(w, task, "do-task", testWorkflow, testEvents, nil)
+	require.NoError(t, err)
+	_, err = builder.Build()
+	require.NoError(t, err)
+
+	w.AssertExpectations(t)
+}
+
+// Registration names are flat, so two task lists of one document can share
+// a name. The build fails naming both, instead of the SDK panicking when the
+// worker registers the name twice.
+func TestDoTaskBuilderRejectsAWorkflowNameRegisteredTwice(t *testing.T) {
+	redirectTo := func(key string) *model.TaskItem {
+		return &model.TaskItem{Key: key, Task: doOf(
+			&model.TaskItem{Key: "check", Task: &model.SwitchTask{Switch: []model.SwitchItem{
+				{"always": model.SwitchCase{Then: &model.FlowDirective{Value: testConstGroup}}},
+			}}},
+			&model.TaskItem{Key: testConstGroup, Task: doOf(&model.TaskItem{Key: key + "Inner", Task: doOf(setItem(key))})},
+		)}
+	}
+
+	tests := []struct {
+		name     string
+		task     *model.DoTask
+		opts     DoTaskOpts
+		expected string
+	}{
+		{
+			name: "multi-workflow document",
+			task: doOf(
+				&model.TaskItem{Key: "report", Task: doOf(&model.TaskItem{Key: "gather", Task: doOf(setItem("collect"))})},
+				&model.TaskItem{Key: "daily", Task: doOf(&model.TaskItem{Key: "report", Task: doOf(setItem("summarise"))})},
+			),
+			opts:     DoTaskOpts{Document: true},
+			expected: `workflow name "report" is registered by two task lists, /report and /daily/report`,
+		},
+		{
+			name:     "two redirect targets",
+			task:     doOf(setItem("first"), redirectTo("one"), redirectTo("two")),
+			expected: `workflow name "group" is registered by two task lists, /one/group and /two/group`,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := new(WorkflowRegistryMock)
+			w.On("RegisterWorkflowWithOptions", mock.Anything, mock.Anything).Maybe()
+
+			builder, err := NewDoTaskBuilder(w, tc.task, "do-task", testWorkflow, testEvents, &TaskOpts{}, tc.opts)
+			require.NoError(t, err)
+			_, err = builder.Build()
+			assert.ErrorContains(t, err, tc.expected)
+		})
+	}
+}
+
 func newOutputWorkflowFuncs(runOrder *[]string, capturedState **utils.State) []workflowFunc {
 	taskOneBase := &model.TaskBase{
 		Export: &model.Export{
