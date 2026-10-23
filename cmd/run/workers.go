@@ -25,10 +25,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	temporal "github.com/zigflow/helpers"
-	"github.com/zigflow/zigflow/pkg/codec"
-	"github.com/zigflow/zigflow/pkg/ctxpropagator"
-	"github.com/zigflow/zigflow/pkg/externalstorage"
 	"github.com/zigflow/zigflow/pkg/interceptors"
+	workerconfig "github.com/zigflow/zigflow/pkg/worker"
 	"github.com/zigflow/zigflow/pkg/zigflow"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
 	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
@@ -36,7 +34,6 @@ import (
 	"go.temporal.io/sdk/contrib/sysinfo"
 	sdkinterceptor "go.temporal.io/sdk/interceptor"
 	"go.temporal.io/sdk/worker"
-	"go.temporal.io/sdk/workflow"
 )
 
 // newTemporalConnection is the function used to establish a Temporal client. It
@@ -251,56 +248,37 @@ func stopWorkerList(workers []worker.Worker) {
 // initTemporalClient creates the codec data converter and the Temporal client.
 // The caller is responsible for closing the returned client.
 func initTemporalClient(ctx context.Context, opts *runOptions) (client.Client, error) {
-	codecType, _ := codec.ParseCodecType(opts.ConvertData)
-	dataConverter, err := codec.NewDataConverter(codecType, opts.CodecEndpoint, opts.ConvertKeyPath, opts.CodecHeaders)
-	if err != nil {
-		return nil, err
-	}
-
-	storageType, err := externalstorage.ParseStorageType(opts.ExternalStorage)
-	if err != nil {
-		return nil, err
-	}
-	externalStorage, err := externalstorage.New(ctx, storageType, &externalstorage.Config{
-		PayloadSizeThreshold: opts.ExternalStoragePayloadSizeThreshold,
-		S3Confg: &temporal.S3Config{
-			Bucket:          opts.ExternalStorageS3Bucket,
-			Region:          opts.ExternalStorageS3Region,
-			DriverName:      opts.ExternalStorageS3DriverName,
-			MaxPayloadSize:  opts.ExternalStorageS3MaxPayloadSize,
-			Endpoint:        opts.ExternalStorageS3Endpoint,
-			AccessKeyID:     opts.ExternalStorageS3AccessKeyID,
-			SecretAccessKey: opts.ExternalStorageS3SecretAccessKey,
-			SessionToken:    opts.ExternalStorageS3SessionToken,
-			UsePathStyle:    opts.ExternalStorageS3UsePathStyle,
-		},
+	connectionOpts, err := workerconfig.ClientOptions(ctx, opts.temporal, &workerconfig.ClientConfig{
+		ConvertData:                         opts.ConvertData,
+		CodecEndpoint:                       opts.CodecEndpoint,
+		CodecHeaders:                        opts.CodecHeaders,
+		ConvertKeyPath:                      opts.ConvertKeyPath,
+		DisableFailureConversion:            !opts.ConvertFailureData,
+		ExternalStorage:                     opts.ExternalStorage,
+		ExternalStoragePayloadSizeThreshold: opts.ExternalStoragePayloadSizeThreshold,
+		ExternalStorageS3Bucket:             opts.ExternalStorageS3Bucket,
+		ExternalStorageS3Region:             opts.ExternalStorageS3Region,
+		ExternalStorageS3DriverName:         opts.ExternalStorageS3DriverName,
+		ExternalStorageS3MaxPayloadSize:     opts.ExternalStorageS3MaxPayloadSize,
+		ExternalStorageS3Endpoint:           opts.ExternalStorageS3Endpoint,
+		ExternalStorageS3AccessKeyID:        opts.ExternalStorageS3AccessKeyID,
+		ExternalStorageS3SecretAccessKey:    opts.ExternalStorageS3SecretAccessKey,
+		ExternalStorageS3SessionToken:       opts.ExternalStorageS3SessionToken,
+		ExternalStorageS3UsePathStyle:       opts.ExternalStorageS3UsePathStyle,
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	log.Trace().Msg("Connecting to Temporal")
-	tc, err := newTemporalConnection(
-		temporal.WithHostPort(opts.temporal.Address),
-		temporal.WithNamespace(opts.temporal.Namespace),
-		temporal.WithTLS(opts.temporal.TLSEnabled, temporal.WithTLSServerName(opts.temporal.ServerName)),
-		temporal.WithAuthDetection(
-			opts.temporal.APIKey,
-			opts.temporal.MTLSCertPath,
-			opts.temporal.MTLSKeyPath,
-		),
-		temporal.WithDataConverter(dataConverter),
-		temporal.WithExternalStorageFactory(*externalStorage),
-		func(o *client.Options) error {
-			if opts.ConvertFailureData {
-				return temporal.WithFailureConverter(dataConverter)(o)
-			}
-			return nil
-		},
-		temporal.WithZerolog(&log.Logger),
-		temporal.WithPrometheusMetrics(opts.temporal.MetricsListenAddress, opts.temporal.MetricsPrefix, nil),
-		temporal.WithContextPropagators([]workflow.ContextPropagator{ctxpropagator.NewContextPropagator()}),
-	)
+	if !opts.skipClientMetrics {
+		addr := opts.temporal.MetricsListenAddress
+		if addr == "" {
+			addr = "127.0.0.1:0"
+		}
+		connectionOpts = append(connectionOpts,
+			temporal.WithPrometheusMetrics(addr, opts.temporal.MetricsPrefix, nil),
+		)
+	}
+	tc, err := newTemporalConnection(connectionOpts...)
 	if err != nil {
 		return nil, gh.FatalError{Cause: err, Msg: "Unable to create client"}
 	}
