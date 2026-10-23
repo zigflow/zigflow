@@ -42,15 +42,14 @@ homebrew_casks:
       - zigflow
     hooks:
       post:
-        install: |
-          if OS.mac?
-            binary_name = if Hardware::CPU.intel?
-              "zigflow_darwin_x86_64"
-            else
-              "zigflow_darwin_arm64"
+        install_steps: |
+          on_macos do
+            if_path_exists "{{ .StagedPath }}/zigflow_darwin_x86_64" do
+              run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/zigflow_darwin_x86_64"]
             end
-
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/#{binary_name}"]
+            if_path_exists "{{ .StagedPath }}/zigflow_darwin_arm64" do
+              run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/zigflow_darwin_arm64"]
+            end
           end
     caveats: |
       Installs the latest stable Zigflow release.
