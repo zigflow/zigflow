@@ -2,6 +2,19 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.18.0](https://github.com/zigflow/zigflow/releases/tag/v0.18.0) - 2026-10-23
+
+> This release contains breaking changes
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/636
+* fix(tasks)!: set the error instance to a JSON Pointer to the task by @YJ-928 in https://github.com/zigflow/zigflow/pull/638
+* fix(do): register every task list that runs as its own workflow by @YJ-928 in https://github.com/zigflow/zigflow/pull/637
+* Goreleaser updates by @mrsimonemms in https://github.com/zigflow/zigflow/pull/639
+
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.17.1...v0.18.0
+
 ## [v0.17.1](https://github.com/zigflow/zigflow/releases/tag/v0.17.1) - 2026-10-18
 
 ## What's Changed
