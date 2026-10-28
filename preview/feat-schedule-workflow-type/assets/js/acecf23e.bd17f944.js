@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkzigflow=self.webpackChunkzigflow||[]).push([["3220"],{1912(e){e.exports=JSON.parse('{"blogBasePath":"/preview/feat-schedule-workflow-type/articles","blogTitle":"Blog","authorsListPath":"/preview/feat-schedule-workflow-type/articles/authors"}')}}]);
