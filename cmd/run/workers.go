@@ -193,13 +193,7 @@ func buildWorkersByTaskQueue(
 			}
 		}
 
-		taskOpts := &tasks.TaskOpts{
-			Run: &tasks.RunTaskOpts{
-				Namespace:      opts.ContainerRuntimeNamespace,
-				Runtime:        activities.ContainerRuntime(opts.ContainerRuntime),
-				ServiceAccount: opts.ContainerRuntimeServiceAccount,
-			},
-		}
+		taskOpts := newTaskOpts(opts)
 
 		log.Info().
 			Str("task-queue", reg.TaskQueue).
@@ -224,6 +218,16 @@ func buildWorkersByTaskQueue(
 	warnUnregisteredScheduleTargets(registrations, registered)
 
 	return workers, nil
+}
+
+func newTaskOpts(opts *runOptions) *tasks.TaskOpts {
+	return &tasks.TaskOpts{
+		Run: &tasks.RunTaskOpts{
+			Namespace:      opts.ContainerRuntimeNamespace,
+			Runtime:        activities.ContainerRuntime(opts.ContainerRuntime),
+			ServiceAccount: opts.ContainerRuntimeServiceAccount,
+		},
+	}
 }
 
 // warnUnregisteredScheduleTargets logs a schedule whose target no workflow on
