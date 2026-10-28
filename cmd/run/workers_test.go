@@ -124,6 +124,7 @@ func TestInitTemporalClient_ServerNamePropagation(t *testing.T) {
 			defer stubTemporalConnection(&captured, &called)()
 
 			opts := &runOptions{
+				skipClientMetrics: true,
 				temporal: &temporal.TemporalOpts{
 					TLSEnabled: test.tlsEnabled,
 					ServerName: test.serverName,
@@ -192,6 +193,7 @@ func TestInitTemporalClient_ConvertFailureData(t *testing.T) {
 			defer stubTemporalConnection(&captured, &called)()
 
 			opts := &runOptions{
+				skipClientMetrics:  true,
 				ConvertData:        test.convertData,
 				ConvertFailureData: test.convertFailureData,
 				CodecEndpoint:      test.codecEndpoint,
@@ -247,6 +249,7 @@ func TestInitTemporalClient_ExternalStorage(t *testing.T) {
 			defer stubTemporalConnection(&captured, &called)()
 
 			opts := &runOptions{
+				skipClientMetrics:                   true,
 				ExternalStorage:                     test.externalStorage,
 				ExternalStoragePayloadSizeThreshold: test.payloadSizeThreshold,
 				ExternalStorageS3Bucket:             testS3Bucket,
@@ -275,8 +278,9 @@ func TestInitTemporalClient_ExternalStorageInvalidType(t *testing.T) {
 	defer stubTemporalConnection(&captured, &called)()
 
 	opts := &runOptions{
-		ExternalStorage: "not-a-storage-type",
-		temporal:        &temporal.TemporalOpts{},
+		skipClientMetrics: true,
+		ExternalStorage:   "not-a-storage-type",
+		temporal:          &temporal.TemporalOpts{},
 	}
 
 	tc, err := initTemporalClient(t.Context(), opts)
@@ -294,6 +298,7 @@ func TestInitTemporalClient_ExternalStorageS3Options(t *testing.T) {
 	defer stubTemporalConnection(&captured, &called)()
 
 	opts := &runOptions{
+		skipClientMetrics:                   true,
 		ExternalStorage:                     testExternalStorageS3,
 		ExternalStoragePayloadSizeThreshold: 1,
 		ExternalStorageS3Bucket:             testS3Bucket,
@@ -321,6 +326,7 @@ func TestInitTemporalClient_ExternalStorageS3InvalidCredentials(t *testing.T) {
 	defer stubStrictTemporalConnection()()
 
 	opts := &runOptions{
+		skipClientMetrics:             true,
 		ExternalStorage:               testExternalStorageS3,
 		ExternalStorageS3Bucket:       testS3Bucket,
 		ExternalStorageS3Region:       testAWSRegion,
@@ -448,7 +454,7 @@ func TestBuildWorkersByTaskQueue_VersioningMissingIdentity(t *testing.T) {
 func TestBuildWorkersByTaskQueue_VersioningDeploymentOptions(t *testing.T) {
 	dir := t.TempDir()
 	file := writeTempWorkflow(t, dir, "test-queue", "test-workflow")
-	regs, err := loadWorkflows([]string{file}, "", newTestValidator(t), false)
+	regs, err := loadWorkflows([]string{file}, "", newTestValidator(t), false, "")
 	require.NoError(t, err)
 
 	var captured []capturedWorker
@@ -481,7 +487,7 @@ func TestBuildWorkersByTaskQueue_VersioningDisabledNoDeploymentOptions(t *testin
 
 	dir := t.TempDir()
 	file := writeTempWorkflow(t, dir, "test-queue", "test-workflow")
-	regs, err := loadWorkflows([]string{file}, "", newTestValidator(t), false)
+	regs, err := loadWorkflows([]string{file}, "", newTestValidator(t), false, "")
 	require.NoError(t, err)
 
 	opts := &runOptions{EnableVersioning: false}
@@ -516,7 +522,7 @@ func stubNewWorkflow(captured *[]*tasks.TaskOpts) func() {
 func TestBuildWorkersByTaskQueue_PassesContainerRuntimeOptionsToTaskOpts(t *testing.T) {
 	dir := t.TempDir()
 	file := writeTempWorkflow(t, dir, "test-queue", "test-workflow")
-	regs, err := loadWorkflows([]string{file}, "", newTestValidator(t), false)
+	regs, err := loadWorkflows([]string{file}, "", newTestValidator(t), false, "")
 	require.NoError(t, err)
 
 	defer stubNewWorker(&[]capturedWorker{})()
@@ -546,7 +552,7 @@ func TestBuildWorkersByTaskQueue_PassesContainerRuntimeOptionsToTaskOpts(t *test
 func TestBuildWorkersByTaskQueue_DefaultRuntimeOptionsAreEmptyWhenUnset(t *testing.T) {
 	dir := t.TempDir()
 	file := writeTempWorkflow(t, dir, "test-queue", "test-workflow")
-	regs, err := loadWorkflows([]string{file}, "", newTestValidator(t), false)
+	regs, err := loadWorkflows([]string{file}, "", newTestValidator(t), false, "")
 	require.NoError(t, err)
 
 	defer stubNewWorker(&[]capturedWorker{})()
