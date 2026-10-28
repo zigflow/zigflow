@@ -627,3 +627,35 @@ func TestBuildDataConverter(t *testing.T) {
 		})
 	}
 }
+
+func TestUnregisteredScheduleTargets(t *testing.T) {
+	reg := func(file, queue, workflowType string, meta map[string]any, scheduled bool) *workflowRegistration {
+		list := model.TaskList{{Key: "step", Task: &model.SetTask{
+			Set: model.NewObjectOrRuntimeExpr(map[string]any{"a": 1}),
+		}}}
+		def := &model.Workflow{
+			Document: model.Document{Name: workflowType, Namespace: queue, Metadata: meta},
+			Do:       &list,
+		}
+		if scheduled {
+			def.Schedule = &model.Schedule{Cron: "0 0 * * *"}
+		}
+		return &workflowRegistration{SourceFile: file, Definition: def, TaskQueue: queue, WorkflowType: workflowType}
+	}
+	target := func(name string) map[string]any { return map[string]any{"scheduleWorkflowType": name} }
+
+	registrations := []*workflowRegistration{
+		reg("own.yaml", "q1", "own", nil, true),                         // defaults to its own type: registered
+		reg("other-file.yaml", "q1", "trigger", target("own"), true),    // another file on the same queue: registered
+		reg("other-queue.yaml", "q2", "trigger2", target("own"), true),  // registered only on q1
+		reg("elsewhere.yaml", "q1", "trigger3", target("remote"), true), // may run on another worker
+		reg("no-schedule.yaml", "q1", "plain", target("remote"), false),
+	}
+	registered := map[string][]string{"q1": {"own", "trigger", "trigger3", "plain"}, "q2": {"trigger2"}}
+
+	var got []string
+	for _, s := range unregisteredScheduleTargets(registrations, registered) {
+		got = append(got, s.reg.SourceFile+" -> "+s.target)
+	}
+	assert.Equal(t, []string{"other-queue.yaml -> own", "elsewhere.yaml -> remote"}, got)
+}

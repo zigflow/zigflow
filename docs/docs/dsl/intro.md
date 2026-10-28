@@ -304,6 +304,7 @@ This configures a [Temporal schedule](https://docs.temporal.io/schedule).
 
 | Name | Type | Required | Description |
 | --- | :---: | :---: | --- |
-| scheduleWorkflowName | `string` | `yes` | Set the workflow name to trigger - this will either be the document.workflowType or the Do task |
+| scheduleWorkflowType | `string` | `no` | The workflow type the schedule starts: the `document.workflowType` or a top-level Do task. Defaults to `document.workflowType`.<br />*Required when every top-level task is a Do task, as each is then its own workflow type.* |
+| scheduleWorkflowName | `string` | `no` | Deprecated: use `scheduleWorkflowType`. Still read; setting both to different values is an error. |
 | scheduleId | `string` | `no` | Set the schedule ID. If not set, this defaults to `zigflow_<document.workflowType>` |
 | scheduleInput | `any[]` | `no` | Set the input |

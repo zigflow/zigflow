@@ -8,8 +8,9 @@ document:
   metadata:
     tags:
       - schedule
-    # Set the workflow name to trigger - this will either be the document.workflowType or the Do task (see multiple-workflows example)
-    scheduleWorkflowName: schedule
+    # Optionally set the workflow type to start - defaults to the document.workflowType. Required when every
+    # top-level task is a Do task, naming one of them (see the multiple-workflows example)
+    scheduleWorkflowType: schedule
     # Optionally set the schedule ID name
     scheduleId: some-schedule
     # Optionally set any input for the workflow when triggered - this can receive envvars

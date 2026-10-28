@@ -58,6 +58,16 @@ type TaskOpts struct {
 	registered map[string]string
 }
 
+// RegisteredWorkflows returns the workflow types the document registered, sorted.
+func (o *TaskOpts) RegisteredWorkflows() []string {
+	names := make([]string, 0, len(o.registered))
+	for name := range o.registered {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
+}
+
 type TemporalWorkflowFunc func(ctx workflow.Context, input any, state *utils.State) (output any, err error)
 
 type builder[T model.Task] struct {
