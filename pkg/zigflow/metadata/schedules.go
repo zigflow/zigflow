@@ -18,8 +18,10 @@ package metadata
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/open-workflow-specification/sdk-go/v4/model"
+	"github.com/rs/zerolog/log"
 	"github.com/zigflow/zigflow/pkg/utils"
 )
 
@@ -30,14 +32,19 @@ type ScheduleInfo struct {
 }
 
 func GetScheduleInfo(workflow *model.Workflow, envvars map[string]any) (*ScheduleInfo, error) {
-	// This is the workflow name we trigger - this is required
+	// The workflow type the schedule starts; only needed when there is a schedule
 	var workflowType string
-	if t, ok := workflow.Document.Metadata[MetadataScheduleWorkflowName]; ok {
-		if t, ok := t.(string); ok {
-			workflowType = t
-		} else {
-			return nil, fmt.Errorf("schedule workflow name must be a string")
+	if workflow.Schedule != nil {
+		target, err := ScheduleTarget(workflow)
+		if err != nil {
+			return nil, err
 		}
+		if _, ok := workflow.Document.Metadata[MetadataScheduleWorkflowName]; ok {
+			log.Warn().
+				Str("docs", "https://zigflow.dev/docs/dsl/intro#metadata").
+				Msgf("document.metadata.%s is deprecated; use %s", MetadataScheduleWorkflowName, MetadataScheduleWorkflowType)
+		}
+		workflowType = target
 	}
 
 	// Optionally, get the schedule ID - default to "zigflow_<document.workflowType>"
@@ -77,4 +84,61 @@ func GetScheduleInfo(workflow *model.Workflow, envvars map[string]any) (*Schedul
 		WorkflowName: workflowType,
 		Input:        parsedInput.(map[string]any)["input"].([]any),
 	}, nil
+}
+
+// ScheduleTarget returns the workflow type a schedule starts: scheduleWorkflowType,
+// else the deprecated scheduleWorkflowName, else document.workflowType when the
+// document runs as that one workflow. A document whose top-level tasks are all
+// do tasks registers each of them as its own workflow type instead, so it must
+// name one.
+func ScheduleTarget(workflow *model.Workflow) (string, error) {
+	target, err := stringMetadata(workflow, MetadataScheduleWorkflowType)
+	if err != nil {
+		return "", err
+	}
+	legacy, err := stringMetadata(workflow, MetadataScheduleWorkflowName)
+	if err != nil {
+		return "", err
+	}
+
+	switch {
+	case target != "" && legacy != "" && target != legacy:
+		return "", fmt.Errorf(
+			"document.metadata.%s %q and the deprecated %s %q differ: keep %s only",
+			MetadataScheduleWorkflowType, target, MetadataScheduleWorkflowName, legacy, MetadataScheduleWorkflowType,
+		)
+	case target != "":
+		return target, nil
+	case legacy != "":
+		return legacy, nil
+	case runsAsOneWorkflow(workflow):
+		return workflow.Document.Name, nil
+	}
+	return "", fmt.Errorf(
+		"document.metadata.%s is required for a schedule when every top-level task is a do task",
+		MetadataScheduleWorkflowType,
+	)
+}
+
+func stringMetadata(workflow *model.Workflow, key string) (string, error) {
+	value, ok := workflow.Document.Metadata[key]
+	if !ok {
+		return "", nil
+	}
+	s, ok := value.(string)
+	if !ok {
+		return "", fmt.Errorf("document.metadata.%s must be a string", key)
+	}
+	return s, nil
+}
+
+// runsAsOneWorkflow mirrors DoTaskBuilder.Build: a top-level task list that is
+// not only do tasks runs as one workflow of type document.workflowType.
+func runsAsOneWorkflow(workflow *model.Workflow) bool {
+	if workflow.Do == nil {
+		return false
+	}
+	return slices.ContainsFunc(*workflow.Do, func(task *model.TaskItem) bool {
+		return task.AsDoTask() == nil
+	})
 }

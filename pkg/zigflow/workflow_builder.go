@@ -131,6 +131,12 @@ func newWorkflowPrepare(doc *model.Workflow) error {
 		return fmt.Errorf("error validating workflow: %w", err)
 	}
 
+	if doc.Schedule != nil {
+		if _, err := metadata.ScheduleTarget(doc); err != nil {
+			return fmt.Errorf("error validating schedule: %w", err)
+		}
+	}
+
 	if err := ValidateWorkflowDeterminism(doc); err != nil {
 		// Logged at debug, not error: the failure is returned to the caller,
 		// which is responsible for surfacing it (the CLI renders a concise,

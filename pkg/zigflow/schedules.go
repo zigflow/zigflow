@@ -44,9 +44,6 @@ func UpdateSchedules(ctx context.Context, temporalClient client.Client, workflow
 	if schedule == nil {
 		log.Debug().Msg("No schedules set")
 		return nil
-	} else if info.WorkflowName == "" {
-		log.Error().Msg("Workflow name not set")
-		return fmt.Errorf("workflow name not set for schedule")
 	}
 
 	// Build Temporal schedules

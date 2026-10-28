@@ -520,7 +520,14 @@
         "scheduleWorkflowName": {
           "type": "string",
           "title": "ScheduleWorkflowName",
-          "description": "Set the workflow name to trigger - this will either be the document.workflowType or the Do task",
+          "description": "Deprecated: use scheduleWorkflowType.",
+          "deprecated": true,
+          "minLength": 1
+        },
+        "scheduleWorkflowType": {
+          "type": "string",
+          "title": "ScheduleWorkflowType",
+          "description": "The workflow type the schedule starts: the document.workflowType or a top-level Do task. Defaults to document.workflowType; required when every top-level task is a Do task.",
           "minLength": 1
         }
       },
@@ -1834,29 +1841,5 @@
   "required": [
     "do",
     "document"
-  ],
-  "if": {
-    "required": [
-      "schedule"
-    ]
-  },
-  "then": {
-    "properties": {
-      "document": {
-        "properties": {
-          "metadata": {
-            "required": [
-              "scheduleWorkflowName"
-            ]
-          }
-        },
-        "required": [
-          "metadata"
-        ]
-      }
-    },
-    "required": [
-      "document"
-    ]
-  }
+  ]
 }

@@ -306,10 +306,17 @@ $defs:
         title: ScheduleInput
         type: array
       scheduleWorkflowName:
-        description: Set the workflow name to trigger - this will either be the document.workflowType
-          or the Do task
+        deprecated: true
+        description: 'Deprecated: use scheduleWorkflowType.'
         minLength: 1
         title: ScheduleWorkflowName
+        type: string
+      scheduleWorkflowType:
+        description: 'The workflow type the schedule starts: the document.workflowType
+          or a top-level Do task. Defaults to document.workflowType; required when
+          every top-level task is a Do task.'
+        minLength: 1
+        title: ScheduleWorkflowType
         type: string
     title: DocumentMetadata
     type: object
@@ -1245,9 +1252,6 @@ $defs:
 $id: https://zigflow.dev/schema.yaml
 $schema: https://json-schema.org/draft/2020-12/schema
 description: JSON Schema for a Zigflow workflow definition.
-if:
-  required:
-  - schedule
 properties:
   do:
     $ref: '#/$defs/taskList'
@@ -1339,16 +1343,5 @@ properties:
 required:
 - do
 - document
-then:
-  properties:
-    document:
-      properties:
-        metadata:
-          required:
-          - scheduleWorkflowName
-      required:
-      - metadata
-  required:
-  - document
 title: Zigflow
 type: object

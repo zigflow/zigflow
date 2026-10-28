@@ -30,6 +30,8 @@ const MetadataSearchAttribute string = "searchAttributes"
 
 const (
 	MetadataScheduleID           string = "scheduleId"
+	MetadataScheduleWorkflowType string = "scheduleWorkflowType"
+	// Deprecated: use MetadataScheduleWorkflowType.
 	MetadataScheduleWorkflowName string = "scheduleWorkflowName"
 	MetadataScheduleInput        string = "scheduleInput"
 )
