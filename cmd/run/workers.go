@@ -19,6 +19,7 @@ package run
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 
 	gh "github.com/mrsimonemms/golang-helpers"
@@ -31,6 +32,7 @@ import (
 	"github.com/zigflow/zigflow/pkg/interceptors"
 	"github.com/zigflow/zigflow/pkg/zigflow"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
+	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
 	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/contrib/sysinfo"
@@ -130,6 +132,7 @@ func buildWorkersByTaskQueue(
 	}
 
 	workers := make(map[string]worker.Worker)
+	registered := make(map[string][]string)
 
 	for _, reg := range registrations {
 		w, ok := workers[reg.TaskQueue]
@@ -215,9 +218,49 @@ func buildWorkersByTaskQueue(
 				Msg: "Unable to build workflow from DSL",
 			}
 		}
+		registered[reg.TaskQueue] = append(registered[reg.TaskQueue], taskOpts.RegisteredWorkflows()...)
 	}
 
+	warnUnregisteredScheduleTargets(registrations, registered)
+
 	return workers, nil
+}
+
+// warnUnregisteredScheduleTargets logs a schedule whose target no workflow on
+// its task queue registers in this process. Another worker polling that queue
+// may register it, so this is a warning, not an error.
+func warnUnregisteredScheduleTargets(registrations []*workflowRegistration, registered map[string][]string) {
+	for _, s := range unregisteredScheduleTargets(registrations, registered) {
+		names := slices.Clone(registered[s.reg.TaskQueue])
+		slices.Sort(names)
+		log.Warn().
+			Str("scheduleWorkflowType", s.target).
+			Str("taskQueue", s.reg.TaskQueue).
+			Str("file", s.reg.SourceFile).
+			Strs("registered", names).
+			Msg("The schedule starts a workflow type this worker does not register on the task queue; " +
+				"it runs only if another worker polling the queue registers it")
+	}
+}
+
+type scheduleTarget struct {
+	reg    *workflowRegistration
+	target string
+}
+
+func unregisteredScheduleTargets(registrations []*workflowRegistration, registered map[string][]string) []scheduleTarget {
+	var found []scheduleTarget
+	for _, reg := range registrations {
+		if reg.Definition.Schedule == nil {
+			continue
+		}
+		target, err := metadata.ScheduleTarget(reg.Definition)
+		if err != nil || slices.Contains(registered[reg.TaskQueue], target) {
+			continue
+		}
+		found = append(found, scheduleTarget{reg: reg, target: target})
+	}
+	return found
 }
 
 // launchWorkers prepares registrations, builds workers, and starts them.

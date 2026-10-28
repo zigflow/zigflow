@@ -76,7 +76,7 @@ Top-level properties:
 | `do`       | yes      | The task list, an array of single-key step maps.         |
 | `input`    | no       | Input configuration, including an input `schema`.        |
 | `output`   | no       | Output configuration (`schema` and `as` shaping).        |
-| `schedule` | no       | Schedules the workflow with a `cron` string or `every` duration. If present, `document.metadata.scheduleWorkflowName` is required. |
+| `schedule` | no       | Schedules the workflow with a `cron` string or `every` duration. `document.metadata.scheduleWorkflowType` names the workflow type it starts; it defaults to `document.workflowType` and is required only when every top-level task is a `do` task. |
 | `timeout`  | no       | Deprecated. Use `metadata.activityOptions` timeouts instead. |
 
 `document` fields:

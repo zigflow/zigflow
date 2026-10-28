@@ -570,8 +570,8 @@ github.com/yusufpapurcu/wmi v1.2.4 h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo
 github.com/yusufpapurcu/wmi v1.2.4/go.mod h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0=
 github.com/zigflow/helpers v0.2.3 h1:u3D6lglHr9+ufUa5+EjOLrmnnV/zn7JKEqcSGx/ZK5E=
 github.com/zigflow/helpers v0.2.3/go.mod h1:/wAfVvEBt2geE7tUO8J/evEpXNcl4oosgkUI90c/ALA=
-github.com/zigflow/schema v0.0.0-20261005164709-9424a19f52e2 h1:z0qXZSDoZ7pvT3rrBMWiiyXo8VyRq/0h3E+aUbO7Qtc=
-github.com/zigflow/schema v0.0.0-20261005164709-9424a19f52e2/go.mod h1:Udgy8cfykyfr4+AlYqjs1BjC/yBLgVg3WKF9sQDU1co=
+github.com/zigflow/schema v0.0.0-20261028112039-cd952868d4a9 h1:kKGu/mDtNBkEj+DaeDtVJ6HYbFjrEuR6Oqipm9vAXNs=
+github.com/zigflow/schema v0.0.0-20261028112039-cd952868d4a9/go.mod h1:n+cjP90udEecRQatm1fWSd9vlOaUYh8cUIFlkO6sGQY=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
 go.opentelemetry.io/auto/sdk v1.2.1/go.mod h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y=
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0 h1:LxwW/9ctSCv+QkE/cLR7M91ZIkXNMqJtEMi1vCw9U8s=

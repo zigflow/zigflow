@@ -19,6 +19,7 @@ package zigflow_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/open-workflow-specification/sdk-go/v4/model"
@@ -359,4 +360,67 @@ do:
 	_, err := zigflow.LoadFromBytes([]byte(content))
 	assert.Error(t, err, "await:false on run script must be rejected by Validate()")
 	assert.Contains(t, err.Error(), "run scripts must be run with await")
+}
+
+func TestValidateBytes_ScheduleTarget(t *testing.T) {
+	const header = `document:
+  dsl: 1.0.0
+  taskQueue: zigflow
+  workflowType: nightly
+  version: 0.0.1
+`
+	const schedule = `schedule:
+  cron: "0 0 * * *"
+`
+	const oneWorkflow = `do:
+  - step:
+      set:
+        hello: world
+`
+	const twoWorkflows = `do:
+  - nightly:
+      do:
+        - step:
+            set:
+              hello: world
+  - cleanup:
+      do:
+        - step:
+            set:
+              hello: world
+`
+	withTarget := func(key string) string {
+		return strings.Replace(header, "  version: 0.0.1\n", "  version: 0.0.1\n  metadata:\n    "+key+": cleanup\n", 1)
+	}
+	tests := []struct {
+		Name    string
+		Content string
+		WantErr string
+	}{
+		{Name: "one workflow needs no key", Content: header + oneWorkflow + schedule},
+		{
+			Name:    "a do-only file must name its target",
+			Content: header + twoWorkflows + schedule,
+			WantErr: "scheduleWorkflowType is required",
+		},
+		{
+			Name:    "a do-only file naming its target",
+			Content: withTarget("scheduleWorkflowType") + twoWorkflows + schedule,
+		},
+		{
+			Name:    "the deprecated key still validates",
+			Content: withTarget("scheduleWorkflowName") + twoWorkflows + schedule,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			err := zigflow.ValidateBytes([]byte(test.Content))
+			if test.WantErr != "" {
+				assert.ErrorContains(t, err, test.WantErr)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
 }
