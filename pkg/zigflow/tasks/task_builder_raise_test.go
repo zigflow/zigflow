@@ -17,6 +17,7 @@
 package tasks
 
 import (
+	"errors"
 	"sync"
 	"testing"
 
@@ -65,6 +66,59 @@ func TestRaiseTaskBuilderBuild(t *testing.T) {
 				if assert.NotNil(t, appErr) {
 					assert.True(t, appErr.NonRetryable())
 				}
+			},
+		},
+		{
+			name: "custom error without title",
+			errorDef: &model.Error{
+				Type:   model.NewUriTemplate("https://example.com/custom"),
+				Status: 400,
+				Detail: model.NewStringOrRuntimeExpr("Custom error detail"),
+			},
+			expectErr: func(err error) {
+				var panicErr *temporal.PanicError
+				assert.False(t, errors.As(err, &panicErr), "must not panic with nil pointer dereference")
+
+				var appErr *temporal.ApplicationError
+				require.True(t, errors.As(err, &appErr), "expected *temporal.ApplicationError, got %T: %v", err, err)
+				assert.Equal(t, "Error", appErr.Type())
+				assert.Contains(t, appErr.Error(), "[400]")
+				assert.Contains(t, appErr.Error(), "Custom error detail")
+				assert.Contains(t, appErr.Error(), "https://example.com/custom")
+			},
+		},
+		{
+			name: "custom error with title",
+			errorDef: &model.Error{
+				Type:   model.NewUriTemplate("https://example.com/custom-with-title"),
+				Status: 404,
+				Title:  model.NewStringOrRuntimeExpr("Custom Error Title"),
+				Detail: model.NewStringOrRuntimeExpr("Item was not found"),
+			},
+			expectErr: func(err error) {
+				var panicErr *temporal.PanicError
+				assert.False(t, errors.As(err, &panicErr), "must not panic with nil pointer dereference")
+
+				var appErr *temporal.ApplicationError
+				require.True(t, errors.As(err, &appErr), "expected *temporal.ApplicationError, got %T: %v", err, err)
+				assert.Equal(t, "Error", appErr.Type())
+				assert.Contains(t, appErr.Error(), "[404]")
+				assert.Contains(t, appErr.Error(), "Custom Error Title")
+				assert.Contains(t, appErr.Error(), "Item was not found")
+				assert.Contains(t, appErr.Error(), "https://example.com/custom-with-title")
+			},
+		},
+		{
+			name: "temporal non retryable error mapping via type",
+			errorDef: &model.Error{
+				Type:   model.NewUriTemplate(temporaErrlNonRetryable),
+				Status: 500,
+				Detail: model.NewStringOrRuntimeExpr("non retryable by type"),
+			},
+			expectErr: func(err error) {
+				var appErr *temporal.ApplicationError
+				require.True(t, errors.As(err, &appErr), "expected *temporal.ApplicationError, got %T: %v", err, err)
+				assert.True(t, appErr.NonRetryable())
 			},
 		},
 	}
