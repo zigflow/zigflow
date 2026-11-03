@@ -129,11 +129,22 @@ func (t *RaiseTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 				return nil, err
 			}
 
-			if raiseErrF, ok := raiseErrFuncMapping[definition.Type.String()]; ok {
-				raiseErr = raiseErrF(fmt.Errorf("%v", detailResult), instance)
-			} else if temporalErrF, ok := temporalErrMapping[definition.Title.String()]; ok {
-				return nil, temporalErrF(fmt.Errorf("%v", detailResult), workflowID)
-			} else {
+			if definition.Type != nil {
+				typeStr := definition.Type.String()
+				if raiseErrF, ok := raiseErrFuncMapping[typeStr]; ok {
+					raiseErr = raiseErrF(fmt.Errorf("%v", detailResult), instance)
+				} else if temporalErrF, ok := temporalErrMapping[typeStr]; ok {
+					return nil, temporalErrF(fmt.Errorf("%v", detailResult), workflowID)
+				}
+			}
+
+			if raiseErr == nil && definition.Title != nil {
+				if temporalErrF, ok := temporalErrMapping[definition.Title.String()]; ok {
+					return nil, temporalErrF(fmt.Errorf("%v", detailResult), workflowID)
+				}
+			}
+
+			if raiseErr == nil {
 				// A copy: the definition is shared by every run of this workflow.
 				custom := *definition
 				raiseErr = &custom
