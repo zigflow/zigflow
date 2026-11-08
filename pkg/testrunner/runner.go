@@ -32,6 +32,7 @@ import (
 	workerconfig "github.com/zigflow/zigflow/pkg/worker"
 	"github.com/zigflow/zigflow/pkg/zigflow"
 	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
+	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/client"
 )
 
@@ -43,8 +44,10 @@ const (
 	StatusFailed    Status = "Failed"
 	StatusTimeout   Status = "Timeout"
 
-	testTimeoutTerminateReason = "zigflow test timeout"
-	testTimeoutCleanupDuration = 30 * time.Second
+	testTimeoutTerminateReason   = "zigflow test timeout"
+	testCancelledTerminateReason = "zigflow test cancelled"
+	testFailedTerminateReason    = "zigflow test failed"
+	testCleanupDuration          = 30 * time.Second
 )
 
 // ErrTestTimeout indicates the workflow did not complete before Config.Timeout.
@@ -188,31 +191,62 @@ func runBytes(ctx context.Context, data []byte, cfg *Config) (*Result, error) {
 	}
 
 	if getErr != nil {
-		res.Status = StatusFailed
-		res.Err = getErr
-		res.Output = failureOutputForRun(output, getErr)
-		if errors.Is(runCtx.Err(), context.DeadlineExceeded) {
-			res.Status = StatusTimeout
-			res.Err = fmt.Errorf("%w after %s: %w", ErrTestTimeout, cfg.Timeout, context.DeadlineExceeded)
-			if termErr := terminateWorkflowAfterTestTimeout(ctx, session.client, we.GetID(), we.GetRunID()); termErr != nil {
-				res.Err = fmt.Errorf("%w: %v", res.Err, termErr)
-			}
-		}
+		res.recordFailure(ctx, runCtx, cfg.Timeout, session.client, output, getErr)
 	}
 
 	return res, nil
 }
 
-// terminateWorkflowAfterTestTimeout stops a timed-out execution before the test
-// worker stops polling its isolated queue. TerminateWorkflow is used rather than
-// CancelWorkflow so the run ends promptly even when the workflow or activities
-// do not honour cancellation.
-func terminateWorkflowAfterTestTimeout(parentCtx context.Context, c client.Client, workflowID, runID string) error {
-	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(parentCtx), testTimeoutCleanupDuration)
+func (res *Result) recordFailure(
+	ctx, runCtx context.Context,
+	timeout time.Duration,
+	c client.Client,
+	output any,
+	getErr error,
+) {
+	res.Status = StatusFailed
+	res.Err = getErr
+	res.Output = failureOutputForRun(output, getErr)
+	stopErr := runCtx.Err()
+	if stopErr == nil {
+		if deadline, ok := runCtx.Deadline(); ok && !time.Now().Before(deadline) {
+			stopErr = context.DeadlineExceeded
+		}
+	}
+	reason := testFailedTerminateReason
+	switch {
+	case errors.Is(stopErr, context.DeadlineExceeded):
+		res.Status = StatusTimeout
+		res.Err = fmt.Errorf("%w after %s: %w", ErrTestTimeout, timeout, context.DeadlineExceeded)
+		reason = testTimeoutTerminateReason
+	case errors.Is(stopErr, context.Canceled):
+		res.Err = fmt.Errorf("workflow test cancelled: %w", context.Canceled)
+		reason = testCancelledTerminateReason
+	}
+	if termErr := terminateTestWorkflow(ctx, c, res.WorkflowID, reason); termErr != nil {
+		res.Err = fmt.Errorf("%w: %v", res.Err, termErr)
+	}
+}
+
+// terminateTestWorkflow stops an execution before its worker stops polling the
+// isolated queue. An empty run ID targets the current run after Continue-As-New.
+func terminateTestWorkflow(parentCtx context.Context, c client.Client, workflowID, reason string) error {
+	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(parentCtx), testCleanupDuration)
 	defer cancel()
 
-	if err := c.TerminateWorkflow(cleanupCtx, workflowID, runID, testTimeoutTerminateReason); err != nil {
-		return fmt.Errorf("terminate workflow after test timeout: %w", err)
+	if err := c.TerminateWorkflow(cleanupCtx, workflowID, "", reason); err != nil {
+		description, describeErr := c.DescribeWorkflowExecution(cleanupCtx, workflowID, "")
+		if describeErr == nil {
+			switch description.GetWorkflowExecutionInfo().GetStatus() {
+			case enumspb.WORKFLOW_EXECUTION_STATUS_COMPLETED,
+				enumspb.WORKFLOW_EXECUTION_STATUS_FAILED,
+				enumspb.WORKFLOW_EXECUTION_STATUS_CANCELED,
+				enumspb.WORKFLOW_EXECUTION_STATUS_TERMINATED,
+				enumspb.WORKFLOW_EXECUTION_STATUS_TIMED_OUT:
+				return nil
+			}
+		}
+		return fmt.Errorf("terminate workflow after test stop: %w", err)
 	}
 	return nil
 }
