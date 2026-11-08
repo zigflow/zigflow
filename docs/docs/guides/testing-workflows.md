@@ -149,6 +149,13 @@ Control concurrency in your Go test runner. Child workflows and built-in
 activities inherit the isolated queue; explicit activity queue targets are
 unchanged.
 
+When the caller cancels the context, the runner terminates the active Temporal
+execution before stopping its worker. The result has `Failed` status and wraps
+`context.Canceled`. A timeout has `Timeout` status and wraps
+`testrunner.ErrTestTimeout`. Both cleanup paths target the current execution,
+including when the workflow has continued as new. The CLI handles Ctrl-C and
+SIGTERM through the same cancellation path.
+
 #### Option B: long-lived worker and Temporal CLI
 
 **Start the Zigflow worker in a separate terminal:**

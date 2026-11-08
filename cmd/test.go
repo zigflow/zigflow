@@ -17,7 +17,11 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	gh "github.com/mrsimonemms/golang-helpers"
@@ -125,7 +129,10 @@ func runTestCmd(
 		return err
 	}
 
-	result, err := testrunner.Run(cmd.Context(), &testrunner.Config{
+	ctx, stop := testSignalContext(cmd.Context())
+	defer stop()
+
+	result, err := testrunner.Run(ctx, &testrunner.Config{
 		WorkflowFile: workflowFile,
 		Input:        input,
 		Timeout:      timeout,
@@ -150,4 +157,13 @@ func runTestCmd(
 	}
 
 	return nil
+}
+
+func testSignalContext(parent context.Context) (ctx context.Context, stop func()) {
+	ctx, stopSignals := signal.NotifyContext(parent, os.Interrupt, syscall.SIGTERM)
+	stopOnDone := context.AfterFunc(ctx, stopSignals)
+	return ctx, func() {
+		stopOnDone()
+		stopSignals()
+	}
 }
