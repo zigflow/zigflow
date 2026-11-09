@@ -395,10 +395,7 @@ func (a *determinismAnalyser) walkQuery(q *gojq.Query, sc *scope, path string) {
 		// scope for Right only.
 		rightScope := inner
 		if len(q.Patterns) > 0 {
-			rightScope = newScope(inner)
-			for _, p := range q.Patterns {
-				collectPatternVars(rightScope, p)
-			}
+			rightScope = a.bindPatterns(q.Patterns, inner, joinPath(path, "as"))
 		}
 		a.walkQuery(q.Right, rightScope, joinPath(path, q.Op.String()))
 	}
@@ -481,8 +478,7 @@ func (a *determinismAnalyser) walkReduce(r *gojq.Reduce, sc *scope, path string)
 		return
 	}
 	a.walkQuery(r.Query, sc, joinPath(path, "reduce"))
-	inner := newScope(sc)
-	collectPatternVars(inner, r.Pattern)
+	inner := a.bindPatterns(r.Patterns, sc, joinPath(path, "reduce/as"))
 	a.walkQuery(r.Start, inner, joinPath(path, "reduce/start"))
 	a.walkQuery(r.Update, inner, joinPath(path, "reduce/update"))
 }
@@ -492,8 +488,7 @@ func (a *determinismAnalyser) walkForeach(f *gojq.Foreach, sc *scope, path strin
 		return
 	}
 	a.walkQuery(f.Query, sc, joinPath(path, "foreach"))
-	inner := newScope(sc)
-	collectPatternVars(inner, f.Pattern)
+	inner := a.bindPatterns(f.Patterns, sc, joinPath(path, "foreach/as"))
 	a.walkQuery(f.Start, inner, joinPath(path, "foreach/start"))
 	a.walkQuery(f.Update, inner, joinPath(path, "foreach/update"))
 	a.walkQuery(f.Extract, inner, joinPath(path, "foreach/extract"))
@@ -606,8 +601,59 @@ func (a *determinismAnalyser) walkIf(i *gojq.If, sc *scope, path string) {
 	a.walkQuery(i.Else, sc, joinPath(path, "else"))
 }
 
-// collectPatternVars walks a pattern and adds every variable it introduces to
-// sc. Patterns appear in `as`, `reduce` and `foreach` constructs.
+// bindPatterns returns a child scope of parent containing every variable
+// bound by patterns, walking any key expressions along the way. Patterns
+// appear in `as`, `reduce` and `foreach` constructs.
+//
+// Scoping mirrors gojq's compiler: with `?//` alternatives, the variables of
+// every alternative are bound (to null) before any alternative is matched;
+// within a pattern, variables are bound left to right, so a key expression
+// can only see variables bound earlier in the pattern.
+func (a *determinismAnalyser) bindPatterns(patterns []*gojq.Pattern, parent *scope, path string) *scope {
+	sc := newScope(parent)
+	if len(patterns) > 1 {
+		for _, p := range patterns {
+			collectPatternVars(sc, p)
+		}
+	}
+	for _, p := range patterns {
+		a.walkPattern(p, sc, path)
+	}
+	return sc
+}
+
+// walkPattern binds the variables of p into sc in evaluation order and
+// analyses any computed (`{(expr): $x}`) or interpolated (`{"\(expr)": $x}`)
+// object keys.
+func (a *determinismAnalyser) walkPattern(p *gojq.Pattern, sc *scope, path string) {
+	if p == nil {
+		return
+	}
+	if p.Name != "" {
+		sc.add(p.Name)
+		return
+	}
+	for _, child := range p.Array {
+		a.walkPattern(child, sc, path)
+	}
+	for _, kv := range p.Object {
+		switch {
+		case kv.Key != "":
+			// `{$a}` and `{$a: pattern}` bind $a to the value at key "a".
+			if kv.Key[0] == '$' {
+				sc.add(kv.Key)
+			}
+		case kv.KeyString != nil:
+			a.walkString(kv.KeyString, sc, path)
+		case kv.KeyQuery != nil:
+			a.walkQuery(kv.KeyQuery, sc, path)
+		}
+		a.walkPattern(kv.Val, sc, path)
+	}
+}
+
+// collectPatternVars adds every variable p introduces to sc without analysing
+// key expressions. Used to pre-bind variables across `?//` alternatives.
 func collectPatternVars(sc *scope, p *gojq.Pattern) {
 	if p == nil {
 		return
@@ -619,8 +665,9 @@ func collectPatternVars(sc *scope, p *gojq.Pattern) {
 		collectPatternVars(sc, child)
 	}
 	for _, kv := range p.Object {
-		if kv.Val != nil {
-			collectPatternVars(sc, kv.Val)
+		if kv.Key != "" && kv.Key[0] == '$' {
+			sc.add(kv.Key)
 		}
+		collectPatternVars(sc, kv.Val)
 	}
 }

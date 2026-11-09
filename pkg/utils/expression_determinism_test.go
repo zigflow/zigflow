@@ -165,6 +165,119 @@ func TestAnalyseExpressionDeterminism_AsPatternVarIsSafe(t *testing.T) {
 	assert.True(t, analysis.Deterministic, "got issues: %+v", analysis.Issues)
 }
 
+func TestAnalyseExpressionDeterminism_DestructuringAlternatives(t *testing.T) {
+	// gojq v0.12.20 replaced Reduce.Pattern and Foreach.Pattern with
+	// Patterns []*Pattern to support `?//` destructuring alternatives. Every
+	// variable bound by any alternative must be in scope for the body, and
+	// non-deterministic calls inside the body must still be detected.
+	deterministic := []struct {
+		name string
+		expr string
+	}{
+		{"reduce with alternatives", "${ reduce $data.items[] as [$a] ?// {b: $b} (0; . + ($a // 0) + ($b // 0)) }"},
+		{"reduce with three alternatives", "${ reduce $data.items[] as [$a, $b] ?// {x: $c} ?// $d (0; . + ($a // $c // $d // 0) + ($b // 0)) }"},
+		{"foreach with alternatives", "${ foreach $data.items[] as [$a] ?// {b: $b} (0; . + ($a // 0); [., $b]) }"},
+		{"foreach with nested alternatives", "${ foreach $data.items[] as {k: [$a]} ?// [$b] (null; $a // $b; [., $a, $b]) }"},
+	}
+	for _, tc := range deterministic {
+		t.Run(tc.name, func(t *testing.T) {
+			analysis, err := AnalyseExpressionDeterminism(tc.expr)
+			require.NoError(t, err)
+			assert.True(t, analysis.Deterministic,
+				"expected expression to be deterministic, got issues: %+v", analysis.Issues)
+		})
+	}
+
+	nonDeterministic := []struct {
+		name       string
+		expr       string
+		wantSymbol string
+	}{
+		{"reduce alternatives with now in update", "${ reduce $data.items[] as [$a] ?// {b: $b} (0; . + ($a // $b) + now) }", symbolNow},
+		{"reduce alternatives with now in start", "${ reduce $data.items[] as [$a] ?// $b (now; . + ($a // $b)) }", symbolNow},
+		{"reduce alternatives with now in source", "${ reduce (now, $data.x) as [$a] ?// $b (0; . + ($a // $b)) }", symbolNow},
+		{"foreach alternatives with now in update", "${ foreach $data.items[] as [$a] ?// {b: $b} (0; . + now; [., $a, $b]) }", symbolNow},
+		{"foreach alternatives with now in extract", "${ foreach $data.items[] as [$a] ?// $b (0; . + ($a // $b); . + now) }", symbolNow},
+		{"foreach alternatives with uuid in start", "${ foreach $data.items[] as [$a] ?// $b (uuid; $a // $b) }", symbolUUID},
+	}
+	for _, tc := range nonDeterministic {
+		t.Run(tc.name, func(t *testing.T) {
+			analysis, err := AnalyseExpressionDeterminism(tc.expr)
+			require.NoError(t, err)
+			assert.False(t, analysis.Deterministic, "expected expression to be non-deterministic")
+			symbols := make([]string, 0, len(analysis.Issues))
+			for _, issue := range analysis.Issues {
+				symbols = append(symbols, issue.Symbol)
+			}
+			assert.Contains(t, symbols, tc.wantSymbol,
+				"expected issue for %q, got: %+v", tc.wantSymbol, analysis.Issues)
+			assert.Len(t, analysis.Issues, 1,
+				"pattern variables must not be flagged, got: %+v", analysis.Issues)
+		})
+	}
+}
+
+func TestAnalyseExpressionDeterminism_PatternObjectKeys(t *testing.T) {
+	// Object patterns can bind variables through the key (`{$a}`,
+	// `{$a: [$b]}`) and can compute keys from expressions (`{(expr): $x}`,
+	// `{"\(expr)": $x}`). Key bindings must be in scope and key expressions
+	// must be analysed for `as`, `reduce` and `foreach`.
+	deterministic := []struct {
+		name string
+		expr string
+	}{
+		{"as shorthand", "${ $data as {$a} | $a }"},
+		{"as key binding with nested pattern", "${ $data as {$a: [$b]} | [$a, $b] }"},
+		{"as nested shorthand", "${ $data as [{$a: {$b}}] | [$a, $b] }"},
+		{"reduce shorthand with alternatives", "${ reduce $data.items[] as {$a} ?// [$b] (0; . + ($a // $b)) }"},
+		{"foreach key binding with alternatives", "${ foreach $data.items[] as {$a: [$b]} ?// $c (0; . + ($a // $c); [., $b]) }"},
+		{"as computed key from state", "${ $data as {($data.key): $a} | $a }"},
+		{"as interpolated key from state", `${ $data as {"\($data.key)": $a} | $a }`},
+		{"as computed key using earlier binding", "${ $data as {$k, ($k): $v} | $v }"},
+		{"as computed key using other alternative", `${ $data as {($b // "x"): $a} ?// [$b] | [$a, $b] }`},
+		{"reduce computed key from state", "${ reduce $data.items[] as {($data.key): $a} ?// [$a] (0; . + $a) }"},
+		{"foreach interpolated key from state", `${ foreach $data.items[] as {"\($data.key)": $a} (0; . + $a; .) }`},
+	}
+	for _, tc := range deterministic {
+		t.Run(tc.name, func(t *testing.T) {
+			analysis, err := AnalyseExpressionDeterminism(tc.expr)
+			require.NoError(t, err)
+			assert.True(t, analysis.Deterministic,
+				"expected expression to be deterministic, got issues: %+v", analysis.Issues)
+		})
+	}
+
+	nonDeterministic := []struct {
+		name       string
+		expr       string
+		wantSymbol string
+	}{
+		{"as computed key with now", "${ $data as {(now | tostring): $a} | $a }", symbolNow},
+		{"as interpolated key with now", `${ $data as {"\(now)": $a} | $a }`, symbolNow},
+		{"as nested computed key with now", "${ $data as [{x: {(now | tostring): $a}}] | $a }", symbolNow},
+		{"as shorthand alongside computed key with now", "${ $data as {$a, (now | tostring): $b} | [$a, $b] }", symbolNow},
+		{"reduce computed key with now in alternative", "${ reduce $data.items[] as [$a] ?// {(now | tostring): $a} (0; . + $a) }", symbolNow},
+		{
+			"foreach interpolated key with now in alternative",
+			`${ foreach $data.items[] as [$b] ?// {"\(now)": $a} (0; . + ($a // $b); .) }`,
+			symbolNow,
+		},
+		// Within a single pattern, a key is evaluated before its own entry is
+		// bound, so $v is not in scope for the key expression.
+		{"computed key referencing its own binding", "${ $data as {($v): $v} | $v }", "$v"},
+	}
+	for _, tc := range nonDeterministic {
+		t.Run(tc.name, func(t *testing.T) {
+			analysis, err := AnalyseExpressionDeterminism(tc.expr)
+			require.NoError(t, err)
+			assert.False(t, analysis.Deterministic, "expected expression to be non-deterministic")
+			require.Len(t, analysis.Issues, 1,
+				"bound variables must not be flagged, got: %+v", analysis.Issues)
+			assert.Equal(t, tc.wantSymbol, analysis.Issues[0].Symbol)
+		})
+	}
+}
+
 func TestAnalyseExpressionDeterminism_ImportsAreRejected(t *testing.T) {
 	// Imports load arbitrary modules at evaluation time; treat them as
 	// non-deterministic.
