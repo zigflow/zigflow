@@ -903,6 +903,13 @@ $defs:
                       workflow's input schema, if specified.
                     title: SubflowInput
                     type: object
+                  taskQueue:
+                    description: The Temporal task queue to start the child workflow
+                      on. If not set, the child workflow runs on the parent workflow's
+                      task queue.
+                    minLength: 1
+                    title: SubflowTaskQueue
+                    type: string
                   type:
                     description: The workflow type to run.
                     title: SubflowType
