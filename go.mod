@@ -24,7 +24,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/jsonschema-go v0.4.3
 	github.com/google/uuid v1.6.0
-	github.com/itchyny/gojq v0.12.19
+	github.com/itchyny/gojq v0.12.20
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/mrsimonemms/golang-helpers v0.8.2
 	github.com/mrsimonemms/temporal-codec-server/packages/golang v0.0.0-20260828093121-4bff7ebacfc3
