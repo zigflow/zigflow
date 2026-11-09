@@ -1343,6 +1343,12 @@
                           "description": "The data, if any, to pass as input to the workflow to execute. The value should be validated against the target workflow's input schema, if specified.",
                           "additionalProperties": true
                         },
+                        "taskQueue": {
+                          "type": "string",
+                          "title": "SubflowTaskQueue",
+                          "description": "The Temporal task queue to start the child workflow on. If not set, the child workflow runs on the parent workflow's task queue.",
+                          "minLength": 1
+                        },
                         "type": {
                           "type": "string",
                           "title": "SubflowType",
