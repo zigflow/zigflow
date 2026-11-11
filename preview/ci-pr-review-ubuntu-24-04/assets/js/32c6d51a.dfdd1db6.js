@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkzigflow=self.webpackChunkzigflow||[]).push([["9209"],{8604(e){e.exports=JSON.parse('{"metadata":{"permalink":"/preview/ci-pr-review-ubuntu-24-04/articles","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
