@@ -114,7 +114,7 @@
       ]
     }
   },
-  "$id": "https://zigflow.dev/schemas/0.18.0/schema.json",
+  "$id": "https://zigflow.dev/schemas/0.18.1/schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "callTask": {
@@ -520,7 +520,14 @@
         "scheduleWorkflowName": {
           "type": "string",
           "title": "ScheduleWorkflowName",
-          "description": "Set the workflow name to trigger - this will either be the document.workflowType or the Do task",
+          "description": "Deprecated: use scheduleWorkflowType.",
+          "deprecated": true,
+          "minLength": 1
+        },
+        "scheduleWorkflowType": {
+          "type": "string",
+          "title": "ScheduleWorkflowType",
+          "description": "The workflow type the schedule starts: the document.workflowType or a top-level Do task. Defaults to document.workflowType; required when every top-level task is a Do task.",
           "minLength": 1
         }
       },
@@ -1336,6 +1343,12 @@
                           "description": "The data, if any, to pass as input to the workflow to execute. The value should be validated against the target workflow's input schema, if specified.",
                           "additionalProperties": true
                         },
+                        "taskQueue": {
+                          "type": "string",
+                          "title": "SubflowTaskQueue",
+                          "description": "The Temporal task queue to start the child workflow on. If not set, the child workflow runs on the parent workflow's task queue.",
+                          "minLength": 1
+                        },
                         "type": {
                           "type": "string",
                           "title": "SubflowType",
@@ -1834,29 +1847,5 @@
   "required": [
     "do",
     "document"
-  ],
-  "if": {
-    "required": [
-      "schedule"
-    ]
-  },
-  "then": {
-    "properties": {
-      "document": {
-        "properties": {
-          "metadata": {
-            "required": [
-              "scheduleWorkflowName"
-            ]
-          }
-        },
-        "required": [
-          "metadata"
-        ]
-      }
-    },
-    "required": [
-      "document"
-    ]
-  }
+  ]
 }
