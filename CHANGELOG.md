@@ -2,6 +2,25 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.18.1](https://github.com/zigflow/zigflow/releases/tag/v0.18.1) - 2026-11-11
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/640
+* deps(deps): bump the go-dependencies group with 7 updates by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/641
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/642
+* feat: add scheduleWorkflowType and deprecate scheduleWorkflowName by @YJ-928 in https://github.com/zigflow/zigflow/pull/644
+* fix: add support for gojq 0.12.20 foreach patterns by @mrsimonemms in https://github.com/zigflow/zigflow/pull/650
+* chore: update schema to latest version by @mrsimonemms in https://github.com/zigflow/zigflow/pull/653
+* chore: update dependencies by @mrsimonemms in https://github.com/zigflow/zigflow/pull/654
+* ci: run the pr review job on ubuntu-24.04 by @YJ-928 in https://github.com/zigflow/zigflow/pull/657
+* fix(tasks): prevent nil pointer dereference in raise task when title is omitted by @jaisondavid-m in https://github.com/zigflow/zigflow/pull/647
+* chore: add codex config file by @mrsimonemms in https://github.com/zigflow/zigflow/pull/658
+
+## New Contributors
+* @jaisondavid-m made their first contribution in https://github.com/zigflow/zigflow/pull/647
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.18.0...v0.18.1
+
 ## [v0.18.0](https://github.com/zigflow/zigflow/releases/tag/v0.18.0) - 2026-10-23
 
 > This release contains breaking changes
