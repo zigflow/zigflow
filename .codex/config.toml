@@ -1,0 +1,9 @@
+[mcp_servers.temporalDocs]
+url = "https://temporal.mcp.kapa.ai"
+
+[mcp_servers.zigflowDev]
+command = "go"
+args = ["run", ".", "mcp"]
+
+[mcp_servers.zigflowProd]
+url = "https://mcp.zigflow.dev"
