@@ -15,7 +15,9 @@ concurrency:
 
 jobs:
   codex_review:
-    runs-on: ubuntu-latest
+    # Pinned until openai/codex-action#191 ships: on ubuntu-26.04, drop-sudo fails
+    # its socket ACL check (openai/codex-action#188), so codex never runs.
+    runs-on: ubuntu-24.04
     if: |
       github.event.pull_request.head.repo.full_name == github.repository ||
       (github.event.action == 'labeled' && github.event.label.name == 'ai-review')
