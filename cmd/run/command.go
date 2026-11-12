@@ -88,6 +88,12 @@ type runOptions struct {
 
 	Telemetry                  *telemetry.Telemetry
 	defaultVersioningBehaviour workflow.VersioningBehavior
+
+	// registrationTaskQueue, when non-empty, is used instead of document.taskQueue
+	// when building workflowRegistration values (zigflow test only today).
+	registrationTaskQueue string
+	// skipClientMetrics lets unit tests avoid duplicate global metric collectors.
+	skipClientMetrics bool
 }
 
 func panicMessage(r any) string {
