@@ -75,6 +75,11 @@ This command validates the file, starts a short-lived in-process worker,
 executes the workflow once, prints the result and exits with a non-zero code
 on failure.
 
+For documents made entirely of top-level `do` tasks, add
+`--workflow-type <task-name>` to choose one of the registered workflows.
+Without it, Zigflow lists the available workflow types. Other documents use
+`document.workflowType` by default.
+
 :::info
 `zigflow test` creates a unique Temporal task queue `zigflow-test-UUID` for
 each invocation. The

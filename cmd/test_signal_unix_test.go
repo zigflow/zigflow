@@ -21,8 +21,8 @@ package cmd
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"syscall"
@@ -45,12 +45,21 @@ func TestTestSignalContextSecondInterrupt(t *testing.T) {
 
 	commandCtx, cancel := context.WithTimeout(t.Context(), 45*time.Second)
 	defer cancel()
-	command := exec.CommandContext(commandCtx, "go", "test", "-v", "-run", "^TestTestSignalContextSecondInterrupt$", ".")
-	command.Env = append(os.Environ(), "ZIGFLOW_TEST_SIGNAL_HELPER=1")
-	stdout, err := command.StdoutPipe()
+	stdout, outputWriter, err := os.Pipe()
 	require.NoError(t, err)
-	require.NoError(t, command.Start())
-	defer func() { _ = command.Process.Kill() }()
+	defer func() { _ = stdout.Close() }()
+	binary, err := os.Executable()
+	require.NoError(t, err)
+	process, err := os.StartProcess(binary, []string{binary, "-test.v", "-test.run=^TestTestSignalContextSecondInterrupt$"},
+		&os.ProcAttr{
+			Env:   append(os.Environ(), "ZIGFLOW_TEST_SIGNAL_HELPER=1"),
+			Files: []*os.File{os.Stdin, outputWriter, os.Stderr},
+		})
+	require.NoError(t, outputWriter.Close())
+	require.NoError(t, err)
+	stopOnDeadline := context.AfterFunc(commandCtx, func() { _ = process.Kill() })
+	defer stopOnDeadline()
+	defer func() { _ = process.Kill() }()
 
 	lines := make(chan string, 2)
 	go func() {
@@ -85,12 +94,18 @@ func TestTestSignalContextSecondInterrupt(t *testing.T) {
 	require.NoError(t, syscall.Kill(pid, syscall.SIGINT))
 
 	done := make(chan error, 1)
-	go func() { done <- command.Wait() }()
+	go func() {
+		state, waitErr := process.Wait()
+		if waitErr == nil && state.Success() {
+			waitErr = fmt.Errorf("helper exited successfully after second interrupt")
+		}
+		done <- waitErr
+	}()
 	select {
 	case waitErr := <-done:
-		require.Error(t, waitErr)
+		require.NoError(t, waitErr)
 	case <-time.After(2 * time.Second):
-		_ = command.Process.Kill()
+		_ = process.Kill()
 		waitErr := <-done
 		t.Fatalf("second interrupt was swallowed during cleanup: %v", waitErr)
 	}

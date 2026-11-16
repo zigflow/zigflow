@@ -18,7 +18,9 @@ package testrunner
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/open-workflow-specification/sdk-go/v4/model"
@@ -30,6 +32,9 @@ import (
 	"github.com/zigflow/zigflow/pkg/zigflow"
 	"github.com/zigflow/zigflow/pkg/zigflow/activities"
 	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
+	enumspb "go.temporal.io/api/enums/v1"
+	"go.temporal.io/api/serviceerror"
+	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/interceptor"
 	"go.temporal.io/sdk/worker"
@@ -47,6 +52,82 @@ type session struct {
 func (s *session) stop() {
 	s.worker.Stop()
 	s.client.Close()
+}
+
+// cleanup closes the root execution and any child workflows on this session's
+// queue before the worker stops. History finds children even when visibility has
+// not indexed them yet; the queue query also catches executions beyond the
+// current root run, including those left by Continue-As-New.
+func (s *session) cleanup(parentCtx context.Context, rootID, reason string) error {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(parentCtx), testCleanupDuration)
+	defer cancel()
+	return errors.Join(
+		terminateTestWorkflow(ctx, s.client, rootID, reason),
+		s.closeChildExecutions(ctx, rootID, reason),
+		s.closeOpenQueueExecutions(ctx, reason),
+	)
+}
+
+func (s *session) closeChildExecutions(ctx context.Context, rootID, reason string) error {
+	var cleanupErr error
+	seen := map[string]bool{}
+	pending := []string{rootID}
+	for len(pending) > 0 {
+		id := pending[0]
+		pending = pending[1:]
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		history := s.client.GetWorkflowHistory(ctx, id, "", false, enumspb.HISTORY_EVENT_FILTER_TYPE_ALL_EVENT)
+		for history.HasNext() {
+			event, err := history.Next()
+			if err != nil {
+				if _, ok := errors.AsType[*serviceerror.NotFound](err); !ok {
+					cleanupErr = errors.Join(cleanupErr, fmt.Errorf("read test workflow %s history: %w", id, err))
+				}
+				break
+			}
+			started := event.GetChildWorkflowExecutionStartedEventAttributes()
+			if started == nil {
+				continue
+			}
+			childID := started.GetWorkflowExecution().GetWorkflowId()
+			if childID != "" && !seen[childID] {
+				if err := terminateTestWorkflow(ctx, s.client, childID, reason); err != nil {
+					cleanupErr = errors.Join(cleanupErr, err)
+				}
+				pending = append(pending, childID)
+			}
+		}
+	}
+	return cleanupErr
+}
+
+func (s *session) closeOpenQueueExecutions(ctx context.Context, reason string) error {
+	var cleanupErr error
+	var nextPage []byte
+	for {
+		listed, err := s.client.ListWorkflow(ctx, &workflowservice.ListWorkflowExecutionsRequest{
+			Query:         fmt.Sprintf("TaskQueue = '%s' AND ExecutionStatus = 'Running'", strings.ReplaceAll(s.taskQueue, "'", "''")),
+			NextPageToken: nextPage,
+		})
+		if err != nil {
+			cleanupErr = errors.Join(cleanupErr, fmt.Errorf("list open test workflows: %w", err))
+			break
+		}
+		for _, execution := range listed.GetExecutions() {
+			id := execution.GetExecution().GetWorkflowId()
+			if err := terminateTestWorkflow(ctx, s.client, id, reason); err != nil {
+				cleanupErr = errors.Join(cleanupErr, err)
+			}
+		}
+		nextPage = listed.GetNextPageToken()
+		if len(nextPage) == 0 {
+			break
+		}
+	}
+	return cleanupErr
 }
 
 func startSession(ctx context.Context, wf *model.Workflow, cfg *Config) (*session, error) {

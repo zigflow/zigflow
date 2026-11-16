@@ -111,7 +111,7 @@ func ScheduleTarget(workflow *model.Workflow) (string, error) {
 		return target, nil
 	case legacy != "":
 		return legacy, nil
-	case runsAsOneWorkflow(workflow):
+	case RunsAsOneWorkflow(workflow):
 		return workflow.Document.Name, nil
 	}
 	return "", fmt.Errorf(
@@ -132,9 +132,9 @@ func stringMetadata(workflow *model.Workflow, key string) (string, error) {
 	return s, nil
 }
 
-// runsAsOneWorkflow mirrors DoTaskBuilder.Build: a top-level task list that is
+// RunsAsOneWorkflow mirrors DoTaskBuilder.Build: a top-level task list that is
 // not only do tasks runs as one workflow of type document.workflowType.
-func runsAsOneWorkflow(workflow *model.Workflow) bool {
+func RunsAsOneWorkflow(workflow *model.Workflow) bool {
 	if workflow.Do == nil {
 		return false
 	}

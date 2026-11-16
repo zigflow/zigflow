@@ -65,6 +65,15 @@ worker.
 zigflow test workflow.yaml --input testdata/input.json
 ```
 
+If every top-level task is a `do` task, each task is registered as a separate
+workflow type. Select one explicitly, for example
+`zigflow test examples/child-workflows/workflow.yaml` with
+`--workflow-type parentWorkflow`.
+Without the flag, Zigflow reports the available names before opening a
+Temporal connection. For other documents, the default is
+`document.workflowType`. Go callers use `Config.WorkflowType` for the same
+selection.
+
 :::warning
 `zigflow test` uses a unique Temporal task queue `zigflow-test-UUID` for
 each invocation. The
@@ -150,7 +159,10 @@ activities inherit the isolated queue; explicit activity queue targets are
 unchanged.
 
 When the caller cancels the context, the runner terminates the active Temporal
-execution before stopping its worker. The result has `Failed` status and wraps
+execution before stopping its worker. It also closes any unawaited child
+executions on the isolated queue after the root finishes, and checks the
+generated workflow ID if the start response is lost. The result has `Failed`
+status and wraps
 `context.Canceled`. A timeout has `Timeout` status and wraps
 `testrunner.ErrTestTimeout`. Both cleanup paths target the current execution,
 including when the workflow has continued as new. The CLI handles Ctrl-C and

@@ -34,11 +34,12 @@ import (
 
 func newTestCmd() *cobra.Command {
 	var opts struct {
-		Input      string
-		InputJSON  string
-		Timeout    time.Duration
-		TemporalUI string
-		temporal   *temporal.TemporalOpts
+		Input        string
+		InputJSON    string
+		WorkflowType string
+		Timeout      time.Duration
+		TemporalUI   string
+		temporal     *temporal.TemporalOpts
 	}
 
 	opts.temporal = &temporal.TemporalOpts{}
@@ -57,6 +58,9 @@ Each invocation uses its own zigflow-test-UUID task queue. Concurrent tests
 run independently, including tests with the same workflow type. The caller
 controls concurrency. Test sessions start no health or metrics listeners.
 
+When every top-level task is a do task, pass --workflow-type with the name of
+the workflow to run. Otherwise the document workflow type is used.
+
 Runtime options currently use the defaults: ZIGGY_ environment variables,
 Docker containers, no payload encryption and no external storage. For custom
 runtime configuration, use the Go testrunner package.
@@ -65,7 +69,7 @@ Arguments:
   workflow-file   Path to the Zigflow workflow file to test`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runTestCmd(cmd, args[0], opts.Input, opts.InputJSON, opts.Timeout, opts.TemporalUI, opts.temporal)
+			return runTestCmd(cmd, args[0], opts.Input, opts.InputJSON, opts.WorkflowType, opts.Timeout, opts.TemporalUI, opts.temporal)
 		},
 	}
 
@@ -78,6 +82,7 @@ Arguments:
 		&opts.InputJSON, "input-json",
 		viper.GetString("test_input_json"), "Inline JSON workflow input",
 	)
+	cmd.Flags().StringVar(&opts.WorkflowType, "workflow-type", "", "Registered workflow type to execute")
 	cmd.Flags().DurationVar(
 		&opts.Timeout, "timeout",
 		viper.GetDuration("test_timeout"), "Maximum time to wait for workflow completion",
@@ -104,7 +109,7 @@ Arguments:
 
 func runTestCmd(
 	cmd *cobra.Command,
-	workflowFile, inputPath, inputJSON string,
+	workflowFile, inputPath, inputJSON, workflowType string,
 	timeout time.Duration,
 	temporalUI string,
 	temporalOpts *temporal.TemporalOpts,
@@ -134,6 +139,7 @@ func runTestCmd(
 
 	result, err := testrunner.Run(ctx, &testrunner.Config{
 		WorkflowFile: workflowFile,
+		WorkflowType: workflowType,
 		Input:        input,
 		Timeout:      timeout,
 		Temporal:     temporalOpts,

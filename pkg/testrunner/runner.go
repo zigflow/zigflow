@@ -23,16 +23,20 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/open-workflow-specification/sdk-go/v4/model"
 	zigtemporal "github.com/zigflow/helpers"
 	"github.com/zigflow/zigflow/pkg/telemetry"
 	workerconfig "github.com/zigflow/zigflow/pkg/worker"
 	"github.com/zigflow/zigflow/pkg/zigflow"
+	"github.com/zigflow/zigflow/pkg/zigflow/metadata"
 	"github.com/zigflow/zigflow/pkg/zigflow/tasks"
 	enumspb "go.temporal.io/api/enums/v1"
+	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/client"
 )
 
@@ -58,6 +62,9 @@ var ErrTestTimeout = errors.New("workflow test timed out")
 // Run and RunBytes calls. Callers must not mutate its maps or pointers during a run.
 type Config struct {
 	WorkflowFile string
+	// WorkflowType selects a workflow type. It is required when every top-level
+	// task is a do task; otherwise the document type is the default.
+	WorkflowType string
 	Input        any
 	Timeout      time.Duration
 	Temporal     *zigtemporal.TemporalOpts
@@ -117,6 +124,15 @@ func RunBytes(ctx context.Context, data []byte, cfg *Config) (*Result, error) {
 }
 
 func runBytes(ctx context.Context, data []byte, cfg *Config) (*Result, error) {
+	return runBytesWithSession(ctx, data, cfg, startSession)
+}
+
+func runBytesWithSession(
+	ctx context.Context,
+	data []byte,
+	cfg *Config,
+	openSession func(context.Context, *model.Workflow, *Config) (*session, error),
+) (*Result, error) {
 	if cfg.Timeout <= 0 {
 		cfg.Timeout = 10 * time.Minute
 	}
@@ -144,12 +160,15 @@ func runBytes(ctx context.Context, data []byte, cfg *Config) (*Result, error) {
 		return nil, err
 	}
 
-	workflowType := wf.Document.Name
+	workflowType, err := selectWorkflowType(wf, cfg.WorkflowType)
+	if err != nil {
+		return nil, err
+	}
 
 	runCtx, cancel := context.WithTimeout(ctx, cfg.Timeout)
 	defer cancel()
 
-	session, err := startSession(runCtx, wf, cfg)
+	session, err := openSession(runCtx, wf, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +180,7 @@ func runBytes(ctx context.Context, data []byte, cfg *Config) (*Result, error) {
 		TaskQueue: session.taskQueue,
 	}, workflowType, cfg.Input)
 	if err != nil {
-		return &Result{
+		res := &Result{
 			TaskQueue:      session.taskQueue,
 			WorkflowType:   workflowType,
 			Status:         StatusFailed,
@@ -169,7 +188,11 @@ func runBytes(ctx context.Context, data []byte, cfg *Config) (*Result, error) {
 			Err:            err,
 			WorkflowID:     workflowID,
 			TemporalUIBase: cfg.TemporalUI,
-		}, nil
+		}
+		if cleanupErr := session.cleanup(ctx, workflowID, testFailedTerminateReason); cleanupErr != nil {
+			res.Err = errors.Join(res.Err, cleanupErr)
+		}
+		return res, nil
 	}
 
 	var output any
@@ -191,16 +214,48 @@ func runBytes(ctx context.Context, data []byte, cfg *Config) (*Result, error) {
 	}
 
 	if getErr != nil {
-		res.recordFailure(ctx, runCtx, cfg.Timeout, session.client, output, getErr)
+		res.recordFailure(runCtx, cfg.Timeout, output, getErr)
+	}
+	if cleanupErr := session.cleanup(ctx, res.WorkflowID, cleanupReason(res)); cleanupErr != nil {
+		res.Status = StatusFailed
+		res.Err = errors.Join(res.Err, cleanupErr)
 	}
 
 	return res, nil
 }
 
+func selectWorkflowType(wf *model.Workflow, requested string) (string, error) {
+	if metadata.RunsAsOneWorkflow(wf) {
+		if requested != "" {
+			return requested, nil
+		}
+		return wf.Document.Name, nil
+	}
+
+	var available []string
+	if wf.Do != nil {
+		for _, task := range *wf.Do {
+			if task.AsDoTask() != nil {
+				available = append(available, task.Key)
+			}
+		}
+	}
+	if requested == "" {
+		return "", fmt.Errorf(
+			"workflow type is required when every top-level task is a do task; "+
+				"set Config.WorkflowType or --workflow-type; available workflow types: %s",
+			strings.Join(available, ", "),
+		)
+	}
+	if slices.Contains(available, requested) {
+		return requested, nil
+	}
+	return "", fmt.Errorf("workflow type %q is not registered; available workflow types: %s", requested, strings.Join(available, ", "))
+}
+
 func (res *Result) recordFailure(
-	ctx, runCtx context.Context,
+	runCtx context.Context,
 	timeout time.Duration,
-	c client.Client,
 	output any,
 	getErr error,
 ) {
@@ -213,28 +268,33 @@ func (res *Result) recordFailure(
 			stopErr = context.DeadlineExceeded
 		}
 	}
-	reason := testFailedTerminateReason
 	switch {
 	case errors.Is(stopErr, context.DeadlineExceeded):
 		res.Status = StatusTimeout
 		res.Err = fmt.Errorf("%w after %s: %w", ErrTestTimeout, timeout, context.DeadlineExceeded)
-		reason = testTimeoutTerminateReason
 	case errors.Is(stopErr, context.Canceled):
 		res.Err = fmt.Errorf("workflow test cancelled: %w", context.Canceled)
-		reason = testCancelledTerminateReason
 	}
-	if termErr := terminateTestWorkflow(ctx, c, res.WorkflowID, reason); termErr != nil {
-		res.Err = fmt.Errorf("%w: %v", res.Err, termErr)
+}
+
+func cleanupReason(res *Result) string {
+	switch {
+	case res.Status == StatusTimeout:
+		return testTimeoutTerminateReason
+	case errors.Is(res.Err, context.Canceled):
+		return testCancelledTerminateReason
+	default:
+		return testFailedTerminateReason
 	}
 }
 
 // terminateTestWorkflow stops an execution before its worker stops polling the
 // isolated queue. An empty run ID targets the current run after Continue-As-New.
-func terminateTestWorkflow(parentCtx context.Context, c client.Client, workflowID, reason string) error {
-	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(parentCtx), testCleanupDuration)
-	defer cancel()
-
+func terminateTestWorkflow(cleanupCtx context.Context, c client.Client, workflowID, reason string) error {
 	if err := c.TerminateWorkflow(cleanupCtx, workflowID, "", reason); err != nil {
+		if _, ok := errors.AsType[*serviceerror.NotFound](err); ok {
+			return nil
+		}
 		description, describeErr := c.DescribeWorkflowExecution(cleanupCtx, workflowID, "")
 		if describeErr == nil {
 			switch description.GetWorkflowExecutionInfo().GetStatus() {

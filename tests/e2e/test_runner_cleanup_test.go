@@ -141,3 +141,48 @@ func TestE2EZigflowTestTimeoutTerminatesContinuedRun(t *testing.T) {
 	}
 	assert.True(t, continued, "workflow should continue as new before the timeout")
 }
+
+func TestE2EZigflowTestStopsUnawaitedChild(t *testing.T) {
+	c, err := temporal.NewConnectionWithEnvvars()
+	require.NoError(t, err)
+	defer c.Close()
+
+	definition := []byte(`document:
+  dsl: 1.0.0
+  taskQueue: shared-document-queue
+  workflowType: async-test
+  version: 0.0.1
+do:
+  - parent:
+      do:
+        - startChild:
+            run:
+              await: false
+              workflow:
+                type: child
+        - allowChildToStart:
+            wait:
+              seconds: 2
+  - child:
+      do:
+        - longWait:
+            wait:
+              seconds: 45
+`)
+	result, err := testrunner.RunBytes(t.Context(), definition, &testrunner.Config{
+		WorkflowType: "parent",
+		Timeout:      20 * time.Second,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, testrunner.StatusCompleted, result.Status, "run error: %v", result.Err)
+
+	listed, err := c.ListWorkflow(t.Context(), &workflowservice.ListWorkflowExecutionsRequest{
+		Query: fmt.Sprintf("TaskQueue = '%s' AND ExecutionStatus = 'Running'", result.TaskQueue),
+	})
+	require.NoError(t, err)
+	for _, execution := range listed.GetExecutions() {
+		_ = c.TerminateWorkflow(t.Context(), execution.GetExecution().GetWorkflowId(), "", "test cleanup")
+	}
+	assert.Empty(t, listed.GetExecutions(), "all executions on the test queue must be closed before the worker stops")
+}
