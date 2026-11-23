@@ -151,9 +151,9 @@ func waitForBranchTimer(t *testing.T, c client.Client, ctx context.Context, id s
 func assertCanceled(t *testing.T, c client.Client, ctx context.Context, id, runID string) {
 	t.Helper()
 
-	desc, err := c.DescribeWorkflowExecution(ctx, id, runID)
+	desc, err := c.DescribeWorkflow(ctx, id, runID)
 	require.NoError(t, err)
-	assert.Equal(t, enums.WORKFLOW_EXECUTION_STATUS_CANCELED, desc.GetWorkflowExecutionInfo().GetStatus(),
+	assert.Equal(t, enums.WORKFLOW_EXECUTION_STATUS_CANCELED, desc.Status,
 		"Temporal must record %q as CANCELED", id)
 }
 

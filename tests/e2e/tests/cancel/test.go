@@ -101,9 +101,9 @@ var testCase = utils.TestCase{
 		assert.True(t, sdktemporal.IsCanceledError(err),
 			"the client must observe the execution as cancelled, got: %v", err)
 
-		desc, err := c.DescribeWorkflowExecution(wCtx, workflowID, runID)
+		desc, err := c.DescribeWorkflow(wCtx, workflowID, runID)
 		require.NoError(t, err)
-		assert.Equal(t, enums.WORKFLOW_EXECUTION_STATUS_CANCELED, desc.GetWorkflowExecutionInfo().GetStatus(),
+		assert.Equal(t, enums.WORKFLOW_EXECUTION_STATUS_CANCELED, desc.Status,
 			"Temporal must record the execution as CANCELED")
 
 		// Prove the trailing set task never ran. If it had, the do loop

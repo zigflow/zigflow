@@ -157,10 +157,10 @@ func waitForNewRun(t *testing.T, c client.Client, ctx context.Context, originalR
 	var candidate string
 	stable := 0
 	for time.Now().Before(deadline) {
-		desc, err := c.DescribeWorkflowExecution(ctx, workflowID, "")
+		desc, err := c.DescribeWorkflow(ctx, workflowID, "")
 		require.NoError(t, err, "describe workflow execution")
 
-		currentRunID := desc.GetWorkflowExecutionInfo().GetExecution().GetRunId()
+		currentRunID := desc.WorkflowExecution.RunID
 		if currentRunID != "" && currentRunID != originalRunID {
 			if currentRunID == candidate {
 				stable++
