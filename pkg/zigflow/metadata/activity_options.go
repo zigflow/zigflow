@@ -100,6 +100,8 @@ type RetryPolicy struct {
 }
 
 func (r *RetryPolicy) ToTemporal(retry *temporal.RetryPolicy) *temporal.RetryPolicy {
+	// Work on a copy: the policy passed in may be shared (see defaultRetryPolicy).
+	retry = cloneRetryPolicy(retry)
 	if retry == nil {
 		retry = &temporal.RetryPolicy{}
 	}
@@ -123,6 +125,18 @@ func (r *RetryPolicy) ToTemporal(retry *temporal.RetryPolicy) *temporal.RetryPol
 	return retry
 }
 
+// cloneRetryPolicy returns an independent copy of a retry policy, or nil for nil.
+func cloneRetryPolicy(in *temporal.RetryPolicy) *temporal.RetryPolicy {
+	if in == nil {
+		return nil
+	}
+
+	out := *in
+	out.NonRetryableErrorTypes = append([]string(nil), in.NonRetryableErrorTypes...)
+
+	return &out
+}
+
 // ************** //
 // Static Methods //
 // ************** //
@@ -134,7 +148,8 @@ func SetActivityOptions(ctx workflow.Context, wf *model.Workflow, task *model.Ta
 
 	// Set default values
 	ao.Summary = taskName
-	ao.RetryPolicy = defaultRetryPolicy
+	// The default is shared by every task, so each gets its own copy to change
+	ao.RetryPolicy = cloneRetryPolicy(defaultRetryPolicy)
 	ao.StartToCloseTimeout = defaultWorkflowTimeout
 
 	// @deprecated Convert the timeout
