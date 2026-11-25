@@ -2,6 +2,19 @@
 
 This changelog is generated from [GitHub Releases](https://github.com/zigflow/zigflow/releases).
 
+## [v0.18.2](https://github.com/zigflow/zigflow/releases/tag/v0.18.2) - 2026-11-25
+
+## What's Changed
+* chore: update changelog by @github-actions[bot] in https://github.com/zigflow/zigflow/pull/659
+* chore(examples): update typescript to v7 by @mrsimonemms in https://github.com/zigflow/zigflow/pull/660
+* deps(deps): bump the go-dependencies group across 1 directory with 10 updates by @dependabot[bot] in https://github.com/zigflow/zigflow/pull/662
+* fix(metadata): give each task its own copy of the default retry policy by @tangkhaiphuong in https://github.com/zigflow/zigflow/pull/664
+
+## New Contributors
+* @tangkhaiphuong made their first contribution in https://github.com/zigflow/zigflow/pull/664
+
+**Full Changelog**: https://github.com/zigflow/zigflow/compare/v0.18.1...v0.18.2
+
 ## [v0.18.1](https://github.com/zigflow/zigflow/releases/tag/v0.18.1) - 2026-11-11
 
 ## What's Changed
