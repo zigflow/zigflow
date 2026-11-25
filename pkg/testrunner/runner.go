@@ -295,9 +295,9 @@ func terminateTestWorkflow(cleanupCtx context.Context, c client.Client, workflow
 		if _, ok := errors.AsType[*serviceerror.NotFound](err); ok {
 			return nil
 		}
-		description, describeErr := c.DescribeWorkflowExecution(cleanupCtx, workflowID, "")
+		description, describeErr := c.DescribeWorkflow(cleanupCtx, workflowID, "")
 		if describeErr == nil {
-			switch description.GetWorkflowExecutionInfo().GetStatus() {
+			switch description.Status {
 			case enumspb.WORKFLOW_EXECUTION_STATUS_COMPLETED,
 				enumspb.WORKFLOW_EXECUTION_STATUS_FAILED,
 				enumspb.WORKFLOW_EXECUTION_STATUS_CANCELED,

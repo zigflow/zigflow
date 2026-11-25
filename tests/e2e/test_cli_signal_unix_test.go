@@ -100,7 +100,7 @@ do:
 		t.Fatal("CLI did not exit after SIGINT")
 	}
 
-	description, err := c.DescribeWorkflowExecution(t.Context(), workflowID, "")
+	description, err := c.DescribeWorkflow(t.Context(), workflowID, "")
 	require.NoError(t, err)
-	assert.Equal(t, enumspb.WORKFLOW_EXECUTION_STATUS_TERMINATED, description.GetWorkflowExecutionInfo().GetStatus(), stderr.String())
+	assert.Equal(t, enumspb.WORKFLOW_EXECUTION_STATUS_TERMINATED, description.Status, stderr.String())
 }

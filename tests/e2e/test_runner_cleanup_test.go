@@ -98,9 +98,9 @@ do:
 		t.Fatal("test runner did not return after caller cancellation")
 	}
 
-	desc, err := c.DescribeWorkflowExecution(t.Context(), workflowID, "")
+	desc, err := c.DescribeWorkflow(t.Context(), workflowID, "")
 	require.NoError(t, err)
-	assert.Equal(t, enumspb.WORKFLOW_EXECUTION_STATUS_TERMINATED, desc.GetWorkflowExecutionInfo().GetStatus())
+	assert.Equal(t, enumspb.WORKFLOW_EXECUTION_STATUS_TERMINATED, desc.Status)
 }
 
 func TestE2EZigflowTestTimeoutTerminatesContinuedRun(t *testing.T) {
@@ -124,9 +124,9 @@ func TestE2EZigflowTestTimeoutTerminatesContinuedRun(t *testing.T) {
 		_ = c.TerminateWorkflow(context.Background(), result.WorkflowID, "", "test cleanup")
 	}()
 
-	current, err := c.DescribeWorkflowExecution(t.Context(), result.WorkflowID, "")
+	current, err := c.DescribeWorkflow(t.Context(), result.WorkflowID, "")
 	require.NoError(t, err)
-	assert.Equal(t, enumspb.WORKFLOW_EXECUTION_STATUS_TERMINATED, current.GetWorkflowExecutionInfo().GetStatus())
+	assert.Equal(t, enumspb.WORKFLOW_EXECUTION_STATUS_TERMINATED, current.Status)
 
 	listed, err := c.ListWorkflow(t.Context(), &workflowservice.ListWorkflowExecutionsRequest{
 		Query: fmt.Sprintf("WorkflowId = '%s'", result.WorkflowID),
@@ -136,7 +136,7 @@ func TestE2EZigflowTestTimeoutTerminatesContinuedRun(t *testing.T) {
 	for _, execution := range listed.GetExecutions() {
 		if execution.GetStatus() == enumspb.WORKFLOW_EXECUTION_STATUS_CONTINUED_AS_NEW {
 			continued = true
-			assert.NotEqual(t, current.GetWorkflowExecutionInfo().GetExecution().GetRunId(), execution.GetExecution().GetRunId())
+			assert.NotEqual(t, current.WorkflowExecution.RunID, execution.GetExecution().GetRunId())
 		}
 	}
 	assert.True(t, continued, "workflow should continue as new before the timeout")
